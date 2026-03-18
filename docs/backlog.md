@@ -26,10 +26,10 @@ Status legend:
 - `done` Add bilingual i18n-ready foundation for Arabic and English
 - `done` Add RTL/LTR layout support strategy
 - `done` Add responsive layout baseline for mobile, tablet, and desktop
-- `todo` Add dark/light/system theme foundation
+- `done` Add dark/light/system theme foundation
 - `done` Add design tokens and semantic color system
-- `todo` Add motion utilities with reduced-motion compliance
-- `in_progress` Add top-bar language toggle and theme toggle foundation
+- `done` Add motion utilities with reduced-motion compliance
+- `done` Add top-bar language toggle and theme toggle foundation
 
 ## Phase 2 - Data Model
 
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Add dark/light/system theme foundation
-2. Add motion utilities with reduced-motion compliance
-3. Add top-bar language toggle and theme toggle foundation
-4. Build locations CRUD routes
-5. Build locations UI tree/list screens
+1. Build locations CRUD routes
+2. Build locations UI tree/list screens
+3. Build locations import flow
+4. Add hierarchy validations
+5. Ensure location labels and views support Arabic and English fields where needed

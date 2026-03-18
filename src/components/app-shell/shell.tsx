@@ -5,6 +5,7 @@ import type { Locale, Messages } from "@/lib/i18n";
 import { getNavigation } from "@/lib/navigation";
 
 import { Header } from "./header";
+import { PageTransition } from "./page-transition";
 import { Sidebar } from "./sidebar";
 
 type ShellProps = {
@@ -30,7 +31,9 @@ export function AppShell({ children, locale, messages, user }: ShellProps) {
           navigation={navigation}
           user={user}
         />
-        <main className="min-w-0">{children}</main>
+        <main className="min-w-0">
+          <PageTransition>{children}</PageTransition>
+        </main>
       </div>
     </div>
   );

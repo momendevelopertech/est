@@ -5,7 +5,9 @@ import type { SessionUser } from "@/lib/auth/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { LocaleToggle } from "./locale-toggle";
 import { NavLink } from "./nav-link";
+import { ThemeToggle } from "./theme-toggle";
 
 type HeaderProps = {
   locale: Locale;
@@ -15,13 +17,24 @@ type HeaderProps = {
 };
 
 export function Header({ locale, messages, navigation, user }: HeaderProps) {
+  const localeLabel =
+    locale === "ar" ? messages.common.arabic : messages.common.english;
+
+  const themeLabel =
+    user.preferredTheme === "dark"
+      ? messages.theme.dark
+      : user.preferredTheme === "light"
+        ? messages.theme.light
+        : messages.theme.system;
+
   return (
-    <header className="space-y-4 rounded-panel border border-border bg-surface px-5 py-5 shadow-panel">
+    <header className="motion-shell-reveal space-y-4 rounded-panel border border-border bg-surface px-5 py-5 shadow-panel">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
             <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.shell.locale}</Badge>
+            <Badge>{localeLabel}</Badge>
+            <Badge>{themeLabel}</Badge>
           </div>
           <div>
             <p className="text-sm text-text-secondary">{messages.shell.signedInAs}</p>
@@ -36,12 +49,8 @@ export function Header({ locale, messages, navigation, user }: HeaderProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <a
-            href={`/api/preferences/locale?locale=${locale === "ar" ? "en" : "ar"}&redirectTo=/dashboard`}
-            className="inline-flex h-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated px-4 text-sm font-medium text-text-primary transition-colors hover:bg-surface"
-          >
-            {locale === "ar" ? messages.common.english : messages.common.arabic}
-          </a>
+          <LocaleToggle locale={locale} messages={messages} />
+          <ThemeToggle initialTheme={user.preferredTheme} messages={messages} />
           <form action="/api/auth/logout" method="post">
             <Button type="submit" variant="secondary">
               {messages.shell.signOut}
@@ -50,7 +59,7 @@ export function Header({ locale, messages, navigation, user }: HeaderProps) {
         </div>
       </div>
 
-      <details className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 lg:hidden">
+      <details className="motion-shell-reveal rounded-2xl border border-border bg-surface-elevated px-4 py-3 lg:hidden">
         <summary className="cursor-pointer list-none text-sm font-medium text-text-primary">
           {messages.shell.menu}
         </summary>

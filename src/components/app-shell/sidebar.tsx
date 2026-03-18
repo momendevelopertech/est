@@ -11,7 +11,7 @@ type SidebarProps = {
 
 export function Sidebar({ messages, navigation }: SidebarProps) {
   return (
-    <aside className="hidden w-72 shrink-0 rounded-panel border border-border bg-surface px-5 py-5 shadow-panel lg:flex lg:flex-col lg:gap-6">
+    <aside className="motion-shell-reveal hidden w-72 shrink-0 rounded-panel border border-border bg-surface px-5 py-5 shadow-panel lg:flex lg:flex-col lg:gap-6">
       <div className="space-y-3">
         <Badge variant="accent">{messages.shell.status}</Badge>
         <div>

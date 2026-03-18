@@ -18,7 +18,7 @@ export function NavLink({ href, label }: NavLinkProps) {
     <Link
       href={href}
       className={cn(
-        "flex items-center justify-between rounded-2xl px-3 py-3 text-sm transition-colors",
+        "motion-nav-link flex items-center justify-between rounded-2xl px-3 py-3 text-sm",
         isActive
           ? "bg-accent text-white shadow-panel"
           : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"

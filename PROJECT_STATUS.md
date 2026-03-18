@@ -14,6 +14,8 @@
 - Seed data now exists for assignment roles, runtime settings, and initial app users
 - Database-backed authentication is live with hashed passwords, persisted sessions, login/logout, and role guards
 - Locale-aware shell copy, Arabic/English switching, and RTL/LTR rendering are now working
+- Dark/light/system theme resolution is now live through database-backed preferences, cookies, and system fallback
+- Shared motion utilities now exist with reduced-motion-safe transitions for pages, panels, navigation, and controls
 
 ## Canonical Working Documents
 
@@ -48,15 +50,15 @@ We will instead:
 | App shell and shared UI | done | Protected shell, route groups, and reusable primitives now power public and dashboard routes |
 | Auth shell | done | Database-backed auth now uses seeded app users, hashed passwords, persisted sessions, and role guards |
 | Bilingual shell foundation | done | Arabic/English copy, cookie-based language switching, and RTL/LTR direction are active |
+| Theme and motion foundation | done | Dark/light/system theme resolution, top-bar preference controls, and reduced-motion-safe utilities are active |
 | Locations module | todo | Depends on schema/bootstrap |
 | Proctors module | todo | Depends on schema/bootstrap |
 
 ## Immediate Next Focus
 
-- Add dark/light/system theme foundation on top of the new shell
-- Add motion utilities with reduced-motion compliance
-- Finish the top-bar theme toggle side of the shell controls
-- Build the first database-backed CRUD slice on top of the migrated schema, starting with locations
+- Build the first database-backed CRUD slice on top of the migrated schema, starting with locations routes
+- Build the companion locations UI tree/list screens on top of those routes
+- Add location import flow and hierarchy validations
 - Continue preserving UX and notification-system requirements from v3.0
 
 ## Update Log
@@ -88,3 +90,7 @@ We will instead:
 - Replaced bootstrap environment-based auth with database-backed app-user authentication using hashed passwords and persisted `app_sessions`
 - Updated locale preference persistence so account language can be stored in the database and mirrored into the locale cookie
 - Verified the database-backed milestone with `npm run db:generate`, `npm run db:migrate -- --name initial_database_setup`, `npm run db:seed`, `npm run db:validate`, `npm run lint`, `npm run typecheck`, `npm run build`, and a browser smoke test covering seeded login, dashboard access, locale switching, and logout
+- Added a real dark/light/system theme foundation using class-based theme resolution from `app_users.preferred_theme`, `settings.system.default_theme`, cookies, and system fallback
+- Added top-bar language and theme controls that persist preferences without full page reloads
+- Added reduced-motion-safe motion utilities for page transitions, panels, buttons, and navigation interactions
+- Verified the theme/motion milestone with `npm run lint`, `npm run typecheck`, `npm run build`, and a browser smoke test covering theme switching, locale switching, logout, and database-backed preference persistence

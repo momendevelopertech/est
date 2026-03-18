@@ -22,9 +22,15 @@
     "role": "Role",
     "direction": "Direction",
     "locale": "Language",
-    "localeHint": "Browser preference is the default until a cookie-based or account-based selection is made.",
+    "localeHint": "Language and theme selections now sync from the account, cookies, and system defaults.",
     "signOut": "Sign out",
     "menu": "Menu"
+  },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
   },
   "auth": {
     "eyebrow": "Protected access",
@@ -47,15 +53,19 @@
   },
   "dashboard": {
     "title": "Operations overview",
-    "subtitle": "The app shell, protected routes, and shared UI now sit on top of database-backed auth.",
+    "subtitle": "The shell now resolves locale, theme, and authentication state from live database-backed preferences.",
     "cards": {
       "shell": {
         "title": "Shared shell",
-        "body": "Dashboard routes now share one protected layout, responsive navigation, and common header behavior."
+        "body": "Dashboard routes share one protected layout, responsive navigation, and a motion-aware header."
       },
       "auth": {
         "title": "Persisted sessions",
-        "body": "Login and logout now create and revoke session records in PostgreSQL instead of relying on environment-only credentials."
+        "body": "Login and logout create and revoke session records in PostgreSQL instead of relying on environment-only credentials."
+      },
+      "theme": {
+        "title": "Adaptive appearance",
+        "body": "Light, dark, and system themes now resolve from account preferences, settings, and cookies."
       },
       "copy": {
         "title": "Locale-aware copy",
@@ -78,9 +88,9 @@
     "title": "Foundation settings preview",
     "subtitle": "This route is intentionally restricted to super admins and coordinators to prove the role guard path.",
     "items": {
-      "auth": "Auth now reads active app users, password hashes, and persisted sessions from PostgreSQL.",
-      "locale": "Locale preference can be stored in the database and mirrored to the locale cookie.",
-      "next": "Theme controls and the first CRUD modules are the next expansion points."
+      "auth": "Auth reads active app users, password hashes, and persisted sessions from PostgreSQL.",
+      "locale": "Language and theme preferences can be stored in the database and mirrored to cookies for rendering.",
+      "next": "Locations CRUD is the next expansion point after the remaining shell foundation polish."
     }
   },
   "roles": {
