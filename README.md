@@ -1,3 +1,10 @@
-# est
+# ExamOps Planning Workspace
 
-Initial project setup.
+This repository currently holds the planning baseline for the ExamOps system.
+
+Start here:
+
+- `AI_START_HERE.md`
+- `docs/examops-master-plan.md`
+- `docs/backlog.md`
+- `PROJECT_STATUS.md`
