@@ -279,11 +279,29 @@ model AppUser {
   blocksLifted        Block[]         @relation("BlockLiftedBy")
   evaluationsAuthored Evaluation[]    @relation("EvaluationAuthor")
   attendanceUpdates   Attendance[]    @relation("AttendanceUpdatedBy")
+  sessions            AppSession[]
   createdAt           DateTime        @default(now()) @map("created_at")
   updatedAt           DateTime        @updatedAt @map("updated_at")
 
   @@index([role, isActive])
   @@map("app_users")
+}
+
+model AppSession {
+  id         String   @id @default(uuid()) @db.Uuid
+  appUserId  String   @map("app_user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash") @db.VarChar(255)
+  expiresAt  DateTime @map("expires_at")
+  lastSeenAt DateTime @map("last_seen_at")
+  ipAddress  String?  @map("ip_address") @db.VarChar(64)
+  userAgent  String?  @map("user_agent") @db.Text
+  appUser    AppUser  @relation(fields: [appUserId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([appUserId, expiresAt])
+  @@index([expiresAt])
+  @@map("app_sessions")
 }
 
 // Operational assignment roles stay in data so future role changes do not require schema rewrites.
