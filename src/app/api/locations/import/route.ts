@@ -10,6 +10,22 @@ import {
   requireLocationsApiRole
 } from "@/lib/locations/http";
 
+function isUploadedImportFile(value: FormDataEntryValue | null): value is File {
+  if (!value || typeof value === "string") {
+    return false;
+  }
+
+  return (
+    typeof value === "object" &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "size" in value &&
+    typeof value.size === "number" &&
+    "text" in value &&
+    typeof value.text === "function"
+  );
+}
+
 export async function GET() {
   const auth = await requireLocationsApiRole();
 
@@ -35,7 +51,7 @@ export async function POST(request: Request) {
     const formData = await request.formData();
     const file = formData.get("file");
 
-    if (!(file instanceof File)) {
+    if (!isUploadedImportFile(file)) {
       return NextResponse.json(
         {
           ok: false,

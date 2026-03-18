@@ -59,6 +59,11 @@ const rowSchema = z.object({
 
 type ParsedImportRow = z.infer<typeof rowSchema>;
 
+type LocalizedImportName = {
+  primaryName: string;
+  englishName?: string;
+};
+
 type ImportRowResult = {
   row: number;
   success: boolean;
@@ -113,6 +118,28 @@ function trimCell(value: string) {
 function normalizeOptionalText(value: string) {
   const normalized = trimCell(value);
   return normalized.length > 0 ? normalized : undefined;
+}
+
+function resolveLocalizedName(
+  primaryValue: string,
+  englishValue: string,
+  fieldBase: string
+): LocalizedImportName {
+  const primaryName = normalizeOptionalText(primaryValue);
+  const englishName = normalizeOptionalText(englishValue);
+  const fallbackName = primaryName ?? englishName;
+
+  if (!fallbackName) {
+    createImportValidationError(
+      "missing_required_field",
+      `${fieldBase} name is required when ${fieldBase} data is present.`
+    );
+  }
+
+  return {
+    primaryName: fallbackName,
+    englishName: englishName ?? (!primaryName ? fallbackName : undefined)
+  };
 }
 
 function parseCsv(text: string) {
@@ -283,14 +310,18 @@ function validateRowShape(record: ParsedImportRow) {
   if (!hasGovernorate) {
     createImportValidationError(
       "missing_required_field",
-      "governorateName is required for every import row."
+      "governorateName or governorateNameEn is required for every import row."
     );
   }
 
-  if (hasUniversity && !normalizeOptionalText(record.universityName)) {
+  if (
+    hasUniversity &&
+    !normalizeOptionalText(record.universityName) &&
+    !normalizeOptionalText(record.universityNameEn)
+  ) {
     createImportValidationError(
       "missing_required_field",
-      "universityName is required when university data is present."
+      "universityName or universityNameEn is required when university data is present."
     );
   }
 
@@ -301,10 +332,14 @@ function validateRowShape(record: ParsedImportRow) {
     );
   }
 
-  if (hasBuilding && !normalizeOptionalText(record.buildingName)) {
+  if (
+    hasBuilding &&
+    !normalizeOptionalText(record.buildingName) &&
+    !normalizeOptionalText(record.buildingNameEn)
+  ) {
     createImportValidationError(
       "missing_required_field",
-      "buildingName is required when building data is present."
+      "buildingName or buildingNameEn is required when building data is present."
     );
   }
 
@@ -315,10 +350,14 @@ function validateRowShape(record: ParsedImportRow) {
     );
   }
 
-  if (hasFloor && !normalizeOptionalText(record.floorName)) {
+  if (
+    hasFloor &&
+    !normalizeOptionalText(record.floorName) &&
+    !normalizeOptionalText(record.floorNameEn)
+  ) {
     createImportValidationError(
       "missing_required_field",
-      "floorName is required when floor data is present."
+      "floorName or floorNameEn is required when floor data is present."
     );
   }
 
@@ -330,10 +369,10 @@ function validateRowShape(record: ParsedImportRow) {
   }
 
   if (hasRoom) {
-    if (!normalizeOptionalText(record.roomName)) {
+    if (!normalizeOptionalText(record.roomName) && !normalizeOptionalText(record.roomNameEn)) {
       createImportValidationError(
         "missing_required_field",
-        "roomName is required when room data is present."
+        "roomName or roomNameEn is required when room data is present."
       );
     }
 
@@ -360,11 +399,20 @@ function validateRowShape(record: ParsedImportRow) {
   }
 }
 
-function chooseSingleMatch<T extends { id: string; name: string; code: string | null; isActive: boolean }>(
+function chooseSingleMatch<
+  T extends {
+    id: string;
+    name: string;
+    nameEn?: string | null;
+    code: string | null;
+    isActive: boolean;
+  }
+>(
   entityType: string,
   matches: T[],
   code?: string,
-  name?: string
+  name?: string,
+  nameEn?: string
 ) {
   if (matches.length === 0) {
     return null;
@@ -376,8 +424,16 @@ function chooseSingleMatch<T extends { id: string; name: string; code: string | 
   const nameMatches = name
     ? matches.filter((match) => match.name.toLowerCase() === name.toLowerCase())
     : [];
+  const englishNameMatches = nameEn
+    ? matches.filter((match) => match.nameEn?.toLowerCase() === nameEn.toLowerCase())
+    : [];
 
-  if (codeMatches.length > 1 || nameMatches.length > 1 || matches.length > 1) {
+  if (
+    codeMatches.length > 1 ||
+    nameMatches.length > 1 ||
+    englishNameMatches.length > 1 ||
+    matches.length > 1
+  ) {
     createImportValidationError(
       "ambiguous_existing_match",
       `Multiple ${entityType} records matched the same import row.`,
@@ -387,17 +443,22 @@ function chooseSingleMatch<T extends { id: string; name: string; code: string | 
     );
   }
 
-  if (codeMatches.length > 0 && nameMatches.length > 0 && codeMatches[0].id !== nameMatches[0].id) {
+  const namedMatches = [codeMatches[0], nameMatches[0], englishNameMatches[0]].filter(Boolean);
+
+  if (
+    namedMatches.length > 1 &&
+    new Set(namedMatches.map((match) => match?.id)).size > 1
+  ) {
     createImportValidationError(
       "conflicting_duplicate_match",
-      `${entityType} code and name match different existing records.`,
+      `${entityType} code and names match different existing records.`,
       {
         entityType
       }
     );
   }
 
-  const match = codeMatches[0] ?? nameMatches[0] ?? matches[0];
+  const match = codeMatches[0] ?? nameMatches[0] ?? englishNameMatches[0] ?? matches[0];
 
   if (!match.isActive) {
     createImportValidationError(
@@ -417,13 +478,12 @@ async function resolveGovernorate(
   tx: Prisma.TransactionClient,
   record: ParsedImportRow
 ) {
-  const name = normalizeOptionalText(record.governorateName);
-  const nameEn = normalizeOptionalText(record.governorateNameEn);
+  const { primaryName: name, englishName: nameEn } = resolveLocalizedName(
+    record.governorateName,
+    record.governorateNameEn,
+    "governorate"
+  );
   const code = normalizeOptionalText(record.governorateCode);
-
-  if (!name) {
-    createImportValidationError("missing_required_field", "governorateName is required.");
-  }
 
   const matches = await tx.governorate.findMany({
     where: {
@@ -443,18 +503,29 @@ async function resolveGovernorate(
             equals: name,
             mode: "insensitive"
           }
-        }
+        },
+        ...(nameEn
+          ? [
+              {
+                nameEn: {
+                  equals: nameEn,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
       ]
     },
     select: {
       id: true,
       name: true,
+      nameEn: true,
       code: true,
       isActive: true
     }
   });
 
-  const match = chooseSingleMatch("governorate", matches, code, name);
+  const match = chooseSingleMatch("governorate", matches, code, name, nameEn);
 
   if (match) {
     return {
@@ -489,13 +560,12 @@ async function resolveUniversity(
     return null;
   }
 
-  const name = normalizeOptionalText(record.universityName);
-  const nameEn = normalizeOptionalText(record.universityNameEn);
+  const { primaryName: name, englishName: nameEn } = resolveLocalizedName(
+    record.universityName,
+    record.universityNameEn,
+    "university"
+  );
   const code = normalizeOptionalText(record.universityCode);
-
-  if (!name) {
-    createImportValidationError("missing_required_field", "universityName is required.");
-  }
 
   const matches = await tx.university.findMany({
     where: {
@@ -516,18 +586,29 @@ async function resolveUniversity(
             equals: name,
             mode: "insensitive"
           }
-        }
+        },
+        ...(nameEn
+          ? [
+              {
+                nameEn: {
+                  equals: nameEn,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
       ]
     },
     select: {
       id: true,
       name: true,
+      nameEn: true,
       code: true,
       isActive: true
     }
   });
 
-  const match = chooseSingleMatch("university", matches, code, name);
+  const match = chooseSingleMatch("university", matches, code, name, nameEn);
 
   if (match) {
     return {
@@ -563,14 +644,13 @@ async function resolveBuilding(
     return null;
   }
 
-  const name = normalizeOptionalText(record.buildingName);
-  const nameEn = normalizeOptionalText(record.buildingNameEn);
+  const { primaryName: name, englishName: nameEn } = resolveLocalizedName(
+    record.buildingName,
+    record.buildingNameEn,
+    "building"
+  );
   const code = normalizeOptionalText(record.buildingCode);
   const address = normalizeOptionalText(record.buildingAddress);
-
-  if (!name) {
-    createImportValidationError("missing_required_field", "buildingName is required.");
-  }
 
   const matches = await tx.building.findMany({
     where: {
@@ -591,18 +671,29 @@ async function resolveBuilding(
             equals: name,
             mode: "insensitive"
           }
-        }
+        },
+        ...(nameEn
+          ? [
+              {
+                nameEn: {
+                  equals: nameEn,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
       ]
     },
     select: {
       id: true,
       name: true,
+      nameEn: true,
       code: true,
       isActive: true
     }
   });
 
-  const match = chooseSingleMatch("building", matches, code, name);
+  const match = chooseSingleMatch("building", matches, code, name, nameEn);
 
   if (match) {
     return {
@@ -639,14 +730,13 @@ async function resolveFloor(
     return null;
   }
 
-  const name = normalizeOptionalText(record.floorName);
-  const nameEn = normalizeOptionalText(record.floorNameEn);
+  const { primaryName: name, englishName: nameEn } = resolveLocalizedName(
+    record.floorName,
+    record.floorNameEn,
+    "floor"
+  );
   const code = normalizeOptionalText(record.floorCode);
   const levelNumber = parseInteger(record.floorLevelNumber, "floorLevelNumber");
-
-  if (!name) {
-    createImportValidationError("missing_required_field", "floorName is required.");
-  }
 
   const matches = await tx.floor.findMany({
     where: {
@@ -667,18 +757,29 @@ async function resolveFloor(
             equals: name,
             mode: "insensitive"
           }
-        }
+        },
+        ...(nameEn
+          ? [
+              {
+                nameEn: {
+                  equals: nameEn,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
       ]
     },
     select: {
       id: true,
       name: true,
+      nameEn: true,
       code: true,
       isActive: true
     }
   });
 
-  const match = chooseSingleMatch("floor", matches, code, name);
+  const match = chooseSingleMatch("floor", matches, code, name, nameEn);
 
   if (match) {
     return {
@@ -715,17 +816,16 @@ async function resolveRoom(
     return null;
   }
 
-  const name = normalizeOptionalText(record.roomName);
-  const nameEn = normalizeOptionalText(record.roomNameEn);
+  const { primaryName: name, englishName: nameEn } = resolveLocalizedName(
+    record.roomName,
+    record.roomNameEn,
+    "room"
+  );
   const code = normalizeOptionalText(record.roomCode);
   const roomType = normalizeOptionalText(record.roomType);
   const supportedExamTypes = parseExamTypes(record.roomSupportedExamTypes);
   const capacityMin = parseInteger(record.roomCapacityMin, "roomCapacityMin") ?? 0;
   const capacityMax = parseInteger(record.roomCapacityMax, "roomCapacityMax");
-
-  if (!name) {
-    createImportValidationError("missing_required_field", "roomName is required.");
-  }
 
   if (!roomType) {
     createImportValidationError("missing_required_field", "roomType is required.");
@@ -764,18 +864,29 @@ async function resolveRoom(
             equals: name,
             mode: "insensitive"
           }
-        }
+        },
+        ...(nameEn
+          ? [
+              {
+                nameEn: {
+                  equals: nameEn,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
       ]
     },
     select: {
       id: true,
       name: true,
+      nameEn: true,
       code: true,
       isActive: true
     }
   });
 
-  const match = chooseSingleMatch("room", matches, code, name);
+  const match = chooseSingleMatch("room", matches, code, name, nameEn);
 
   if (match) {
     return {
