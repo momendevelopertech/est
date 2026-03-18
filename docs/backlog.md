@@ -26,6 +26,10 @@ Status legend:
 - `todo` Add bilingual i18n-ready foundation for Arabic and English
 - `todo` Add RTL/LTR layout support strategy
 - `todo` Add responsive layout baseline for mobile, tablet, and desktop
+- `todo` Add dark/light/system theme foundation
+- `todo` Add design tokens and semantic color system
+- `todo` Add motion utilities with reduced-motion compliance
+- `todo` Add top-bar language toggle and theme toggle foundation
 
 ## Phase 2 - Data Model
 
@@ -36,6 +40,9 @@ Status legend:
 - `todo` Finalize assignments and waiting list
 - `todo` Finalize attendance, evaluations, blocks, audit, and settings
 - `todo` Create first migration and seed data
+- `todo` Add bilingual name fields where required
+- `todo` Add preferred language and preferred theme persistence
+- `todo` Add notification provider/template settings
 
 ## Phase 3 - Locations Module
 
@@ -61,6 +68,7 @@ Status legend:
 - `todo` Add session status flow
 - `todo` Build cycle/session UI
 - `todo` Add clone workflow foundation
+- `todo` Support bilingual cycle and session naming
 
 ## Phase 6 - Assignment Engine
 
@@ -71,6 +79,7 @@ Status legend:
 - `todo` Implement ASSN manual-only logic
 - `todo` Build assignment UI foundation
 - `todo` Make assignment UI responsive across tablet and desktop with acceptable mobile fallback
+- `todo` Add late-import re-ranking flow with manual override preservation
 
 ## Phase 7 - Operational Workflows
 
@@ -88,15 +97,23 @@ Status legend:
 - `todo` Build dashboard metrics endpoints
 - `todo` Build reports hub and report pages
 - `todo` Add PDF export where needed
+- `todo` Add bilingual Excel export headers
+- `todo` Build premium dashboard layout and localized report views
 
 ## Phase 9 - Notification And Delivery
 
 - `todo` Add email template layer
 - `todo` Add notification triggers
+- `todo` Add WhatsApp integration layer
+- `todo` Add SMS fallback support
+- `todo` Add in-app notifications
+- `todo` Localize notifications by user preferred language
 - `todo` Add PWA support
 - `todo` Add test coverage
 - `todo` Add deployment checklist
 - `todo` Validate bilingual and responsive quality before production release
+- `todo` Validate dark/light/system theme quality before production release
+- `todo` Validate accessibility contrast and reduced-motion support before production release
 
 ## Recommended Next Tasks
 

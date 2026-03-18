@@ -7,10 +7,13 @@ This file is the normalized implementation reference for ExamOps.
 It consolidates:
 
 - the original business prompt
+- the detailed v3.0 product specification
 - lessons from the generated scaffold artifact
 - the decisions we need before writing real source code
 
 When there is a conflict between this file and any legacy generated artifact, this file wins.
+
+When detailed business requirements are needed, consult `docs/examops-spec-v3.md`.
 
 ## Product Goal
 
@@ -53,6 +56,9 @@ The system must replace manual Excel-heavy workflows with a dynamic platform tha
 - Imports/exports: dedicated Excel import/export services
 - Audit: one shared activity log pipeline for sensitive actions
 - Internationalization: bilingual Arabic/English content architecture from the beginning
+- Theme architecture: dark, light, and system preference support from the foundation
+- Motion architecture: accessible micro-interactions with reduced-motion support
+- Notification architecture: WhatsApp-first with email, in-app, and SMS fallback support
 
 ## Cross-Cutting Product Requirements
 
@@ -95,6 +101,8 @@ This applies to:
 - labels/configurable content where needed
 - clone behaviors
 - filters, reports, and exports
+- theme defaults and language defaults
+- notification providers, priorities, and templates
 
 When in doubt, prefer database-driven or settings-driven configuration over code constants.
 
@@ -223,6 +231,7 @@ Responsibilities:
 - assignment exports
 - attendance/evaluation/waiting-list/proctor reports
 - PDF where valuable later
+- bilingual export headers and localized report presentation
 
 ### 8. Settings And Audit
 
@@ -232,6 +241,16 @@ Responsibilities:
 - dynamic distribution knobs
 - operational toggles
 - change logging
+
+### 9. UX And Notification Foundations
+
+Responsibilities:
+
+- bilingual UI system
+- RTL/LTR-aware layout behavior
+- theme system
+- motion system with reduced-motion compliance
+- configurable notification channel orchestration
 
 ## UI Scope
 
@@ -253,6 +272,8 @@ UI-wide rules:
 - bilingual Arabic/English support is mandatory
 - responsive behavior is mandatory on all screens
 - no screen should hardcode operational values that belong in data or settings
+- theme-awareness is mandatory on all screens
+- key operational screens must be tablet-usable, not desktop-only
 
 ## Delivery Strategy
 
@@ -268,6 +289,7 @@ We will build in slices:
 - establish auth shell
 - define layout/navigation shell
 - establish bilingual and responsive foundations early
+- establish theme and motion foundations early
 
 ### Slice 1: Core Data Foundations
 
@@ -297,6 +319,8 @@ We will build in slices:
 - export flows
 - reporting surfaces
 - dashboard metrics
+- bilingual export formatting
+- localized report presentation
 
 ### Slice 5: Polish And Delivery
 
@@ -304,6 +328,8 @@ We will build in slices:
 - test coverage
 - deployment setup
 - operational hardening
+- accessibility and reduced-motion verification
+- notification channel hardening
 
 ## Definition Of Done For A Slice
 

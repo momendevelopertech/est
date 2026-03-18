@@ -10,9 +10,10 @@ Do not continue from any old generated markdown dump.
 
 The current source of truth is:
 
-1. `docs/examops-master-plan.md`
-2. `docs/backlog.md`
-3. `PROJECT_STATUS.md`
+1. `docs/examops-spec-v3.md`
+2. `docs/examops-master-plan.md`
+3. `docs/backlog.md`
+4. `PROJECT_STATUS.md`
 
 ## Mandatory System-Wide Rules
 
@@ -21,6 +22,8 @@ The current source of truth is:
 - Business-critical behavior must be dynamic and data-driven, not hardcoded
 - Auditability matters for sensitive operations
 - Excel import/export is a core feature
+- Dark, light, and system theme support is required
+- Notification design must account for WhatsApp, email, in-app, and SMS fallback
 
 ## Important Execution Rule
 
@@ -41,10 +44,12 @@ Start with:
 1. finalizing the canonical Prisma schema
 2. scaffolding the real Next.js app
 3. establishing bilingual and responsive app foundations
-4. adding auth shell and route protection
+4. establishing theme and UI system foundations
+5. adding auth shell and route protection
 
 ## Files To Read Next
 
 - `docs/examops-master-plan.md`
+- `docs/examops-spec-v3.md`
 - `docs/backlog.md`
 - `PROJECT_STATUS.md`

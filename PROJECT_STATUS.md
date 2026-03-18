@@ -5,11 +5,13 @@
 - Repository is initialized and connected to GitHub
 - Planning baseline docs now exist under `docs/`
 - A single AI handoff file will be used as the entry point for future continuation
+- Full product specification v3.0 is now captured locally
 - No real application source tree has been created yet
 
 ## Canonical Working Documents
 
 - `AI_START_HERE.md`
+- `docs/examops-spec-v3.md`
 - `docs/examops-master-plan.md`
 - `docs/generated-output-review.md`
 - `docs/backlog.md`
@@ -30,6 +32,7 @@ We will instead:
 |---|---|---|
 | Repo setup | done | Git initialized and remote configured |
 | Legacy AI scaffold review | done | Old generated artifact reviewed and retired from active workflow |
+| Full product specification v3.0 | done | Detailed requirements captured in docs |
 | Master implementation plan | done | Normalized reference created |
 | AI handoff entrypoint | done | `AI_START_HERE.md` is now the first file for any continuation |
 | Real app bootstrap | todo | Not started yet |
@@ -42,6 +45,7 @@ We will instead:
 
 - Finalize canonical data model
 - Preserve bilingual Arabic/English and responsive rules as first-class constraints
+- Preserve theme, UX, and notification-system requirements from v3.0
 - Scaffold the real project
 - Start Slice 0 implementation
 
@@ -53,3 +57,4 @@ We will instead:
 - Audited the generated artifact and converted planning into canonical docs
 - Added normalized planning docs and backlog tracking
 - Added `AI_START_HERE.md` as the single entrypoint for any future AI continuation
+- Added the detailed `docs/examops-spec-v3.md` product specification
