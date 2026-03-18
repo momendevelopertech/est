@@ -12,14 +12,14 @@ Status legend:
 - `done` Audit the AI-generated scaffold artifact
 - `done` Normalize the implementation plan
 - `done` Create shared status tracking
-- `todo` Lock the canonical Prisma schema before coding
+- `done` Lock the canonical Prisma schema before coding
 
 ## Phase 1 - Foundation
 
-- `todo` Initialize the real Next.js project structure
-- `todo` Add TypeScript, Tailwind, linting, and base config
-- `todo` Add Prisma and database connection setup
-- `todo` Define environment variable strategy
+- `done` Initialize the real Next.js project structure
+- `done` Add TypeScript, Tailwind, linting, and base config
+- `done` Add Prisma and database connection setup
+- `done` Define environment variable strategy
 - `todo` Add app shell, layout, and route groups
 - `todo` Add authentication shell and role guard strategy
 - `todo` Add shared UI primitives
@@ -33,16 +33,16 @@ Status legend:
 
 ## Phase 2 - Data Model
 
-- `todo` Finalize location models
-- `todo` Finalize user/proctor model
-- `todo` Finalize app user model
-- `todo` Finalize cycles and sessions
-- `todo` Finalize assignments and waiting list
-- `todo` Finalize attendance, evaluations, blocks, audit, and settings
+- `done` Finalize location models
+- `done` Finalize user/proctor model
+- `done` Finalize app user model
+- `done` Finalize cycles and sessions
+- `done` Finalize assignments and waiting list
+- `done` Finalize attendance, evaluations, blocks, audit, and settings
 - `todo` Create first migration and seed data
-- `todo` Add bilingual name fields where required
-- `todo` Add preferred language and preferred theme persistence
-- `todo` Add notification provider/template settings
+- `done` Add bilingual name fields where required
+- `done` Add preferred language and preferred theme persistence
+- `done` Add notification provider/template settings
 
 ## Phase 3 - Locations Module
 
@@ -119,8 +119,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Finalize the canonical Prisma schema
-2. Scaffold the real Next.js app structure
-3. Add bilingual and responsive app shell foundations
-4. Add auth shell and protected route layout
-5. Build locations foundation
+1. Add app shell, layout, and route groups
+2. Add authentication shell and role guard strategy
+3. Add shared UI primitives
+4. Add bilingual i18n-ready foundation for Arabic and English
+5. Add RTL/LTR layout support strategy

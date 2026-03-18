@@ -1,0 +1,538 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LocaleCode {
+  AR
+  EN
+}
+
+enum ThemePreference {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum UserSource {
+  SPHINX
+  UNIVERSITY
+  EXTERNAL
+}
+
+enum AppUserRole {
+  SUPER_ADMIN
+  COORDINATOR
+  DATA_ENTRY
+  SENIOR
+  VIEWER
+}
+
+enum CycleStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum CloneMode {
+  STRUCTURE_ONLY
+  STRUCTURE_PLUS_MANAGEMENT
+  FULL
+}
+
+enum ExamType {
+  EST1
+  EST2
+  EST_ASSN
+}
+
+enum SessionStatus {
+  DRAFT
+  OPEN
+  LOCKED
+  COMPLETED
+  ARCHIVED
+  CANCELLED
+}
+
+enum AssignmentStatus {
+  DRAFT
+  CONFIRMED
+  LOCKED
+  CANCELLED
+  COMPLETED
+}
+
+enum AssignmentMethod {
+  AUTO
+  MANUAL
+}
+
+enum OperationalRoleScope {
+  BUILDING
+  FLOOR
+  ROOM
+}
+
+enum WaitingListStatus {
+  WAITING
+  PROMOTED
+  REMOVED
+}
+
+enum AttendanceStatus {
+  PENDING
+  CONFIRMED
+  ABSENT
+  DECLINED
+}
+
+enum BlockStatus {
+  CLEAR
+  TEMPORARY
+  PERMANENT
+}
+
+enum BlockType {
+  TEMPORARY
+  PERMANENT
+}
+
+enum BlockRecordStatus {
+  ACTIVE
+  LIFTED
+  EXPIRED
+}
+
+enum BlockSource {
+  MANUAL
+  SUGGESTED
+  AUTOMATED
+}
+
+enum SettingValueType {
+  STRING
+  NUMBER
+  BOOLEAN
+  JSON
+}
+
+model Governorate {
+  id           String       @id @default(uuid()) @db.Uuid
+  code         String?      @unique @db.VarChar(50)
+  name         String       @db.VarChar(255)
+  nameEn       String?      @map("name_en") @db.VarChar(255)
+  sortOrder    Int          @default(0) @map("sort_order")
+  isActive     Boolean      @default(true) @map("is_active")
+  notes        String?      @db.Text
+  universities University[]
+  users        User[]
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  @@unique([name])
+  @@map("governorates")
+}
+
+model University {
+  id            String      @id @default(uuid()) @db.Uuid
+  governorateId String      @map("governorate_id") @db.Uuid
+  code          String?     @db.VarChar(50)
+  name          String      @db.VarChar(255)
+  nameEn        String?     @map("name_en") @db.VarChar(255)
+  sortOrder     Int         @default(0) @map("sort_order")
+  isActive      Boolean     @default(true) @map("is_active")
+  notes         String?     @db.Text
+  governorate   Governorate @relation(fields: [governorateId], references: [id])
+  buildings     Building[]
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@unique([governorateId, code])
+  @@unique([governorateId, name])
+  @@index([governorateId, isActive])
+  @@map("universities")
+}
+
+model Building {
+  id           String            @id @default(uuid()) @db.Uuid
+  universityId String            @map("university_id") @db.Uuid
+  code         String?           @db.VarChar(50)
+  name         String            @db.VarChar(255)
+  nameEn       String?           @map("name_en") @db.VarChar(255)
+  address      String?           @db.Text
+  sortOrder    Int               @default(0) @map("sort_order")
+  isActive     Boolean           @default(true) @map("is_active")
+  notes        String?           @db.Text
+  university   University        @relation(fields: [universityId], references: [id])
+  floors       Floor[]
+  assignments  Assignment[]
+  waitingList  WaitingList[]
+  sessionLinks SessionBuilding[]
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@unique([universityId, code])
+  @@unique([universityId, name])
+  @@index([universityId, isActive])
+  @@map("buildings")
+}
+
+model Floor {
+  id          String       @id @default(uuid()) @db.Uuid
+  buildingId  String       @map("building_id") @db.Uuid
+  code        String?      @db.VarChar(50)
+  name        String       @db.VarChar(255)
+  nameEn      String?      @map("name_en") @db.VarChar(255)
+  levelNumber Int?         @map("level_number")
+  sortOrder   Int          @default(0) @map("sort_order")
+  isActive    Boolean      @default(true) @map("is_active")
+  notes       String?      @db.Text
+  building    Building     @relation(fields: [buildingId], references: [id])
+  rooms       Room[]
+  assignments Assignment[]
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@unique([buildingId, code])
+  @@unique([buildingId, name])
+  @@index([buildingId, isActive])
+  @@map("floors")
+}
+
+model Room {
+  id                 String       @id @default(uuid()) @db.Uuid
+  floorId            String       @map("floor_id") @db.Uuid
+  code               String?      @db.VarChar(50)
+  name               String       @db.VarChar(255)
+  nameEn             String?      @map("name_en") @db.VarChar(255)
+  roomType           String       @map("room_type") @db.VarChar(100)
+  supportedExamTypes ExamType[]   @map("supported_exam_types")
+  capacityMin        Int          @default(0) @map("capacity_min")
+  capacityMax        Int          @map("capacity_max")
+  isActive           Boolean      @default(true) @map("is_active")
+  notes              String?      @db.Text
+  floor              Floor        @relation(fields: [floorId], references: [id])
+  assignments        Assignment[]
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+
+  @@unique([floorId, code])
+  @@unique([floorId, name])
+  @@index([floorId, isActive])
+  @@map("rooms")
+}
+
+model User {
+  id                  String        @id @default(uuid()) @db.Uuid
+  name                String        @db.VarChar(255)
+  nameEn              String?       @map("name_en") @db.VarChar(255)
+  phone               String        @unique @db.VarChar(50)
+  nationalId          String?       @unique @map("national_id") @db.VarChar(50)
+  email               String?       @unique @db.VarChar(255)
+  source              UserSource
+  organization        String?       @db.VarChar(255)
+  branch              String?       @db.VarChar(255)
+  governorateId       String?       @map("governorate_id") @db.Uuid
+  averageRating       Decimal       @default(0) @map("average_rating") @db.Decimal(4, 2)
+  totalSessions       Int           @default(0) @map("total_sessions")
+  blockStatus         BlockStatus   @default(CLEAR) @map("block_status")
+  blockEndsAt         DateTime?     @map("block_ends_at")
+  preferredLanguage   LocaleCode?   @map("preferred_language")
+  isActive            Boolean       @default(true) @map("is_active")
+  notes               String?       @db.Text
+  governorate         Governorate?  @relation(fields: [governorateId], references: [id])
+  linkedAppUsers      AppUser[]
+  assignments         Assignment[]
+  waitingListEntries  WaitingList[]
+  evaluationsReceived Evaluation[]  @relation("EvaluationSubject")
+  blocks              Block[]
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  @@index([source, isActive])
+  @@index([governorateId, isActive])
+  @@index([blockStatus, isActive])
+  @@map("users")
+}
+
+model AppUser {
+  id                  String          @id @default(uuid()) @db.Uuid
+  displayName         String          @map("display_name") @db.VarChar(255)
+  email               String?         @unique @db.VarChar(255)
+  phone               String?         @unique @db.VarChar(50)
+  passwordHash        String?         @map("password_hash") @db.VarChar(255)
+  role                AppUserRole
+  linkedUserId        String?         @unique @map("linked_user_id") @db.Uuid
+  preferredLanguage   LocaleCode?     @map("preferred_language")
+  preferredTheme      ThemePreference @default(SYSTEM) @map("preferred_theme")
+  isActive            Boolean         @default(true) @map("is_active")
+  lastLoginAt         DateTime?       @map("last_login_at")
+  linkedUser          User?           @relation(fields: [linkedUserId], references: [id])
+  activityLogs        ActivityLog[]   @relation("ActivityActor")
+  blocksCreated       Block[]         @relation("BlockCreatedBy")
+  blocksLifted        Block[]         @relation("BlockLiftedBy")
+  evaluationsAuthored Evaluation[]    @relation("EvaluationAuthor")
+  attendanceUpdates   Attendance[]    @relation("AttendanceUpdatedBy")
+  createdAt           DateTime        @default(now()) @map("created_at")
+  updatedAt           DateTime        @updatedAt @map("updated_at")
+
+  @@index([role, isActive])
+  @@map("app_users")
+}
+
+// Operational assignment roles stay in data so future role changes do not require schema rewrites.
+model AssignmentRoleDefinition {
+  id            String               @id @default(uuid()) @db.Uuid
+  key           String               @unique @db.VarChar(100)
+  name          String               @db.VarChar(255)
+  nameEn        String?              @map("name_en") @db.VarChar(255)
+  scope         OperationalRoleScope
+  manualOnly    Boolean              @default(false) @map("manual_only")
+  sortOrder     Int                  @default(0) @map("sort_order")
+  isSystem      Boolean              @default(false) @map("is_system")
+  isActive      Boolean              @default(true) @map("is_active")
+  description   String?              @db.Text
+  descriptionEn String?              @map("description_en") @db.Text
+  assignments   Assignment[]
+  waitingList   WaitingList[]
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  @@index([scope, isActive])
+  @@map("assignment_role_definitions")
+}
+
+model Cycle {
+  id            String        @id @default(uuid()) @db.Uuid
+  code          String?       @unique @db.VarChar(100)
+  name          String        @db.VarChar(255)
+  nameEn        String?       @map("name_en") @db.VarChar(255)
+  status        CycleStatus   @default(DRAFT)
+  startDate     DateTime?     @map("start_date") @db.Date
+  endDate       DateTime?     @map("end_date") @db.Date
+  sourceCycleId String?       @map("source_cycle_id") @db.Uuid
+  cloneMode     CloneMode?    @map("clone_mode")
+  notes         String?       @db.Text
+  isActive      Boolean       @default(true) @map("is_active")
+  sourceCycle   Cycle?        @relation("CycleCloneSource", fields: [sourceCycleId], references: [id])
+  clonedCycles  Cycle[]       @relation("CycleCloneSource")
+  sessions      Session[]
+  waitingList   WaitingList[]
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  @@index([status, isActive])
+  @@map("cycles")
+}
+
+model Session {
+  id          String            @id @default(uuid()) @db.Uuid
+  cycleId     String            @map("cycle_id") @db.Uuid
+  name        String            @db.VarChar(255)
+  nameEn      String?           @map("name_en") @db.VarChar(255)
+  examType    ExamType          @map("exam_type")
+  sessionDate DateTime          @map("session_date") @db.Date
+  dayIndex    Int?              @map("day_index")
+  startsAt    DateTime?         @map("starts_at")
+  endsAt      DateTime?         @map("ends_at")
+  status      SessionStatus     @default(DRAFT)
+  lockedAt    DateTime?         @map("locked_at")
+  notes       String?           @db.Text
+  isActive    Boolean           @default(true) @map("is_active")
+  cycle       Cycle             @relation(fields: [cycleId], references: [id])
+  buildings   SessionBuilding[]
+  assignments Assignment[]
+  waitingList WaitingList[]
+  evaluations Evaluation[]
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@unique([cycleId, sessionDate, examType])
+  @@index([cycleId, status])
+  @@index([sessionDate, examType])
+  @@map("sessions")
+}
+
+// Sessions remain date-level while this join table defines which buildings participate in each session.
+model SessionBuilding {
+  id         String   @id @default(uuid()) @db.Uuid
+  sessionId  String   @map("session_id") @db.Uuid
+  buildingId String   @map("building_id") @db.Uuid
+  isActive   Boolean  @default(true) @map("is_active")
+  notes      String?  @db.Text
+  session    Session  @relation(fields: [sessionId], references: [id])
+  building   Building @relation(fields: [buildingId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([sessionId, buildingId])
+  @@index([buildingId, isActive])
+  @@map("session_buildings")
+}
+
+model Assignment {
+  id               String                   @id @default(uuid()) @db.Uuid
+  sessionId        String                   @map("session_id") @db.Uuid
+  userId           String                   @map("user_id") @db.Uuid
+  buildingId       String                   @map("building_id") @db.Uuid
+  floorId          String?                  @map("floor_id") @db.Uuid
+  roomId           String?                  @map("room_id") @db.Uuid
+  roleDefinitionId String                   @map("role_definition_id") @db.Uuid
+  status           AssignmentStatus         @default(DRAFT)
+  assignedMethod   AssignmentMethod         @default(AUTO) @map("assigned_method")
+  isManualOverride Boolean                  @default(false) @map("is_manual_override")
+  overrideNote     String?                  @map("override_note") @db.Text
+  assignedAt       DateTime                 @default(now()) @map("assigned_at")
+  session          Session                  @relation(fields: [sessionId], references: [id])
+  user             User                     @relation(fields: [userId], references: [id])
+  building         Building                 @relation(fields: [buildingId], references: [id])
+  floor            Floor?                   @relation(fields: [floorId], references: [id])
+  room             Room?                    @relation(fields: [roomId], references: [id])
+  roleDefinition   AssignmentRoleDefinition @relation(fields: [roleDefinitionId], references: [id])
+  attendance       Attendance?
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  updatedAt        DateTime                 @updatedAt @map("updated_at")
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, buildingId, status])
+  @@index([sessionId, floorId])
+  @@index([sessionId, roomId])
+  @@index([roleDefinitionId, status])
+  @@map("assignments")
+}
+
+model WaitingList {
+  id               String                    @id @default(uuid()) @db.Uuid
+  sessionId        String                    @map("session_id") @db.Uuid
+  cycleId          String                    @map("cycle_id") @db.Uuid
+  userId           String                    @map("user_id") @db.Uuid
+  buildingId       String?                   @map("building_id") @db.Uuid
+  roleDefinitionId String?                   @map("role_definition_id") @db.Uuid
+  priority         Int
+  status           WaitingListStatus         @default(WAITING)
+  entrySource      String?                   @map("entry_source") @db.VarChar(100)
+  reason           String?                   @db.Text
+  notes            String?                   @db.Text
+  promotedAt       DateTime?                 @map("promoted_at")
+  removedAt        DateTime?                 @map("removed_at")
+  session          Session                   @relation(fields: [sessionId], references: [id])
+  cycle            Cycle                     @relation(fields: [cycleId], references: [id])
+  user             User                      @relation(fields: [userId], references: [id])
+  building         Building?                 @relation(fields: [buildingId], references: [id])
+  roleDefinition   AssignmentRoleDefinition? @relation(fields: [roleDefinitionId], references: [id])
+  createdAt        DateTime                  @default(now()) @map("created_at")
+  updatedAt        DateTime                  @updatedAt @map("updated_at")
+
+  @@unique([sessionId, userId])
+  @@index([sessionId, status, priority])
+  @@index([cycleId, status])
+  @@index([buildingId, status])
+  @@map("waiting_list")
+}
+
+model Evaluation {
+  id                 String   @id @default(uuid()) @db.Uuid
+  sessionId          String   @map("session_id") @db.Uuid
+  subjectUserId      String   @map("subject_user_id") @db.Uuid
+  evaluatorAppUserId String   @map("evaluator_app_user_id") @db.Uuid
+  score              Decimal  @db.Decimal(4, 2)
+  criteriaPayload    Json?    @map("criteria_payload")
+  notes              String?  @db.Text
+  session            Session  @relation(fields: [sessionId], references: [id])
+  subjectUser        User     @relation("EvaluationSubject", fields: [subjectUserId], references: [id])
+  evaluatorAppUser   AppUser  @relation("EvaluationAuthor", fields: [evaluatorAppUserId], references: [id])
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@unique([sessionId, subjectUserId, evaluatorAppUserId])
+  @@index([subjectUserId, sessionId])
+  @@map("evaluations")
+}
+
+model Attendance {
+  id                 String           @id @default(uuid()) @db.Uuid
+  assignmentId       String           @unique @map("assignment_id") @db.Uuid
+  status             AttendanceStatus @default(PENDING)
+  checkedInAt        DateTime?        @map("checked_in_at")
+  updatedByAppUserId String?          @map("updated_by_app_user_id") @db.Uuid
+  notes              String?          @db.Text
+  assignment         Assignment       @relation(fields: [assignmentId], references: [id])
+  updatedByAppUser   AppUser?         @relation("AttendanceUpdatedBy", fields: [updatedByAppUserId], references: [id])
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  @@index([status, updatedAt])
+  @@map("attendance")
+}
+
+model Block {
+  id                 String            @id @default(uuid()) @db.Uuid
+  userId             String            @map("user_id") @db.Uuid
+  type               BlockType
+  status             BlockRecordStatus @default(ACTIVE)
+  source             BlockSource       @default(MANUAL)
+  startsAt           DateTime          @default(now()) @map("starts_at")
+  endsAt             DateTime?         @map("ends_at")
+  reason             String?           @db.Text
+  notes              String?           @db.Text
+  suggestionContext  Json?             @map("suggestion_context")
+  liftReason         String?           @map("lift_reason") @db.Text
+  liftedAt           DateTime?         @map("lifted_at")
+  createdByAppUserId String?           @map("created_by_app_user_id") @db.Uuid
+  liftedByAppUserId  String?           @map("lifted_by_app_user_id") @db.Uuid
+  user               User              @relation(fields: [userId], references: [id])
+  createdByAppUser   AppUser?          @relation("BlockCreatedBy", fields: [createdByAppUserId], references: [id])
+  liftedByAppUser    AppUser?          @relation("BlockLiftedBy", fields: [liftedByAppUserId], references: [id])
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([status, type])
+  @@map("blocks")
+}
+
+model ActivityLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorAppUserId String?  @map("actor_app_user_id") @db.Uuid
+  action         String   @db.VarChar(100)
+  entityType     String   @map("entity_type") @db.VarChar(100)
+  entityId       String   @map("entity_id") @db.VarChar(100)
+  description    String?  @db.Text
+  beforePayload  Json?    @map("before_payload")
+  afterPayload   Json?    @map("after_payload")
+  metadata       Json?
+  ipAddress      String?  @map("ip_address") @db.VarChar(64)
+  userAgent      String?  @map("user_agent") @db.Text
+  occurredAt     DateTime @default(now()) @map("occurred_at")
+  actorAppUser   AppUser? @relation("ActivityActor", fields: [actorAppUserId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorAppUserId, occurredAt])
+  @@map("activity_log")
+}
+
+model Setting {
+  id            String           @id @default(uuid()) @db.Uuid
+  key           String           @unique @db.VarChar(150)
+  group         String           @db.VarChar(100)
+  label         String           @db.VarChar(255)
+  labelEn       String?          @map("label_en") @db.VarChar(255)
+  description   String?          @db.Text
+  descriptionEn String?          @map("description_en") @db.Text
+  type          SettingValueType
+  value         Json
+  isPublic      Boolean          @default(false) @map("is_public")
+  sortOrder     Int              @default(0) @map("sort_order")
+  isActive      Boolean          @default(true) @map("is_active")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  @@index([group, isActive])
+  @@map("settings")
+}
