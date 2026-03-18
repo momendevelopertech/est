@@ -22,32 +22,40 @@
     "role": "Role",
     "direction": "Direction",
     "locale": "Language",
-    "localeHint": "Browser preference is the default until a cookie-based selection is made.",
+    "localeHint": "Browser preference is the default until a cookie-based or account-based selection is made.",
     "signOut": "Sign out",
     "menu": "Menu"
   },
   "auth": {
     "eyebrow": "Protected access",
-    "title": "Sign in to the ExamOps shell",
-    "subtitle": "This milestone uses environment-backed bootstrap credentials with signed cookies so the real database-backed auth layer can replace it cleanly later.",
+    "title": "Sign in to ExamOps",
+    "subtitle": "This milestone authenticates against seeded database users and persists active sessions in PostgreSQL.",
     "email": "Email address",
     "password": "Password",
     "submit": "Sign in",
     "error": "The email or password was incorrect.",
-    "credentialsTitle": "Bootstrap credentials",
-    "credentialsBody": "Set AUTH_BOOTSTRAP_EMAIL, AUTH_BOOTSTRAP_PASSWORD, AUTH_BOOTSTRAP_NAME, AUTH_BOOTSTRAP_ROLE, and AUTH_SECRET in .env before signing in."
+    "credentialsTitle": "Seeded database accounts",
+    "credentialsBody": "Run the Prisma seed, then sign in with one of the app users below. The shared seed password comes from SEED_APP_USERS_PASSWORD.",
+    "arabicPanelBody": "Arabic and English authentication flows now share the same database-backed session layer.",
+    "accounts": {
+      "super_admin": "admin@examops.local",
+      "coordinator": "coordinator@examops.local",
+      "data_entry": "dataentry@examops.local",
+      "senior": "senior@examops.local",
+      "viewer": "viewer@examops.local"
+    }
   },
   "dashboard": {
     "title": "Operations overview",
-    "subtitle": "The app shell, protected routes, and shared UI now sit on top of the bootstrap stack.",
+    "subtitle": "The app shell, protected routes, and shared UI now sit on top of database-backed auth.",
     "cards": {
       "shell": {
         "title": "Shared shell",
         "body": "Dashboard routes now share one protected layout, responsive navigation, and common header behavior."
       },
       "auth": {
-        "title": "Signed session cookies",
-        "body": "Login and logout are live, and protected routes redirect cleanly when the session is missing."
+        "title": "Persisted sessions",
+        "body": "Login and logout now create and revoke session records in PostgreSQL instead of relying on environment-only credentials."
       },
       "copy": {
         "title": "Locale-aware copy",
@@ -70,9 +78,9 @@
     "title": "Foundation settings preview",
     "subtitle": "This route is intentionally restricted to super admins and coordinators to prove the role guard path.",
     "items": {
-      "auth": "Auth is currently environment-backed and signed with AUTH_SECRET.",
-      "locale": "Locale detection uses browser preference first and can be overridden with a cookie.",
-      "next": "Database-backed auth and runtime settings pages are the next expansion point."
+      "auth": "Auth now reads active app users, password hashes, and persisted sessions from PostgreSQL.",
+      "locale": "Locale preference can be stored in the database and mirrored to the locale cookie.",
+      "next": "Theme controls and the first CRUD modules are the next expansion points."
     }
   },
   "roles": {

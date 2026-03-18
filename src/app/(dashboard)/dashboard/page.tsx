@@ -9,10 +9,8 @@ import { requireSession } from "@/lib/auth/session";
 import { getMessages, resolveRequestLocale } from "@/lib/i18n";
 
 export default async function DashboardPage() {
-  const [session, locale] = await Promise.all([
-    requireSession(),
-    resolveRequestLocale()
-  ]);
+  const session = await requireSession();
+  const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
   const cards = Object.values(messages.dashboard.cards);
 

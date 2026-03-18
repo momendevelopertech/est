@@ -7,10 +7,12 @@
 - A single AI handoff file will be used as the entry point for future continuation
 - Full product specification v3.0 is now captured locally
 - Canonical Prisma schema now exists under `prisma/schema.prisma`
+- The first Prisma migration has been applied to the configured Neon database
 - A real Next.js App Router source tree now exists under `src/`
 - TypeScript, Tailwind, ESLint, Prisma runtime wiring, and environment scaffolding are in place
 - Protected public and dashboard route groups now exist with a shared app shell
-- Signed-cookie bootstrap authentication is live with login, logout, and role guards
+- Seed data now exists for assignment roles, runtime settings, and initial app users
+- Database-backed authentication is live with hashed passwords, persisted sessions, login/logout, and role guards
 - Locale-aware shell copy, Arabic/English switching, and RTL/LTR rendering are now working
 
 ## Canonical Working Documents
@@ -41,9 +43,10 @@ We will instead:
 | Master implementation plan | done | Normalized reference created |
 | AI handoff entrypoint | done | `AI_START_HERE.md` is now the first file for any continuation |
 | Prisma schema finalization | done | Canonical schema created and validated with Prisma CLI |
+| Prisma migration and seed data | done | Initial migration applied to Neon and deterministic seed data now populates roles, settings, and app users |
 | Real app bootstrap | done | Next.js App Router scaffold verified with lint, typecheck, Prisma, and production build |
 | App shell and shared UI | done | Protected shell, route groups, and reusable primitives now power public and dashboard routes |
-| Auth shell | done | Environment-backed bootstrap auth with signed cookies and role guards is live |
+| Auth shell | done | Database-backed auth now uses seeded app users, hashed passwords, persisted sessions, and role guards |
 | Bilingual shell foundation | done | Arabic/English copy, cookie-based language switching, and RTL/LTR direction are active |
 | Locations module | todo | Depends on schema/bootstrap |
 | Proctors module | todo | Depends on schema/bootstrap |
@@ -53,7 +56,7 @@ We will instead:
 - Add dark/light/system theme foundation on top of the new shell
 - Add motion utilities with reduced-motion compliance
 - Finish the top-bar theme toggle side of the shell controls
-- Create the first migration and seed data so auth/settings can move toward database-backed behavior
+- Build the first database-backed CRUD slice on top of the migrated schema, starting with locations
 - Continue preserving UX and notification-system requirements from v3.0
 
 ## Update Log
@@ -80,3 +83,8 @@ We will instead:
 - Added environment-backed bootstrap authentication with signed-cookie sessions, login/logout routes, and role guards
 - Added centralized Arabic/English shell copy with cookie-based language switching and RTL/LTR rendering
 - Verified the milestone with `npm run lint`, `npm run typecheck`, `npm run build`, and a real browser smoke test covering login, protected dashboard access, logout, and Arabic language switching
+- Applied the first Prisma migration to the configured Neon PostgreSQL database
+- Added a deterministic Prisma seed script for assignment role definitions, initial settings, and baseline app users
+- Replaced bootstrap environment-based auth with database-backed app-user authentication using hashed passwords and persisted `app_sessions`
+- Updated locale preference persistence so account language can be stored in the database and mirrored into the locale cookie
+- Verified the database-backed milestone with `npm run db:generate`, `npm run db:migrate -- --name initial_database_setup`, `npm run db:seed`, `npm run db:validate`, `npm run lint`, `npm run typecheck`, `npm run build`, and a browser smoke test covering seeded login, dashboard access, locale switching, and logout

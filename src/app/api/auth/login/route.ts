@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 
+import { authCookieName } from "@/lib/auth/config";
 import {
-  authCookieName,
-  bootstrapUser,
-  createSessionPayload
-} from "@/lib/auth/config";
+  authenticateAppUser,
+  createPersistedSession
+} from "@/lib/auth/service";
 import {
-  createSessionToken,
   getSessionCookieOptions
 } from "@/lib/auth/session";
 import { env } from "@/lib/env";
@@ -27,30 +26,41 @@ export async function POST(request: Request) {
   const locale = String(formData.get("locale") ?? "");
   const redirectTo = sanitizeRedirectPath(String(formData.get("redirectTo") ?? ""));
 
-  if (
-    email !== env.AUTH_BOOTSTRAP_EMAIL.toLowerCase() ||
-    password !== env.AUTH_BOOTSTRAP_PASSWORD
-  ) {
+  const appUser = await authenticateAppUser(email, password);
+
+  if (!appUser) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("error", "invalid_credentials");
-    return NextResponse.redirect(loginUrl);
+
+    return NextResponse.redirect(loginUrl, {
+      status: 303
+    });
   }
 
-  const session = {
-    ...createSessionPayload(),
-    user: bootstrapUser
-  };
-  const response = NextResponse.redirect(new URL(redirectTo, request.url));
-  response.cookies.set({
-    name: authCookieName,
-    value: createSessionToken(session),
-    ...getSessionCookieOptions(new Date(session.expiresAt))
+  const session = await createPersistedSession({
+    appUserId: appUser.id,
+    locale: isLocale(locale) ? locale : null,
+    ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+    userAgent: request.headers.get("user-agent")
+  });
+  const response = NextResponse.redirect(new URL(redirectTo, request.url), {
+    status: 303
   });
 
-  if (isLocale(locale)) {
+  response.cookies.set({
+    name: authCookieName,
+    value: session.token,
+    ...getSessionCookieOptions(new Date(session.session.expiresAt))
+  });
+
+  const resolvedLocale = isLocale(locale)
+    ? locale
+    : session.session.user.preferredLanguage;
+
+  if (resolvedLocale) {
     response.cookies.set({
       name: localeCookieName,
-      value: locale,
+      value: resolvedLocale,
       path: "/",
       sameSite: "lax",
       secure: env.NODE_ENV === "production",

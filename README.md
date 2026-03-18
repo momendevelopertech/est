@@ -21,19 +21,29 @@ The repository now includes:
 
 1. Copy `.env.example` to `.env` and set `DATABASE_URL`.
 2. Install dependencies with `npm install`.
-3. Run the app with `npm run dev`.
-4. Generate the Prisma client with `npm run db:generate`.
+3. Run the first migration with `npm run db:migrate`.
+4. Seed the database with `npm run db:seed`.
+5. Run the app with `npm run dev`.
 
-Bootstrap auth variables:
+Runtime auth variables:
 
 - `AUTH_SECRET`
-- `AUTH_BOOTSTRAP_EMAIL`
-- `AUTH_BOOTSTRAP_PASSWORD`
-- `AUTH_BOOTSTRAP_NAME`
-- `AUTH_BOOTSTRAP_ROLE`
+
+Optional seed variable:
+
+- `SEED_APP_USERS_PASSWORD`
+
+Default seeded accounts include:
+
+- `admin@examops.local`
+- `coordinator@examops.local`
+- `dataentry@examops.local`
+- `senior@examops.local`
+- `viewer@examops.local`
 
 ## Current Foundation Notes
 
 - The current bootstrap targets Next.js `14.2.x`.
 - This choice is intentional because the workspace Node version is `19.6.0`, while the latest Next.js `16.x` line requires Node `20.9.0` or newer.
-- Bilingual shell, theme controls, auth, and route groups are planned next and tracked in `docs/backlog.md`.
+- Database-backed auth now expects seeded `app_users` records with hashed passwords.
+- Bilingual shell, theme controls, and the remaining foundation work are tracked in `docs/backlog.md`.

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cairo, Inter } from "next/font/google";
 
+import { getSession } from "@/lib/auth/session";
 import { getDirection, resolveRequestLocale } from "@/lib/i18n";
 import { siteConfig } from "@/lib/site";
 
@@ -28,7 +29,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = await resolveRequestLocale();
+  const session = await getSession();
+  const locale = await resolveRequestLocale(session?.user.preferredLanguage);
 
   return (
     <html

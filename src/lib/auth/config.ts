@@ -1,24 +1,58 @@
 import "server-only";
 
+import type { AppUserRole, LocaleCode, ThemePreference } from "@prisma/client";
+
 import { env } from "@/lib/env";
 
-import type { AuthSession, SessionUser } from "./types";
+import type {
+  AppRole,
+  LocalePreference,
+  ThemeMode
+} from "./types";
 
 export const authCookieName = "examops_session";
 
-export const bootstrapUser: SessionUser = {
-  email: env.AUTH_BOOTSTRAP_EMAIL.toLowerCase(),
-  name: env.AUTH_BOOTSTRAP_NAME,
-  role: env.AUTH_BOOTSTRAP_ROLE
+const appRoleMap: Record<AppUserRole, AppRole> = {
+  SUPER_ADMIN: "super_admin",
+  COORDINATOR: "coordinator",
+  DATA_ENTRY: "data_entry",
+  SENIOR: "senior",
+  VIEWER: "viewer"
+};
+
+const localeMap: Record<LocaleCode, LocalePreference> = {
+  AR: "ar",
+  EN: "en"
+};
+
+const themeMap: Record<ThemePreference, ThemeMode> = {
+  LIGHT: "light",
+  DARK: "dark",
+  SYSTEM: "system"
 };
 
 export function getSessionExpiryDate() {
   return new Date(Date.now() + env.AUTH_SESSION_TTL_HOURS * 60 * 60 * 1000);
 }
 
-export function createSessionPayload(): AuthSession {
-  return {
-    user: bootstrapUser,
-    expiresAt: getSessionExpiryDate().toISOString()
-  };
+export function toAppRole(role: AppUserRole): AppRole {
+  return appRoleMap[role];
+}
+
+export function toLocalePreference(
+  locale: LocaleCode | null | undefined
+): LocalePreference | null {
+  if (!locale) {
+    return null;
+  }
+
+  return localeMap[locale];
+}
+
+export function toThemeMode(theme: ThemePreference | null | undefined): ThemeMode {
+  if (!theme) {
+    return "system";
+  }
+
+  return themeMap[theme];
 }

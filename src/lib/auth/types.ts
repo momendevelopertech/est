@@ -7,14 +7,20 @@ export const appRoles = [
 ] as const;
 
 export type AppRole = (typeof appRoles)[number];
+export type LocalePreference = "ar" | "en";
+export type ThemeMode = "light" | "dark" | "system";
 
 export type SessionUser = {
-  email: string;
+  id: string;
+  email: string | null;
   name: string;
   role: AppRole;
+  preferredLanguage: LocalePreference | null;
+  preferredTheme: ThemeMode;
 };
 
 export type AuthSession = {
+  sessionId: string;
   user: SessionUser;
   expiresAt: string;
 };

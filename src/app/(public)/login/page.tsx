@@ -34,6 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const locale = await resolveRequestLocale();
   const messages = getMessages(locale);
   const hasError = searchParams?.error === "invalid_credentials";
+  const seededAccounts = Object.entries(messages.auth.accounts);
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
@@ -103,6 +104,20 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          <div className="space-y-3 rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+            {seededAccounts.map(([role, email]) => (
+              <div
+                key={role}
+                className="flex items-center justify-between gap-4 border-b border-border/70 pb-3 last:border-b-0 last:pb-0"
+              >
+                <span className="text-sm font-medium text-text-primary">
+                  {messages.roles[role as keyof typeof messages.roles]}
+                </span>
+                <span className="text-sm text-text-secondary">{email}</span>
+              </div>
+            ))}
+          </div>
+
           <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
             <p className="text-sm font-medium text-text-secondary">
               {messages.common.foundation}
@@ -124,7 +139,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               {messages.common.arabic}
             </p>
             <p className="mt-2 text-lg font-semibold text-text-primary">
-              واجهة تسجيل الدخول جاهزة الآن لمسارات الحماية الأساسية.
+              {messages.auth.arabicPanelBody}
             </p>
           </div>
         </CardContent>

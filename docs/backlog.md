@@ -39,7 +39,8 @@ Status legend:
 - `done` Finalize cycles and sessions
 - `done` Finalize assignments and waiting list
 - `done` Finalize attendance, evaluations, blocks, audit, and settings
-- `todo` Create first migration and seed data
+- `done` Create first migration and seed data
+- `done` Transition auth/session from bootstrap env credentials to database-backed users and persisted sessions
 - `done` Add bilingual name fields where required
 - `done` Add preferred language and preferred theme persistence
 - `done` Add notification provider/template settings
@@ -122,5 +123,5 @@ These are the next five tasks to execute in order:
 1. Add dark/light/system theme foundation
 2. Add motion utilities with reduced-motion compliance
 3. Add top-bar language toggle and theme toggle foundation
-4. Create first migration and seed data
-5. Build locations CRUD routes
+4. Build locations CRUD routes
+5. Build locations UI tree/list screens

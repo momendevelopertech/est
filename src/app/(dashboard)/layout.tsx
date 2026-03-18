@@ -7,10 +7,8 @@ export default async function DashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const [session, locale] = await Promise.all([
-    requireSession(),
-    resolveRequestLocale()
-  ]);
+  const session = await requireSession();
+  const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
 
   return (

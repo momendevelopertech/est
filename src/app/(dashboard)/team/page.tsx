@@ -8,9 +8,8 @@ import { requireSession } from "@/lib/auth/session";
 import { getMessages, resolveRequestLocale } from "@/lib/i18n";
 
 export default async function TeamPage() {
-  await requireSession();
-
-  const locale = await resolveRequestLocale();
+  const session = await requireSession();
+  const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
   const matrix = Object.entries(messages.team.matrix);
 

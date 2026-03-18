@@ -15,11 +15,17 @@ export function isLocale(value: string | undefined | null): value is Locale {
   return value === "en" || value === "ar";
 }
 
-export async function resolveRequestLocale(): Promise<Locale> {
+export async function resolveRequestLocale(
+  preferredLocale?: Locale | null
+): Promise<Locale> {
   const cookieLocale = cookies().get(localeCookieName)?.value;
 
   if (isLocale(cookieLocale)) {
     return cookieLocale;
+  }
+
+  if (isLocale(preferredLocale)) {
+    return preferredLocale;
   }
 
   const acceptLanguage = headers().get("accept-language")?.toLowerCase();

@@ -8,9 +8,9 @@ import { requireRole } from "@/lib/auth/guards";
 import { getMessages, resolveRequestLocale } from "@/lib/i18n";
 
 export default async function SettingsPage() {
-  await requireRole(["super_admin", "coordinator"]);
+  const session = await requireRole(["super_admin", "coordinator"]);
 
-  const locale = await resolveRequestLocale();
+  const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
   const items = Object.values(messages.settings.items);
 
