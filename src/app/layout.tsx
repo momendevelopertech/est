@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cairo, Inter } from "next/font/google";
 
+import { getDirection, resolveRequestLocale } from "@/lib/i18n";
 import { siteConfig } from "@/lib/site";
 
 import "./globals.css";
@@ -22,15 +23,17 @@ export const metadata: Metadata = {
   description: siteConfig.description
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await resolveRequestLocale();
+
   return (
     <html
-      lang="en"
-      dir="ltr"
+      lang={locale}
+      dir={getDirection(locale)}
       className={`${inter.variable} ${cairo.variable}`}
       suppressHydrationWarning
     >

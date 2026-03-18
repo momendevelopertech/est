@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "ExamOps",
+    "tagline": "Exam operations control room"
+  },
+  "common": {
+    "english": "English",
+    "arabic": "Arabic",
+    "ltr": "LTR",
+    "rtl": "RTL",
+    "protected": "Protected",
+    "foundation": "Foundation"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "team": "Team access",
+    "settings": "Settings"
+  },
+  "shell": {
+    "status": "Foundation slice",
+    "signedInAs": "Signed in as",
+    "role": "Role",
+    "direction": "Direction",
+    "locale": "Language",
+    "localeHint": "Browser preference is the default until a cookie-based selection is made.",
+    "signOut": "Sign out",
+    "menu": "Menu"
+  },
+  "auth": {
+    "eyebrow": "Protected access",
+    "title": "Sign in to the ExamOps shell",
+    "subtitle": "This milestone uses environment-backed bootstrap credentials with signed cookies so the real database-backed auth layer can replace it cleanly later.",
+    "email": "Email address",
+    "password": "Password",
+    "submit": "Sign in",
+    "error": "The email or password was incorrect.",
+    "credentialsTitle": "Bootstrap credentials",
+    "credentialsBody": "Set AUTH_BOOTSTRAP_EMAIL, AUTH_BOOTSTRAP_PASSWORD, AUTH_BOOTSTRAP_NAME, AUTH_BOOTSTRAP_ROLE, and AUTH_SECRET in .env before signing in."
+  },
+  "dashboard": {
+    "title": "Operations overview",
+    "subtitle": "The app shell, protected routes, and shared UI now sit on top of the bootstrap stack.",
+    "cards": {
+      "shell": {
+        "title": "Shared shell",
+        "body": "Dashboard routes now share one protected layout, responsive navigation, and common header behavior."
+      },
+      "auth": {
+        "title": "Signed session cookies",
+        "body": "Login and logout are live, and protected routes redirect cleanly when the session is missing."
+      },
+      "copy": {
+        "title": "Locale-aware copy",
+        "body": "Shell copy is centralized so Arabic and English can expand without scattering strings through the tree."
+      }
+    }
+  },
+  "team": {
+    "title": "Team access model",
+    "subtitle": "This screen reflects the current role guard strategy and where shell permissions already apply.",
+    "matrix": {
+      "super_admin": "Full platform access, including settings and future user administration.",
+      "coordinator": "Operational access with management visibility across shell sections.",
+      "data_entry": "Operational access without settings administration.",
+      "senior": "Protected shell access ready for attendance and evaluation slices.",
+      "viewer": "Read-focused dashboard access."
+    }
+  },
+  "settings": {
+    "title": "Foundation settings preview",
+    "subtitle": "This route is intentionally restricted to super admins and coordinators to prove the role guard path.",
+    "items": {
+      "auth": "Auth is currently environment-backed and signed with AUTH_SECRET.",
+      "locale": "Locale detection uses browser preference first and can be overridden with a cookie.",
+      "next": "Database-backed auth and runtime settings pages are the next expansion point."
+    }
+  },
+  "roles": {
+    "super_admin": "Super admin",
+    "coordinator": "Coordinator",
+    "data_entry": "Data entry",
+    "senior": "Senior",
+    "viewer": "Viewer"
+  }
+}

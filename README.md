@@ -24,6 +24,14 @@ The repository now includes:
 3. Run the app with `npm run dev`.
 4. Generate the Prisma client with `npm run db:generate`.
 
+Bootstrap auth variables:
+
+- `AUTH_SECRET`
+- `AUTH_BOOTSTRAP_EMAIL`
+- `AUTH_BOOTSTRAP_PASSWORD`
+- `AUTH_BOOTSTRAP_NAME`
+- `AUTH_BOOTSTRAP_ROLE`
+
 ## Current Foundation Notes
 
 - The current bootstrap targets Next.js `14.2.x`.

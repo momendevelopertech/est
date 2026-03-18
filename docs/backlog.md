@@ -20,16 +20,16 @@ Status legend:
 - `done` Add TypeScript, Tailwind, linting, and base config
 - `done` Add Prisma and database connection setup
 - `done` Define environment variable strategy
-- `todo` Add app shell, layout, and route groups
-- `todo` Add authentication shell and role guard strategy
-- `todo` Add shared UI primitives
-- `todo` Add bilingual i18n-ready foundation for Arabic and English
-- `todo` Add RTL/LTR layout support strategy
-- `todo` Add responsive layout baseline for mobile, tablet, and desktop
+- `done` Add app shell, layout, and route groups
+- `done` Add authentication shell and role guard strategy
+- `done` Add shared UI primitives
+- `done` Add bilingual i18n-ready foundation for Arabic and English
+- `done` Add RTL/LTR layout support strategy
+- `done` Add responsive layout baseline for mobile, tablet, and desktop
 - `todo` Add dark/light/system theme foundation
-- `todo` Add design tokens and semantic color system
+- `done` Add design tokens and semantic color system
 - `todo` Add motion utilities with reduced-motion compliance
-- `todo` Add top-bar language toggle and theme toggle foundation
+- `in_progress` Add top-bar language toggle and theme toggle foundation
 
 ## Phase 2 - Data Model
 
@@ -119,8 +119,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Add app shell, layout, and route groups
-2. Add authentication shell and role guard strategy
-3. Add shared UI primitives
-4. Add bilingual i18n-ready foundation for Arabic and English
-5. Add RTL/LTR layout support strategy
+1. Add dark/light/system theme foundation
+2. Add motion utilities with reduced-motion compliance
+3. Add top-bar language toggle and theme toggle foundation
+4. Create first migration and seed data
+5. Build locations CRUD routes
