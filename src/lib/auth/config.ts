@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { AppUserRole, LocaleCode, ThemePreference } from "@prisma/client";
+import { ThemePreference, type AppUserRole, type LocaleCode } from "@prisma/client";
 
 import { env } from "@/lib/env";
 
@@ -55,4 +55,15 @@ export function toThemeMode(theme: ThemePreference | null | undefined): ThemeMod
   }
 
   return themeMap[theme];
+}
+
+export function toThemePreference(theme: ThemeMode): ThemePreference {
+  switch (theme) {
+    case "light":
+      return ThemePreference.LIGHT;
+    case "dark":
+      return ThemePreference.DARK;
+    default:
+      return ThemePreference.SYSTEM;
+  }
 }

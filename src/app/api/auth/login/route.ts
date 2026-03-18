@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth/session";
 import { env } from "@/lib/env";
 import { isLocale, localeCookieName } from "@/lib/i18n";
+import { themeCookieName } from "@/lib/theme";
 
 function sanitizeRedirectPath(value: string | null) {
   if (!value || !value.startsWith("/")) {
@@ -17,6 +18,24 @@ function sanitizeRedirectPath(value: string | null) {
   }
 
   return value;
+}
+
+function getRequestOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+
+  if (origin) {
+    return origin;
+  }
+
+  const host =
+    request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") ?? "http";
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  return new URL(request.url).origin;
 }
 
 export async function POST(request: Request) {
@@ -29,7 +48,7 @@ export async function POST(request: Request) {
   const appUser = await authenticateAppUser(email, password);
 
   if (!appUser) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", getRequestOrigin(request));
     loginUrl.searchParams.set("error", "invalid_credentials");
 
     return NextResponse.redirect(loginUrl, {
@@ -43,7 +62,7 @@ export async function POST(request: Request) {
     ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
     userAgent: request.headers.get("user-agent")
   });
-  const response = NextResponse.redirect(new URL(redirectTo, request.url), {
+  const response = NextResponse.redirect(new URL(redirectTo, getRequestOrigin(request)), {
     status: 303
   });
 
@@ -67,6 +86,15 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 365
     });
   }
+
+  response.cookies.set({
+    name: themeCookieName,
+    value: session.session.user.preferredTheme,
+    path: "/",
+    sameSite: "lax",
+    secure: env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 365
+  });
 
   return response;
 }

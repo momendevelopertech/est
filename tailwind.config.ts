@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -27,7 +28,7 @@ const config: Config = {
         panel: "1.75rem"
       },
       boxShadow: {
-        panel: "0 24px 80px -32px rgba(15, 23, 42, 0.35)"
+        panel: "var(--shadow-panel)"
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

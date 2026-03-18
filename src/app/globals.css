@@ -17,10 +17,46 @@
   --warning: #d97706;
   --danger: #dc2626;
   --info: #0f5ec9;
+  --shadow-panel: 0 24px 80px -32px rgba(15, 23, 42, 0.28);
+  --shadow-panel-hover: 0 28px 88px -34px rgba(15, 23, 42, 0.32);
+  --panel-gradient-start: rgba(255, 255, 255, 0.78);
+  --panel-gradient-end: rgba(255, 255, 255, 0.48);
+  --backdrop-glow-primary: rgba(37, 99, 235, 0.14);
+  --backdrop-glow-secondary: rgba(16, 185, 129, 0.14);
+  --motion-page: 150ms;
+  --motion-fast: 100ms;
+  --motion-base: 200ms;
+  --motion-slow: 250ms;
+  --motion-status: 300ms;
+  --motion-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html.dark {
+  color-scheme: dark;
+  --background: #07111f;
+  --surface: rgba(10, 20, 39, 0.72);
+  --surface-elevated: rgba(15, 23, 42, 0.88);
+  --border: rgba(100, 116, 139, 0.3);
+  --text-primary: #f8fafc;
+  --text-secondary: #b3c0d4;
+  --text-muted: #8a9ab3;
+  --accent: #60a5fa;
+  --accent-hover: #3b82f6;
+  --success: #34d399;
+  --warning: #f59e0b;
+  --danger: #f87171;
+  --info: #38bdf8;
+  --shadow-panel: 0 24px 80px -28px rgba(2, 6, 23, 0.55);
+  --shadow-panel-hover: 0 28px 92px -34px rgba(2, 6, 23, 0.62);
+  --panel-gradient-start: rgba(15, 23, 42, 0.82);
+  --panel-gradient-end: rgba(8, 15, 28, 0.66);
+  --backdrop-glow-primary: rgba(96, 165, 250, 0.18);
+  --backdrop-glow-secondary: rgba(52, 211, 153, 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  html:not(.light):not(.dark) {
     color-scheme: dark;
     --background: #07111f;
     --surface: rgba(10, 20, 39, 0.72);
@@ -35,6 +71,22 @@
     --warning: #f59e0b;
     --danger: #f87171;
     --info: #38bdf8;
+    --shadow-panel: 0 24px 80px -28px rgba(2, 6, 23, 0.55);
+    --shadow-panel-hover: 0 28px 92px -34px rgba(2, 6, 23, 0.62);
+    --panel-gradient-start: rgba(15, 23, 42, 0.82);
+    --panel-gradient-end: rgba(8, 15, 28, 0.66);
+    --backdrop-glow-primary: rgba(96, 165, 250, 0.18);
+    --backdrop-glow-secondary: rgba(52, 211, 153, 0.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-page: 1ms;
+    --motion-fast: 1ms;
+    --motion-base: 1ms;
+    --motion-slow: 1ms;
+    --motion-status: 1ms;
   }
 }
 
@@ -53,14 +105,17 @@
     min-height: 100vh;
     margin: 0;
     background:
-      radial-gradient(circle at top left, rgba(59, 130, 246, 0.14), transparent 30%),
-      radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.14), transparent 24%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0)),
+      radial-gradient(circle at top left, var(--backdrop-glow-primary), transparent 30%),
+      radial-gradient(circle at bottom right, var(--backdrop-glow-secondary), transparent 24%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0)),
       var(--background);
     color: var(--text-primary);
     font-family: var(--font-sans), system-ui, sans-serif;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    transition:
+      background-color var(--motion-base) var(--motion-standard),
+      color var(--motion-base) var(--motion-standard);
   }
 
   a {
@@ -75,27 +130,118 @@
   ::selection {
     background: rgba(37, 99, 235, 0.2);
   }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
 }
 
 @layer components {
   .panel {
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.7),
-      rgba(255, 255, 255, 0.48)
+      var(--panel-gradient-start),
+      var(--panel-gradient-end)
     );
     border: 1px solid var(--border);
-    box-shadow: 0 24px 80px -32px rgba(15, 23, 42, 0.35);
+    box-shadow: var(--shadow-panel);
     backdrop-filter: blur(22px);
+    transition:
+      background-color var(--motion-base) var(--motion-standard),
+      border-color var(--motion-base) var(--motion-standard),
+      box-shadow var(--motion-base) var(--motion-standard),
+      transform var(--motion-base) var(--motion-standard);
   }
 
-  @media (prefers-color-scheme: dark) {
-    .panel {
-      background: linear-gradient(
-        180deg,
-        rgba(15, 23, 42, 0.78),
-        rgba(8, 15, 28, 0.66)
-      );
+  .motion-button {
+    transition:
+      background-color var(--motion-fast) var(--motion-standard),
+      color var(--motion-fast) var(--motion-standard),
+      border-color var(--motion-fast) var(--motion-standard),
+      box-shadow var(--motion-fast) var(--motion-standard),
+      transform var(--motion-fast) var(--motion-standard);
+    transform-origin: center;
+  }
+
+  .motion-card {
+    transition:
+      background-color var(--motion-base) var(--motion-standard),
+      border-color var(--motion-base) var(--motion-standard),
+      box-shadow var(--motion-base) var(--motion-standard),
+      transform var(--motion-base) var(--motion-standard);
+  }
+
+  .motion-nav-link {
+    transition:
+      background-color var(--motion-base) var(--motion-standard),
+      color var(--motion-base) var(--motion-standard),
+      box-shadow var(--motion-base) var(--motion-standard),
+      transform var(--motion-base) var(--motion-standard);
+  }
+
+  .motion-shell-reveal {
+    animation: shell-reveal var(--motion-slow) var(--motion-emphasis) both;
+  }
+
+  .motion-page-enter {
+    animation: page-enter var(--motion-page) var(--motion-emphasis) both;
+  }
+
+  @keyframes shell-reveal {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .motion-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-panel-hover);
+    }
+
+    .motion-nav-link:hover {
+      transform: translateX(3px);
+    }
+
+    html[dir="rtl"] .motion-nav-link:hover {
+      transform: translateX(-3px);
+    }
+  }
+
+  .motion-button:active {
+    transform: translateY(1px) scale(0.985);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .motion-shell-reveal,
+    .motion-page-enter {
+      animation: none;
+    }
+
+    .motion-card:hover,
+    .motion-nav-link:hover,
+    .motion-button:active {
+      transform: none;
     }
   }
 }

@@ -12,9 +12,10 @@ import {
   getSessionExpiryDate,
   toAppRole,
   toLocalePreference,
-  toThemeMode
+  toThemeMode,
+  toThemePreference
 } from "./config";
-import type { AuthSession, SessionUser } from "./types";
+import type { AuthSession, SessionUser, ThemeMode } from "./types";
 
 const sessionUserSelect = {
   id: true,
@@ -208,6 +209,20 @@ export async function updateAppUserLocalePreference(
     },
     data: {
       preferredLanguage: toLocaleCode(locale)
+    }
+  });
+}
+
+export async function updateAppUserThemePreference(
+  appUserId: string,
+  theme: ThemeMode
+) {
+  await db.appUser.update({
+    where: {
+      id: appUserId
+    },
+    data: {
+      preferredTheme: toThemePreference(theme)
     }
   });
 }
