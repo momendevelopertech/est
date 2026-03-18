@@ -15,6 +15,10 @@ The current source of truth is:
 3. `docs/backlog.md`
 4. `PROJECT_STATUS.md`
 
+If you need the reusable Codex continuation prompt, see:
+
+- `CODEX_PROMPT.md`
+
 ## Mandatory System-Wide Rules
 
 - The system must support both Arabic and English
