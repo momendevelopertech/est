@@ -1,4 +1,4 @@
-import { Prisma, type ExamType } from "@prisma/client";
+import { Prisma, ExamType, type ExamType as ExamTypeValue } from "@prisma/client";
 
 import { db } from "@/lib/db";
 
@@ -23,6 +23,21 @@ import type {
 type IncludeInactiveOptions = {
   includeInactive?: boolean;
   requireActiveParent?: boolean;
+};
+
+type ScopedLocationMatch = {
+  id: string;
+  name: string;
+  code: string | null;
+  isActive: boolean;
+};
+
+type DuplicateCheckInput = {
+  entityType: "governorate" | "university" | "building" | "floor" | "room";
+  name?: string | null;
+  code?: string | null;
+  excludeId?: string;
+  scope?: Record<string, string>;
 };
 
 export class LocationsServiceError extends Error {
@@ -312,6 +327,518 @@ function normalizeMutationError(error: unknown): never {
   throw error;
 }
 
+function normalizeComparableText(value?: string | null) {
+  const normalized = value?.trim();
+  return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
+function throwTypedValidationError(
+  code: string,
+  message: string,
+  details?: Record<string, unknown>
+): never {
+  throw new LocationsServiceError(code, 409, message, details ?? null);
+}
+
+function validateSupportedExamTypes(
+  supportedExamTypes?: readonly string[] | null
+): ExamTypeValue[] | undefined {
+  if (!supportedExamTypes) {
+    return undefined;
+  }
+
+  const invalidValues = supportedExamTypes.filter(
+    (examType) => !Object.values(ExamType).includes(examType as ExamType)
+  );
+
+  if (invalidValues.length > 0) {
+    throw new LocationsServiceError(
+      "invalid_exam_type",
+      400,
+      "supportedExamTypes contains invalid exam types.",
+      {
+        invalidValues
+      }
+    );
+  }
+
+  return [...supportedExamTypes] as ExamTypeValue[];
+}
+
+export function validateRoomIntegrity(
+  input: {
+    supportedExamTypes?: readonly string[] | null;
+    capacityMin?: number;
+    capacityMax?: number;
+  },
+  current?: { capacityMin: number; capacityMax: number }
+) {
+  validateSupportedExamTypes(input.supportedExamTypes);
+
+  const capacityMin = input.capacityMin ?? current?.capacityMin;
+  const capacityMax = input.capacityMax ?? current?.capacityMax;
+
+  if (capacityMax !== undefined && capacityMax <= 0) {
+    throw new LocationsServiceError(
+      "invalid_capacity_range",
+      400,
+      "capacityMax must be greater than zero.",
+      {
+        capacityMax
+      }
+    );
+  }
+
+  if (
+    capacityMin !== undefined &&
+    capacityMax !== undefined &&
+    capacityMax < capacityMin
+  ) {
+    throw new LocationsServiceError(
+      "invalid_capacity_range",
+      400,
+      "capacityMax must be greater than or equal to capacityMin.",
+      {
+        capacityMin,
+        capacityMax
+      }
+    );
+  }
+}
+
+function buildDuplicateDetails(input: DuplicateCheckInput, conflictingRecord: ScopedLocationMatch) {
+  return {
+    entityType: input.entityType,
+    scope: input.scope ?? null,
+    conflictingRecordId: conflictingRecord.id,
+    conflictingRecordName: conflictingRecord.name,
+    conflictingRecordCode: conflictingRecord.code
+  };
+}
+
+function assertNoNameConflict(input: DuplicateCheckInput, matches: ScopedLocationMatch[]) {
+  const normalizedName = normalizeComparableText(input.name);
+
+  if (!normalizedName) {
+    return;
+  }
+
+  const conflictingRecord = matches.find(
+    (match) => match.name.toLowerCase() === normalizedName.toLowerCase()
+  );
+
+  if (!conflictingRecord) {
+    return;
+  }
+
+  throwTypedValidationError(
+    "duplicate_location_name",
+    `A ${input.entityType} with the same name already exists in this scope.`,
+    buildDuplicateDetails(input, conflictingRecord)
+  );
+}
+
+function assertNoCodeConflict(input: DuplicateCheckInput, matches: ScopedLocationMatch[]) {
+  const normalizedCode = normalizeComparableText(input.code);
+
+  if (!normalizedCode) {
+    return;
+  }
+
+  const conflictingRecord = matches.find(
+    (match) => match.code?.toLowerCase() === normalizedCode.toLowerCase()
+  );
+
+  if (!conflictingRecord) {
+    return;
+  }
+
+  throwTypedValidationError(
+    "duplicate_location_code",
+    `A ${input.entityType} with the same code already exists in this scope.`,
+    buildDuplicateDetails(input, conflictingRecord)
+  );
+}
+
+async function assertNoGovernorateDuplicates(input: {
+  name?: string | null;
+  code?: string | null;
+  excludeId?: string;
+}) {
+  const name = normalizeComparableText(input.name);
+  const code = normalizeComparableText(input.code);
+
+  if (!name && !code) {
+    return;
+  }
+
+  const matches = await db.governorate.findMany({
+    where: {
+      ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+      OR: [
+        ...(name
+          ? [
+              {
+                name: {
+                  equals: name,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : []),
+        ...(code
+          ? [
+              {
+                code: {
+                  equals: code,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
+      ]
+    },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true
+    }
+  });
+
+  assertNoNameConflict({ entityType: "governorate", name, code, excludeId: input.excludeId }, matches);
+  assertNoCodeConflict({ entityType: "governorate", name, code, excludeId: input.excludeId }, matches);
+}
+
+async function assertNoUniversityDuplicates(input: {
+  governorateId: string;
+  name?: string | null;
+  code?: string | null;
+  excludeId?: string;
+}) {
+  const name = normalizeComparableText(input.name);
+  const code = normalizeComparableText(input.code);
+
+  if (!name && !code) {
+    return;
+  }
+
+  const matches = await db.university.findMany({
+    where: {
+      governorateId: input.governorateId,
+      ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+      OR: [
+        ...(name
+          ? [
+              {
+                name: {
+                  equals: name,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : []),
+        ...(code
+          ? [
+              {
+                code: {
+                  equals: code,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
+      ]
+    },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true
+    }
+  });
+
+  assertNoNameConflict(
+    {
+      entityType: "university",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { governorateId: input.governorateId }
+    },
+    matches
+  );
+  assertNoCodeConflict(
+    {
+      entityType: "university",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { governorateId: input.governorateId }
+    },
+    matches
+  );
+}
+
+async function assertNoBuildingDuplicates(input: {
+  universityId: string;
+  name?: string | null;
+  code?: string | null;
+  excludeId?: string;
+}) {
+  const name = normalizeComparableText(input.name);
+  const code = normalizeComparableText(input.code);
+
+  if (!name && !code) {
+    return;
+  }
+
+  const matches = await db.building.findMany({
+    where: {
+      universityId: input.universityId,
+      ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+      OR: [
+        ...(name
+          ? [
+              {
+                name: {
+                  equals: name,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : []),
+        ...(code
+          ? [
+              {
+                code: {
+                  equals: code,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
+      ]
+    },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true
+    }
+  });
+
+  assertNoNameConflict(
+    {
+      entityType: "building",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { universityId: input.universityId }
+    },
+    matches
+  );
+  assertNoCodeConflict(
+    {
+      entityType: "building",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { universityId: input.universityId }
+    },
+    matches
+  );
+}
+
+async function assertNoFloorDuplicates(input: {
+  buildingId: string;
+  name?: string | null;
+  code?: string | null;
+  excludeId?: string;
+}) {
+  const name = normalizeComparableText(input.name);
+  const code = normalizeComparableText(input.code);
+
+  if (!name && !code) {
+    return;
+  }
+
+  const matches = await db.floor.findMany({
+    where: {
+      buildingId: input.buildingId,
+      ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+      OR: [
+        ...(name
+          ? [
+              {
+                name: {
+                  equals: name,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : []),
+        ...(code
+          ? [
+              {
+                code: {
+                  equals: code,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
+      ]
+    },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true
+    }
+  });
+
+  assertNoNameConflict(
+    {
+      entityType: "floor",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { buildingId: input.buildingId }
+    },
+    matches
+  );
+  assertNoCodeConflict(
+    {
+      entityType: "floor",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { buildingId: input.buildingId }
+    },
+    matches
+  );
+}
+
+async function assertNoRoomDuplicates(input: {
+  floorId: string;
+  name?: string | null;
+  code?: string | null;
+  excludeId?: string;
+}) {
+  const name = normalizeComparableText(input.name);
+  const code = normalizeComparableText(input.code);
+
+  if (!name && !code) {
+    return;
+  }
+
+  const matches = await db.room.findMany({
+    where: {
+      floorId: input.floorId,
+      ...(input.excludeId ? { id: { not: input.excludeId } } : {}),
+      OR: [
+        ...(name
+          ? [
+              {
+                name: {
+                  equals: name,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : []),
+        ...(code
+          ? [
+              {
+                code: {
+                  equals: code,
+                  mode: "insensitive" as const
+                }
+              }
+            ]
+          : [])
+      ]
+    },
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      isActive: true
+    }
+  });
+
+  assertNoNameConflict(
+    {
+      entityType: "room",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { floorId: input.floorId }
+    },
+    matches
+  );
+  assertNoCodeConflict(
+    {
+      entityType: "room",
+      name,
+      code,
+      excludeId: input.excludeId,
+      scope: { floorId: input.floorId }
+    },
+    matches
+  );
+}
+
+async function assertNoActiveChildren(params: {
+  entityType: "governorate" | "university" | "building" | "floor";
+  entityId: string;
+  childType: "university" | "building" | "floor" | "room";
+}) {
+  const activeChildren =
+    params.entityType === "governorate"
+      ? await db.university.count({
+          where: {
+            governorateId: params.entityId,
+            isActive: true
+          }
+        })
+      : params.entityType === "university"
+        ? await db.building.count({
+            where: {
+              universityId: params.entityId,
+              isActive: true
+            }
+          })
+        : params.entityType === "building"
+          ? await db.floor.count({
+              where: {
+                buildingId: params.entityId,
+                isActive: true
+              }
+            })
+          : await db.room.count({
+              where: {
+                floorId: params.entityId,
+                isActive: true
+              }
+            });
+
+  if (activeChildren > 0) {
+    throw new LocationsServiceError(
+      "has_active_children",
+      409,
+      "Cannot deactivate a location while it still has active child records.",
+      {
+        entityType: params.entityType,
+        entityId: params.entityId,
+        childType: params.childType,
+        activeChildren
+      }
+    );
+  }
+}
+
 async function assertGovernorateExists(
   governorateId: string,
   options: IncludeInactiveOptions = {}
@@ -534,6 +1061,11 @@ export async function getGovernorate(
 }
 
 export async function createGovernorate(input: CreateGovernorateInput, actorAppUserId: string) {
+  await assertNoGovernorateDuplicates({
+    name: input.name,
+    code: input.code
+  });
+
   try {
     return await db.$transaction(async (tx) => {
       const created = await tx.governorate.create({
@@ -569,6 +1101,20 @@ export async function updateGovernorate(
   actorAppUserId: string
 ) {
   const before = await getGovernorate(governorateId);
+
+  if (input.isActive === false && before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "governorate",
+      entityId: governorateId,
+      childType: "university"
+    });
+  }
+
+  await assertNoGovernorateDuplicates({
+    excludeId: governorateId,
+    name: input.name ?? before.name,
+    code: input.code ?? before.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -606,6 +1152,14 @@ export async function deactivateGovernorate(governorateId: string, actorAppUserI
   const before = await getGovernorate(governorateId, {
     includeInactive: true
   });
+
+  if (before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "governorate",
+      entityId: governorateId,
+      childType: "university"
+    });
+  }
 
   try {
     return await db.$transaction(async (tx) => {
@@ -679,6 +1233,11 @@ export async function createUniversity(input: CreateUniversityInput, actorAppUse
   await assertGovernorateExists(input.governorateId, {
     requireActiveParent: true
   });
+  await assertNoUniversityDuplicates({
+    governorateId: input.governorateId,
+    name: input.name,
+    code: input.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -715,13 +1274,36 @@ export async function updateUniversity(
   input: UpdateUniversityInput,
   actorAppUserId: string
 ) {
+  const before = await getUniversity(universityId, {
+    includeInactive: true
+  });
+
   if (input.governorateId) {
     await assertGovernorateExists(input.governorateId, {
       requireActiveParent: true
     });
   }
 
-  const before = await getUniversity(universityId);
+  if (input.isActive === false && before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "university",
+      entityId: universityId,
+      childType: "building"
+    });
+  }
+
+  if (input.isActive === true && !before.isActive) {
+    await assertGovernorateExists(input.governorateId ?? before.governorateId, {
+      requireActiveParent: true
+    });
+  }
+
+  await assertNoUniversityDuplicates({
+    governorateId: input.governorateId ?? before.governorateId,
+    excludeId: universityId,
+    name: input.name ?? before.name,
+    code: input.code ?? before.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -759,6 +1341,14 @@ export async function deactivateUniversity(universityId: string, actorAppUserId:
   const before = await getUniversity(universityId, {
     includeInactive: true
   });
+
+  if (before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "university",
+      entityId: universityId,
+      childType: "building"
+    });
+  }
 
   try {
     return await db.$transaction(async (tx) => {
@@ -833,6 +1423,11 @@ export async function createBuilding(input: CreateBuildingInput, actorAppUserId:
   await assertUniversityExists(input.universityId, {
     requireActiveParent: true
   });
+  await assertNoBuildingDuplicates({
+    universityId: input.universityId,
+    name: input.name,
+    code: input.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -869,13 +1464,36 @@ export async function updateBuilding(
   input: UpdateBuildingInput,
   actorAppUserId: string
 ) {
+  const before = await getBuilding(buildingId, {
+    includeInactive: true
+  });
+
   if (input.universityId) {
     await assertUniversityExists(input.universityId, {
       requireActiveParent: true
     });
   }
 
-  const before = await getBuilding(buildingId);
+  if (input.isActive === false && before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "building",
+      entityId: buildingId,
+      childType: "floor"
+    });
+  }
+
+  if (input.isActive === true && !before.isActive) {
+    await assertUniversityExists(input.universityId ?? before.universityId, {
+      requireActiveParent: true
+    });
+  }
+
+  await assertNoBuildingDuplicates({
+    universityId: input.universityId ?? before.universityId,
+    excludeId: buildingId,
+    name: input.name ?? before.name,
+    code: input.code ?? before.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -913,6 +1531,14 @@ export async function deactivateBuilding(buildingId: string, actorAppUserId: str
   const before = await getBuilding(buildingId, {
     includeInactive: true
   });
+
+  if (before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "building",
+      entityId: buildingId,
+      childType: "floor"
+    });
+  }
 
   try {
     return await db.$transaction(async (tx) => {
@@ -987,6 +1613,11 @@ export async function createFloor(input: CreateFloorInput, actorAppUserId: strin
   await assertBuildingExists(input.buildingId, {
     requireActiveParent: true
   });
+  await assertNoFloorDuplicates({
+    buildingId: input.buildingId,
+    name: input.name,
+    code: input.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -1023,13 +1654,36 @@ export async function updateFloor(
   input: UpdateFloorInput,
   actorAppUserId: string
 ) {
+  const before = await getFloor(floorId, {
+    includeInactive: true
+  });
+
   if (input.buildingId) {
     await assertBuildingExists(input.buildingId, {
       requireActiveParent: true
     });
   }
 
-  const before = await getFloor(floorId);
+  if (input.isActive === false && before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "floor",
+      entityId: floorId,
+      childType: "room"
+    });
+  }
+
+  if (input.isActive === true && !before.isActive) {
+    await assertBuildingExists(input.buildingId ?? before.buildingId, {
+      requireActiveParent: true
+    });
+  }
+
+  await assertNoFloorDuplicates({
+    buildingId: input.buildingId ?? before.buildingId,
+    excludeId: floorId,
+    name: input.name ?? before.name,
+    code: input.code ?? before.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -1068,6 +1722,14 @@ export async function deactivateFloor(floorId: string, actorAppUserId: string) {
     includeInactive: true
   });
 
+  if (before.isActive) {
+    await assertNoActiveChildren({
+      entityType: "floor",
+      entityId: floorId,
+      childType: "room"
+    });
+  }
+
   try {
     return await db.$transaction(async (tx) => {
       const updated = await tx.floor.update({
@@ -1103,26 +1765,6 @@ export async function deactivateFloor(floorId: string, actorAppUserId: string) {
   }
 }
 
-function validateRoomCapacity(
-  input: { capacityMin?: number; capacityMax?: number },
-  current?: { capacityMin: number; capacityMax: number }
-) {
-  const capacityMin = input.capacityMin ?? current?.capacityMin;
-  const capacityMax = input.capacityMax ?? current?.capacityMax;
-
-  if (
-    capacityMin !== undefined &&
-    capacityMax !== undefined &&
-    capacityMax < capacityMin
-  ) {
-    throw new LocationsServiceError(
-      "invalid_capacity_range",
-      400,
-      "capacityMax must be greater than or equal to capacityMin."
-    );
-  }
-}
-
 export async function listRooms(query: RoomListQuery) {
   if (query.floorId) {
     await assertFloorExists(query.floorId);
@@ -1151,7 +1793,12 @@ export async function createRoom(input: CreateRoomInput, actorAppUserId: string)
   await assertFloorExists(input.floorId, {
     requireActiveParent: true
   });
-  validateRoomCapacity(input);
+  validateRoomIntegrity(input);
+  await assertNoRoomDuplicates({
+    floorId: input.floorId,
+    name: input.name,
+    code: input.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -1193,7 +1840,9 @@ export async function updateRoom(
   input: UpdateRoomInput,
   actorAppUserId: string
 ) {
-  const before = await getRoom(roomId);
+  const before = await getRoom(roomId, {
+    includeInactive: true
+  });
 
   if (input.floorId) {
     await assertFloorExists(input.floorId, {
@@ -1201,7 +1850,19 @@ export async function updateRoom(
     });
   }
 
-  validateRoomCapacity(input, before);
+  if (input.isActive === true && !before.isActive) {
+    await assertFloorExists(input.floorId ?? before.floorId, {
+      requireActiveParent: true
+    });
+  }
+
+  validateRoomIntegrity(input, before);
+  await assertNoRoomDuplicates({
+    floorId: input.floorId ?? before.floorId,
+    excludeId: roomId,
+    name: input.name ?? before.name,
+    code: input.code ?? before.code
+  });
 
   try {
     return await db.$transaction(async (tx) => {

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 
-import { LocationsServiceError } from "./service";
+import { LocationsServiceError, validateRoomIntegrity } from "./service";
 
 const locationImportColumns = [
   "governorateName",
@@ -69,7 +69,10 @@ type ImportRowResult = {
     floors: number;
     rooms: number;
   };
-  error?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
 };
 
 type ImportSummary = {
@@ -90,9 +93,18 @@ export type LocationsImportResult = {
   summary: ImportSummary;
   errors: Array<{
     row: number;
+    error: string;
     message: string;
   }>;
 };
+
+function createImportValidationError(
+  code: string,
+  message: string,
+  details?: Record<string, unknown>
+): never {
+  throw new LocationsServiceError(code, 400, message, details ?? null);
+}
 
 function trimCell(value: string) {
   return value.trim();
@@ -165,7 +177,10 @@ function parseInteger(value: string, fieldName: string) {
   const parsed = Number(normalized);
 
   if (!Number.isInteger(parsed)) {
-    throw new Error(`${fieldName} must be an integer.`);
+    createImportValidationError("invalid_integer", `${fieldName} must be an integer.`, {
+      fieldName,
+      value: normalized
+    });
   }
 
   return parsed;
@@ -188,7 +203,13 @@ function parseExamTypes(value: string) {
   const invalid = uniqueParts.filter((part) => !(part in ExamType));
 
   if (invalid.length > 0) {
-    throw new Error(`roomSupportedExamTypes contains invalid values: ${invalid.join(", ")}.`);
+    createImportValidationError(
+      "invalid_exam_type",
+      `roomSupportedExamTypes contains invalid values: ${invalid.join(", ")}.`,
+      {
+        invalidValues: invalid
+      }
+    );
   }
 
   return uniqueParts as ExamType[];
@@ -260,48 +281,81 @@ function validateRowShape(record: ParsedImportRow) {
   const hasRoom = hasLevelData(record, "room");
 
   if (!hasGovernorate) {
-    throw new Error("governorateName is required for every import row.");
+    createImportValidationError(
+      "missing_required_field",
+      "governorateName is required for every import row."
+    );
   }
 
   if (hasUniversity && !normalizeOptionalText(record.universityName)) {
-    throw new Error("universityName is required when university data is present.");
+    createImportValidationError(
+      "missing_required_field",
+      "universityName is required when university data is present."
+    );
   }
 
   if (hasBuilding && !hasUniversity) {
-    throw new Error("Building data requires a university in the same row.");
+    createImportValidationError(
+      "invalid_hierarchy_order",
+      "Building data requires a university in the same row."
+    );
   }
 
   if (hasBuilding && !normalizeOptionalText(record.buildingName)) {
-    throw new Error("buildingName is required when building data is present.");
+    createImportValidationError(
+      "missing_required_field",
+      "buildingName is required when building data is present."
+    );
   }
 
   if (hasFloor && !hasBuilding) {
-    throw new Error("Floor data requires a building in the same row.");
+    createImportValidationError(
+      "invalid_hierarchy_order",
+      "Floor data requires a building in the same row."
+    );
   }
 
   if (hasFloor && !normalizeOptionalText(record.floorName)) {
-    throw new Error("floorName is required when floor data is present.");
+    createImportValidationError(
+      "missing_required_field",
+      "floorName is required when floor data is present."
+    );
   }
 
   if (hasRoom && !hasFloor) {
-    throw new Error("Room data requires a floor in the same row.");
+    createImportValidationError(
+      "invalid_hierarchy_order",
+      "Room data requires a floor in the same row."
+    );
   }
 
   if (hasRoom) {
     if (!normalizeOptionalText(record.roomName)) {
-      throw new Error("roomName is required when room data is present.");
+      createImportValidationError(
+        "missing_required_field",
+        "roomName is required when room data is present."
+      );
     }
 
     if (!normalizeOptionalText(record.roomType)) {
-      throw new Error("roomType is required when room data is present.");
+      createImportValidationError(
+        "missing_required_field",
+        "roomType is required when room data is present."
+      );
     }
 
     if (!normalizeOptionalText(record.roomSupportedExamTypes)) {
-      throw new Error("roomSupportedExamTypes is required when room data is present.");
+      createImportValidationError(
+        "missing_required_field",
+        "roomSupportedExamTypes is required when room data is present."
+      );
     }
 
     if (!normalizeOptionalText(record.roomCapacityMax)) {
-      throw new Error("roomCapacityMax is required when room data is present.");
+      createImportValidationError(
+        "missing_required_field",
+        "roomCapacityMax is required when room data is present."
+      );
     }
   }
 }
@@ -324,17 +378,36 @@ function chooseSingleMatch<T extends { id: string; name: string; code: string | 
     : [];
 
   if (codeMatches.length > 1 || nameMatches.length > 1 || matches.length > 1) {
-    throw new Error(`Multiple ${entityType} records matched the same import row.`);
+    createImportValidationError(
+      "ambiguous_existing_match",
+      `Multiple ${entityType} records matched the same import row.`,
+      {
+        entityType
+      }
+    );
   }
 
   if (codeMatches.length > 0 && nameMatches.length > 0 && codeMatches[0].id !== nameMatches[0].id) {
-    throw new Error(`${entityType} code and name match different existing records.`);
+    createImportValidationError(
+      "conflicting_duplicate_match",
+      `${entityType} code and name match different existing records.`,
+      {
+        entityType
+      }
+    );
   }
 
   const match = codeMatches[0] ?? nameMatches[0] ?? matches[0];
 
   if (!match.isActive) {
-    throw new Error(`Cannot import into inactive ${entityType} "${match.name}".`);
+    createImportValidationError(
+      "inactive_parent",
+      `Cannot import into inactive ${entityType} "${match.name}".`,
+      {
+        entityType,
+        entityId: match.id
+      }
+    );
   }
 
   return match;
@@ -349,7 +422,7 @@ async function resolveGovernorate(
   const code = normalizeOptionalText(record.governorateCode);
 
   if (!name) {
-    throw new Error("governorateName is required.");
+    createImportValidationError("missing_required_field", "governorateName is required.");
   }
 
   const matches = await tx.governorate.findMany({
@@ -421,7 +494,7 @@ async function resolveUniversity(
   const code = normalizeOptionalText(record.universityCode);
 
   if (!name) {
-    throw new Error("universityName is required.");
+    createImportValidationError("missing_required_field", "universityName is required.");
   }
 
   const matches = await tx.university.findMany({
@@ -496,7 +569,7 @@ async function resolveBuilding(
   const address = normalizeOptionalText(record.buildingAddress);
 
   if (!name) {
-    throw new Error("buildingName is required.");
+    createImportValidationError("missing_required_field", "buildingName is required.");
   }
 
   const matches = await tx.building.findMany({
@@ -572,7 +645,7 @@ async function resolveFloor(
   const levelNumber = parseInteger(record.floorLevelNumber, "floorLevelNumber");
 
   if (!name) {
-    throw new Error("floorName is required.");
+    createImportValidationError("missing_required_field", "floorName is required.");
   }
 
   const matches = await tx.floor.findMany({
@@ -651,24 +724,26 @@ async function resolveRoom(
   const capacityMax = parseInteger(record.roomCapacityMax, "roomCapacityMax");
 
   if (!name) {
-    throw new Error("roomName is required.");
+    createImportValidationError("missing_required_field", "roomName is required.");
   }
 
   if (!roomType) {
-    throw new Error("roomType is required.");
+    createImportValidationError("missing_required_field", "roomType is required.");
   }
 
   if (!supportedExamTypes || supportedExamTypes.length === 0) {
-    throw new Error("roomSupportedExamTypes is required.");
+    createImportValidationError("missing_required_field", "roomSupportedExamTypes is required.");
   }
 
   if (capacityMax === undefined) {
-    throw new Error("roomCapacityMax is required.");
+    createImportValidationError("missing_required_field", "roomCapacityMax is required.");
   }
 
-  if (capacityMax < capacityMin) {
-    throw new Error("roomCapacityMax must be greater than or equal to roomCapacityMin.");
-  }
+  validateRoomIntegrity({
+    supportedExamTypes,
+    capacityMin,
+    capacityMax
+  });
 
   const matches = await tx.room.findMany({
     where: {
@@ -819,8 +894,16 @@ export async function importLocationsCsv(params: {
       );
       results.push(result);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unexpected import error.";
+      const normalizedError =
+        error instanceof LocationsServiceError
+          ? {
+              code: error.code,
+              message: error.message
+            }
+          : {
+              code: "unexpected_import_error",
+              message: error instanceof Error ? error.message : "Unexpected import error."
+            };
 
       results.push({
         row: row.rowNumber,
@@ -832,7 +915,7 @@ export async function importLocationsCsv(params: {
           floors: 0,
           rooms: 0
         },
-        error: message
+        error: normalizedError
       });
     }
   }
@@ -873,7 +956,8 @@ export async function importLocationsCsv(params: {
     .filter((result) => !result.success && result.error)
     .map((result) => ({
       row: result.row,
-      message: result.error ?? "Unexpected import error."
+      error: result.error?.code ?? "unexpected_import_error",
+      message: result.error?.message ?? "Unexpected import error."
     }));
 
   await db.activityLog.create({

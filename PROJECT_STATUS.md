@@ -20,6 +20,7 @@
 - Locations API hardening now enforces active-parent linking, detail-route inactive filtering, structured activity metadata, and a hierarchy tree endpoint for UI consumption
 - Protected `/locations` tree/list screens now exist with responsive expand/collapse behavior, live API loading states, empty states, and locale-aware labels
 - Locations CSV import now supports row-by-row hierarchy resolution, partial success handling, structured summaries, and import activity logging
+- Locations hierarchy validations now block parent deactivation when active children exist, enforce case-insensitive scoped uniqueness, standardize typed validation errors, and harden room/import integrity rules
 
 ## Canonical Working Documents
 
@@ -58,11 +59,11 @@ We will instead:
 | Locations CRUD routes | done | API handlers, service layer, validation, and audit logging now exist for the full location hierarchy |
 | Locations UI tree/list screens | done | Protected `/locations` now renders the live hierarchy with responsive tree/list behavior and state handling |
 | Locations import flow | done | `/api/locations/import` plus `/locations` upload UI now support CSV imports with row-level error handling |
+| Locations hierarchy validations | done | Delete/update/import flows now enforce child guards, scoped uniqueness, room capacity rules, and typed validation errors |
 | Proctors module | todo | Depends on schema/bootstrap |
 
 ## Immediate Next Focus
 
-- Continue strengthening hierarchy validations on top of the new import workflow
 - Ensure location labels and views support Arabic and English fields where needed
 - Continue preserving UX and notification-system requirements from v3.0
 
@@ -111,3 +112,5 @@ We will instead:
 - Added a CSV locations import service with row-by-row transactions, duplicate reuse, parent-chain validation, partial success reporting, and import activity logging
 - Added `/api/locations/import` plus `/locations` import UI with upload, sample format guidance, progress state, and result/error summaries
 - Verified the locations import milestone with `npm run typecheck`, `npm run lint`, and `npm run build`
+- Hardened locations system integrity with active-child delete guards, scoped duplicate protection, room capacity/exam-type validation, and typed import validation errors
+- Verified the hierarchy validation milestone with `npm run build`, `npm run lint`, `npm run typecheck`, and targeted mocked service scenarios for delete/update/create validation behavior
