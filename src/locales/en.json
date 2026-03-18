@@ -14,6 +14,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "team": "Team access",
+    "proctors": "Proctors",
     "locations": "Locations",
     "settings": "Settings"
   },
@@ -155,6 +156,63 @@
       "noErrors": "No row-level errors were returned.",
       "missingFile": "Choose a CSV file before starting the import.",
       "unsupportedFile": "Only CSV files are supported for locations import."
+    }
+  },
+  "proctors": {
+    "title": "Proctors directory",
+    "subtitle": "Browse live proctor records backed by the ExamOps users table.",
+    "description": "This screen reads from the protected proctors API, supports bilingual search, and hides inactive records by default.",
+    "searchLabel": "Search proctors",
+    "searchPlaceholder": "Search by Arabic or English name, phone, email, or national ID",
+    "showInactive": "Show inactive records",
+    "showActiveOnly": "Show active only",
+    "reload": "Reload",
+    "listTitle": "Proctors list",
+    "listBody": "Showing {count} proctors from the live API response.",
+    "detailTitle": "Proctor details",
+    "detailBody": "Select a proctor to inspect profile details, status, and operational counts.",
+    "emptyTitle": "No proctors found",
+    "emptyBody": "Create proctor records through the API or upcoming import tools to populate this directory.",
+    "errorTitle": "Could not load proctors",
+    "errorBody": "The proctors API did not return list data. Check authentication and database connectivity, then try again.",
+    "detailErrorTitle": "Could not load the selected proctor",
+    "detailErrorBody": "The selected proctor could not be loaded from the API.",
+    "detailEmptyTitle": "No proctor selected",
+    "detailEmptyBody": "Choose a proctor from the list to view the full profile.",
+    "noNotes": "No notes are stored for this proctor.",
+    "filters": {
+      "source": "Source",
+      "blockStatus": "Block status",
+      "allSources": "All sources",
+      "allBlockStatuses": "All block statuses"
+    },
+    "sources": {
+      "SPHINX": "Sphinx",
+      "UNIVERSITY": "University",
+      "EXTERNAL": "External"
+    },
+    "blockStatuses": {
+      "CLEAR": "Clear",
+      "TEMPORARY": "Temporary block",
+      "PERMANENT": "Permanent block"
+    },
+    "labels": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "phone": "Phone",
+      "email": "Email",
+      "nationalId": "National ID",
+      "organization": "Organization",
+      "branch": "Branch",
+      "governorate": "Governorate",
+      "preferredLanguage": "Preferred language",
+      "rating": "Average rating",
+      "sessions": "Total sessions",
+      "assignments": "Assignments",
+      "waitingList": "Waiting list entries",
+      "blocks": "Blocks",
+      "blockEndsAt": "Block ends at",
+      "updatedAt": "Last updated"
     }
   },
   "roles": {

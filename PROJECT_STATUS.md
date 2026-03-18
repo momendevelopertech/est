@@ -22,6 +22,8 @@
 - Locations CSV import now supports row-by-row hierarchy resolution, partial success handling, structured summaries, and import activity logging
 - Locations hierarchy validations now block parent deactivation when active children exist, enforce case-insensitive scoped uniqueness, standardize typed validation errors, and harden room/import integrity rules
 - Locations bilingual views now use a shared localized-name helper, support Arabic/English search in the tree UI, and accept English-only import rows through fallback-safe parsing
+- Database-backed proctors CRUD routes now exist for `users` with bilingual fields, governorate integrity checks, duplicate detection, soft-deactivation, and activity logging
+- Protected `/proctors` list/detail UI now exists with live API loading, bilingual search, source/block filters, detail inspection, and typed error handling
 
 ## Canonical Working Documents
 
@@ -62,12 +64,14 @@ We will instead:
 | Locations import flow | done | `/api/locations/import` plus `/locations` upload UI now support CSV imports with row-level error handling |
 | Locations hierarchy validations | done | Delete/update/import flows now enforce child guards, scoped uniqueness, room capacity rules, and typed validation errors |
 | Locations bilingual labels/views | done | Shared name localization, bilingual tree search, and English-only import fallback now complete the locations UX slice |
-| Proctors module | todo | Depends on schema/bootstrap |
+| Proctors CRUD routes | done | `/api/proctors` now manages `users` records with validation, role protection, soft delete, and audit logging |
+| Proctors list/detail UI | done | Protected `/proctors` now renders live proctor list/detail states with bilingual search and responsive filters |
+| Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Start the proctors CRUD backend slice on top of the now-stable locations and auth foundations
+- Start the proctors import flow on top of the now-stable proctors CRUD and UI foundations
 
 ## Update Log
 
@@ -119,3 +123,8 @@ We will instead:
 - Fixed the locations import API to avoid runtime `File` constructor assumptions and to accept English-only bilingual rows with safe fallback persistence
 - Added a shared localized location-name helper plus bilingual search/filter behavior in the `/locations` tree UI and surfaced typed import error codes in the results panel
 - Verified the bilingual locations milestone with real Neon-backed Prisma checks, real authenticated API calls on Node `19.6.0`, and locale cookie checks for `lang`/`dir` switching
+- Audited the proctor domain and confirmed the existing `User` model is the production source of truth for proctor records, including bilingual names, source, block status, governorate linkage, and operational stats
+- Added a proctors service layer with Prisma-backed CRUD operations, governorate integrity checks, duplicate detection across phone/email/national ID, typed error handling, and `activity_log` entries for create/update/delete mutations
+- Added authenticated `/api/proctors` routes with role checks for super admins, coordinators, and data entry users, plus UUID param validation and inactive-aware detail retrieval
+- Added a protected `/proctors` page with responsive list/detail behavior, bilingual search, source/block filters, locale-aware labels, and live API-backed detail states
+- Verified the proctors milestone with real Neon-backed Prisma queries, real authenticated CRUD API calls on Node `19.6.0`, and production build validation for `/api/proctors` plus `/proctors`

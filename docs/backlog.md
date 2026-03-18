@@ -55,8 +55,8 @@ Status legend:
 
 ## Phase 4 - Proctors Module
 
-- `todo` Build proctors CRUD routes
-- `todo` Build proctors list/detail UI
+- `done` Build proctors CRUD routes
+- `done` Build proctors list/detail UI
 - `todo` Build proctors import flow
 - `todo` Build proctors export flow
 - `todo` Add profile history aggregation
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build locations CRUD routes
-2. Build locations UI tree/list screens
-3. Build locations import flow
-4. Add hierarchy validations
-5. Ensure location labels and views support Arabic and English fields where needed
+1. Build proctors CRUD routes
+2. Build proctors list/detail UI
+3. Build proctors import flow
+4. Build proctors export flow
+5. Add profile history aggregation

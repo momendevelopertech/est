@@ -29,6 +29,11 @@ export function getNavigation(messages: Messages): NavigationItem[] {
       roles: allRoles
     },
     {
+      href: "/proctors",
+      label: messages.nav.proctors,
+      roles: ["super_admin", "coordinator", "data_entry"]
+    },
+    {
       href: "/locations",
       label: messages.nav.locations,
       roles: ["super_admin", "coordinator", "data_entry"]
