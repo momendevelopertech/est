@@ -14,6 +14,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "team": "Team access",
+    "locations": "Locations",
     "settings": "Settings"
   },
   "shell": {
@@ -91,6 +92,43 @@
       "auth": "Auth reads active app users, password hashes, and persisted sessions from PostgreSQL.",
       "locale": "Language and theme preferences can be stored in the database and mirrored to cookies for rendering.",
       "next": "Locations CRUD is the next expansion point after the remaining shell foundation polish."
+    }
+  },
+  "locations": {
+    "title": "Locations hierarchy",
+    "subtitle": "Browse the active location structure across governorates, universities, buildings, floors, and rooms.",
+    "description": "This tree is powered by the real locations API and respects soft-deactivation by default.",
+    "showInactive": "Show inactive records",
+    "showActiveOnly": "Show active only",
+    "reload": "Reload",
+    "emptyTitle": "No locations found",
+    "emptyBody": "Create location records through the API or seed data to populate the hierarchy.",
+    "errorTitle": "Could not load locations",
+    "errorBody": "The locations API did not return data. Check authentication and database connectivity, then try again.",
+    "retry": "Try again",
+    "statsTitle": "Hierarchy snapshot",
+    "statsBody": "Counts update from the live API response each time the tree reloads.",
+    "kinds": {
+      "governorate": "Governorate",
+      "university": "University",
+      "building": "Building",
+      "floor": "Floor",
+      "room": "Room"
+    },
+    "labels": {
+      "code": "Code",
+      "level": "Level",
+      "roomType": "Room type",
+      "examTypes": "Exam types",
+      "capacity": "Capacity",
+      "inactive": "Inactive",
+      "active": "Active",
+      "children": "Children"
+    },
+    "examTypeLabels": {
+      "EST1": "EST1",
+      "EST2": "EST2",
+      "EST_ASSN": "EST ASSN"
     }
   },
   "roles": {

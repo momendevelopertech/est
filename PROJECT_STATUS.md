@@ -17,6 +17,8 @@
 - Dark/light/system theme resolution is now live through database-backed preferences, cookies, and system fallback
 - Shared motion utilities now exist with reduced-motion-safe transitions for pages, panels, navigation, and controls
 - Database-backed locations CRUD routes now exist for governorates, universities, buildings, floors, and rooms with validation, soft-deactivation, and audit logging
+- Locations API hardening now enforces active-parent linking, detail-route inactive filtering, structured activity metadata, and a hierarchy tree endpoint for UI consumption
+- Protected `/locations` tree/list screens now exist with responsive expand/collapse behavior, live API loading states, empty states, and locale-aware labels
 
 ## Canonical Working Documents
 
@@ -53,13 +55,13 @@ We will instead:
 | Bilingual shell foundation | done | Arabic/English copy, cookie-based language switching, and RTL/LTR direction are active |
 | Theme and motion foundation | done | Dark/light/system theme resolution, top-bar preference controls, and reduced-motion-safe utilities are active |
 | Locations CRUD routes | done | API handlers, service layer, validation, and audit logging now exist for the full location hierarchy |
-| Locations UI tree/list screens | todo | Depends on the new CRUD routes |
+| Locations UI tree/list screens | done | Protected `/locations` now renders the live hierarchy with responsive tree/list behavior and state handling |
 | Proctors module | todo | Depends on schema/bootstrap |
 
 ## Immediate Next Focus
 
-- Build the companion locations UI tree/list screens on top of the new locations routes
-- Add location import flow and hierarchy validations
+- Build the locations import flow on top of the new CRUD routes and tree/list screens
+- Continue strengthening hierarchy validations as the import workflow is added
 - Continue preserving UX and notification-system requirements from v3.0
 
 ## Update Log
@@ -100,3 +102,7 @@ We will instead:
 - Added authenticated locations API routes with role checks for super admins, coordinators, and data entry users
 - Added Zod validation, soft-deactivation via `isActive`, and activity-log entries for location mutations
 - Verified the locations CRUD routes milestone with `npm run typecheck`, `npm run lint`, and `npm run build`
+- Hardened the locations backend so inactive records stay hidden by default across list and detail reads unless `includeInactive=true` is requested
+- Added structured `activity_log.metadata` payloads for location create, update, and soft-delete operations
+- Added a protected `/api/locations` hierarchy endpoint for UI consumption and a protected `/locations` page with responsive tree/list rendering, expand/collapse behavior, loading states, and empty/error handling
+- Verified the locations hardening and UI milestone with `npm run typecheck`, `npm run lint`, and `npm run build`
