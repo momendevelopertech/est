@@ -13,6 +13,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { Locale, Messages } from "@/lib/i18n";
+import {
+  getAlternateLocalizedName,
+  getLocalizedName
+} from "@/lib/locations/presentation";
 
 type RoomRecord = {
   id: string;
@@ -99,6 +103,7 @@ type ImportResponse = {
   };
   errors?: Array<{
     row: number;
+    error?: string;
     message: string;
   }>;
   sampleCsv?: string;
@@ -138,14 +143,6 @@ type TreeStats = {
   floors: number;
   rooms: number;
 };
-
-function getNodeLabel(node: Pick<TreeNode, "name" | "nameEn">, locale: Locale) {
-  if (locale === "ar") {
-    return node.name;
-  }
-
-  return node.nameEn ?? node.name;
-}
 
 function createTreeNodes(data: GovernorateRecord[]): TreeNode[] {
   return data.map((governorate) => ({
@@ -240,6 +237,41 @@ function createInitialExpandedState(nodes: TreeNode[]) {
   }, {});
 }
 
+function matchesSearch(node: TreeNode, searchTerm: string) {
+  const normalized = searchTerm.trim().toLocaleLowerCase();
+
+  if (!normalized) {
+    return true;
+  }
+
+  return [node.name, node.nameEn ?? "", node.code ?? "", node.meta.roomType ?? ""].some((value) =>
+    value.toLocaleLowerCase().includes(normalized)
+  );
+}
+
+function filterTreeNodes(nodes: TreeNode[], searchTerm: string): TreeNode[] {
+  const normalized = searchTerm.trim();
+
+  if (!normalized) {
+    return nodes;
+  }
+
+  return nodes.flatMap((node) => {
+    const filteredChildren = filterTreeNodes(node.children, normalized);
+
+    if (matchesSearch(node, normalized) || filteredChildren.length > 0) {
+      return [
+        {
+          ...node,
+          children: filteredChildren
+        }
+      ];
+    }
+
+    return [];
+  });
+}
+
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
     <Card>
@@ -279,7 +311,8 @@ function TreeNodeCard({
   expanded: Record<string, boolean>;
   onToggle: (nodeId: string) => void;
 }) {
-  const label = getNodeLabel(node, locale);
+  const label = getLocalizedName(node, locale);
+  const alternateLabel = getAlternateLocalizedName(node, locale);
   const hasChildren = node.children.length > 0;
   const isOpen = expanded[node.id] ?? false;
   const examTypeLabels = node.meta.supportedExamTypes?.map(
@@ -310,6 +343,9 @@ function TreeNodeCard({
 
             <div>
               <h3 className="text-lg font-semibold text-text-primary">{label}</h3>
+              {alternateLabel ? (
+                <p className="mt-1 text-sm text-text-secondary">{alternateLabel}</p>
+              ) : null}
               <p className="mt-1 text-sm text-text-secondary">
                 {messages.locations.labels.children}: {node.children.length}
               </p>
@@ -376,6 +412,7 @@ function TreeNodeCard({
 
 export function LocationsTree({ locale, messages }: LocationsTreeProps) {
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -394,6 +431,7 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
     rooms: 0
   });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const visibleNodes = filterTreeNodes(nodes, searchTerm);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -551,6 +589,19 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.locations.description}
           </p>
+          <div className="w-full sm:max-w-sm">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="locations-search">
+                {messages.locations.searchLabel}
+              </label>
+              <Input
+                id="locations-search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder={messages.locations.searchPlaceholder}
+              />
+            </div>
+          </div>
           <div className="flex flex-wrap gap-3">
             <Button variant="secondary" size="sm" onClick={() => void openImportModal()}>
               {messages.locations.import}
@@ -624,9 +675,20 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
             </div>
           ) : null}
 
-          {!isLoading && !error && nodes.length > 0 ? (
+          {!isLoading && !error && nodes.length > 0 && visibleNodes.length === 0 ? (
+            <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
+              <h3 className="text-lg font-semibold text-text-primary">
+                {messages.locations.searchEmptyTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-text-secondary">
+                {messages.locations.searchEmptyBody}
+              </p>
+            </div>
+          ) : null}
+
+          {!isLoading && !error && visibleNodes.length > 0 ? (
             <div className="space-y-4">
-              {nodes.map((node) => (
+              {visibleNodes.map((node) => (
                 <TreeNodeCard
                   key={node.id}
                   locale={locale}
@@ -739,12 +801,17 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
                       <div className="space-y-2">
                         {importResult.errors.map((rowError) => (
                           <div
-                            key={`${rowError.row}-${rowError.message}`}
+                            key={`${rowError.row}-${rowError.error ?? rowError.message}`}
                             className="rounded-2xl border border-danger/30 bg-background px-4 py-3 text-sm text-text-secondary"
                           >
                             <span className="font-medium text-text-primary">
                               {messages.locations.importFlow.row} {rowError.row}:
                             </span>{" "}
+                            {rowError.error ? (
+                              <span className="font-medium text-danger">
+                                [{rowError.error}]{" "}
+                              </span>
+                            ) : null}
                             {rowError.message}
                           </div>
                         ))}

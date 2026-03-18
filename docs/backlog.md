@@ -51,7 +51,7 @@ Status legend:
 - `done` Build locations UI tree/list screens
 - `done` Build locations import flow
 - `done` Add hierarchy validations
-- `todo` Ensure location labels and views support Arabic and English fields where needed
+- `done` Ensure location labels and views support Arabic and English fields where needed
 
 ## Phase 4 - Proctors Module
 

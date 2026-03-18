@@ -21,6 +21,7 @@
 - Protected `/locations` tree/list screens now exist with responsive expand/collapse behavior, live API loading states, empty states, and locale-aware labels
 - Locations CSV import now supports row-by-row hierarchy resolution, partial success handling, structured summaries, and import activity logging
 - Locations hierarchy validations now block parent deactivation when active children exist, enforce case-insensitive scoped uniqueness, standardize typed validation errors, and harden room/import integrity rules
+- Locations bilingual views now use a shared localized-name helper, support Arabic/English search in the tree UI, and accept English-only import rows through fallback-safe parsing
 
 ## Canonical Working Documents
 
@@ -60,12 +61,13 @@ We will instead:
 | Locations UI tree/list screens | done | Protected `/locations` now renders the live hierarchy with responsive tree/list behavior and state handling |
 | Locations import flow | done | `/api/locations/import` plus `/locations` upload UI now support CSV imports with row-level error handling |
 | Locations hierarchy validations | done | Delete/update/import flows now enforce child guards, scoped uniqueness, room capacity rules, and typed validation errors |
+| Locations bilingual labels/views | done | Shared name localization, bilingual tree search, and English-only import fallback now complete the locations UX slice |
 | Proctors module | todo | Depends on schema/bootstrap |
 
 ## Immediate Next Focus
 
-- Ensure location labels and views support Arabic and English fields where needed
 - Continue preserving UX and notification-system requirements from v3.0
+- Start the proctors CRUD backend slice on top of the now-stable locations and auth foundations
 
 ## Update Log
 
@@ -114,3 +116,6 @@ We will instead:
 - Verified the locations import milestone with `npm run typecheck`, `npm run lint`, and `npm run build`
 - Hardened locations system integrity with active-child delete guards, scoped duplicate protection, room capacity/exam-type validation, and typed import validation errors
 - Verified the hierarchy validation milestone with `npm run build`, `npm run lint`, `npm run typecheck`, and targeted mocked service scenarios for delete/update/create validation behavior
+- Fixed the locations import API to avoid runtime `File` constructor assumptions and to accept English-only bilingual rows with safe fallback persistence
+- Added a shared localized location-name helper plus bilingual search/filter behavior in the `/locations` tree UI and surfaced typed import error codes in the results panel
+- Verified the bilingual locations milestone with real Neon-backed Prisma checks, real authenticated API calls on Node `19.6.0`, and locale cookie checks for `lang`/`dir` switching
