@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { Locale, Messages } from "@/lib/i18n";
 
 type RoomRecord = {
@@ -80,6 +81,30 @@ type LocationsResponse = {
   ok: boolean;
   data?: GovernorateRecord[];
   error?: string;
+};
+
+type ImportResponse = {
+  ok: boolean;
+  summary?: {
+    total: number;
+    success: number;
+    failed: number;
+    created: {
+      governorates: number;
+      universities: number;
+      buildings: number;
+      floors: number;
+      rooms: number;
+    };
+  };
+  errors?: Array<{
+    row: number;
+    message: string;
+  }>;
+  sampleCsv?: string;
+  columns?: string[];
+  error?: string;
+  message?: string;
 };
 
 type TreeNodeKind = keyof Messages["locations"]["kinds"];
@@ -354,6 +379,12 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<ImportResponse | null>(null);
+  const [importSample, setImportSample] = useState<string>("");
   const [nodes, setNodes] = useState<TreeNode[]>([]);
   const [stats, setStats] = useState<TreeStats>({
     governorates: 0,
@@ -434,6 +465,75 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
     { key: "rooms", label: messages.locations.kinds.room }
   ];
 
+  async function openImportModal() {
+    setIsImportOpen(true);
+    setImportError(null);
+
+    if (importSample) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/locations/import", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+
+      const payload = (await response.json()) as ImportResponse;
+
+      if (response.ok && payload.ok && payload.sampleCsv) {
+        setImportSample(payload.sampleCsv);
+      }
+    } catch (sampleError) {
+      console.error(sampleError);
+    }
+  }
+
+  async function handleImportSubmit() {
+    if (!selectedFile) {
+      setImportError(messages.locations.importFlow.missingFile);
+      return;
+    }
+
+    if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
+      setImportError(messages.locations.importFlow.unsupportedFile);
+      return;
+    }
+
+    setIsImporting(true);
+    setImportError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch("/api/locations/import", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+      });
+      const payload = (await response.json()) as ImportResponse;
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.message ?? payload.error ?? "import_failed");
+      }
+
+      setImportResult(payload);
+      setSelectedFile(null);
+      setRefreshKey((current) => current + 1);
+    } catch (submitError) {
+      console.error(submitError);
+      setImportError(
+        submitError instanceof Error ? submitError.message : messages.locations.errorBody
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card className="panel border-transparent px-6 py-6 sm:px-8">
@@ -452,6 +552,9 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
             {messages.locations.description}
           </p>
           <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" size="sm" onClick={() => void openImportModal()}>
+              {messages.locations.import}
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -543,6 +646,155 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
           ) : null}
         </CardContent>
       </Card>
+
+      {isImportOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+          <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
+            <CardHeader>
+              <CardTitle>{messages.locations.importFlow.title}</CardTitle>
+              <CardDescription>{messages.locations.importFlow.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-text-primary" htmlFor="locations-import-file">
+                  {messages.locations.importFlow.fileLabel}
+                </label>
+                <Input
+                  id="locations-import-file"
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => {
+                    setSelectedFile(event.target.files?.[0] ?? null);
+                    setImportError(null);
+                  }}
+                />
+              </div>
+
+              {importError ? (
+                <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4 text-sm text-danger">
+                  {importError}
+                </div>
+              ) : null}
+
+              <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+                <p className="text-sm font-medium text-text-primary">
+                  {messages.locations.importFlow.sampleTitle}
+                </p>
+                <p className="mt-2 text-sm leading-7 text-text-secondary">
+                  {messages.locations.importFlow.sampleBody}
+                </p>
+                {importSample ? (
+                  <pre className="mt-4 overflow-x-auto rounded-2xl bg-background px-4 py-4 text-xs leading-6 text-text-secondary">
+                    {importSample}
+                  </pre>
+                ) : null}
+              </div>
+
+              {importResult?.summary ? (
+                <div className="space-y-4 rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+                  <p className="text-sm font-medium text-text-primary">
+                    {messages.locations.importFlow.resultTitle}
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <StatCard
+                      label={messages.locations.importFlow.total}
+                      value={importResult.summary.total}
+                    />
+                    <StatCard
+                      label={messages.locations.importFlow.success}
+                      value={importResult.summary.success}
+                    />
+                    <StatCard
+                      label={messages.locations.importFlow.failed}
+                      value={importResult.summary.failed}
+                    />
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                    <StatCard
+                      label={messages.locations.kinds.governorate}
+                      value={importResult.summary.created.governorates}
+                    />
+                    <StatCard
+                      label={messages.locations.kinds.university}
+                      value={importResult.summary.created.universities}
+                    />
+                    <StatCard
+                      label={messages.locations.kinds.building}
+                      value={importResult.summary.created.buildings}
+                    />
+                    <StatCard
+                      label={messages.locations.kinds.floor}
+                      value={importResult.summary.created.floors}
+                    />
+                    <StatCard
+                      label={messages.locations.kinds.room}
+                      value={importResult.summary.created.rooms}
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <p className="text-sm font-medium text-text-primary">
+                      {messages.locations.importFlow.errorsTitle}
+                    </p>
+                    {importResult.errors && importResult.errors.length > 0 ? (
+                      <div className="space-y-2">
+                        {importResult.errors.map((rowError) => (
+                          <div
+                            key={`${rowError.row}-${rowError.message}`}
+                            className="rounded-2xl border border-danger/30 bg-background px-4 py-3 text-sm text-text-secondary"
+                          >
+                            <span className="font-medium text-text-primary">
+                              {messages.locations.importFlow.row} {rowError.row}:
+                            </span>{" "}
+                            {rowError.message}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-text-secondary">
+                        {messages.locations.importFlow.noErrors}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setIsImportOpen(false);
+                    setImportError(null);
+                  }}
+                >
+                  {messages.locations.importFlow.close}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setImportError(null);
+                    setImportResult(null);
+                    setIsImportOpen(false);
+                  }}
+                >
+                  {messages.locations.importFlow.cancel}
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => void handleImportSubmit()}
+                  disabled={isImporting}
+                >
+                  {isImporting
+                    ? messages.locations.importFlow.submitting
+                    : messages.locations.importFlow.submit}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }

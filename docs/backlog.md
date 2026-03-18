@@ -49,7 +49,7 @@ Status legend:
 
 - `done` Build locations CRUD routes
 - `done` Build locations UI tree/list screens
-- `todo` Build locations import flow
+- `done` Build locations import flow
 - `todo` Add hierarchy validations
 - `todo` Ensure location labels and views support Arabic and English fields where needed
 

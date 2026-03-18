@@ -19,6 +19,7 @@
 - Database-backed locations CRUD routes now exist for governorates, universities, buildings, floors, and rooms with validation, soft-deactivation, and audit logging
 - Locations API hardening now enforces active-parent linking, detail-route inactive filtering, structured activity metadata, and a hierarchy tree endpoint for UI consumption
 - Protected `/locations` tree/list screens now exist with responsive expand/collapse behavior, live API loading states, empty states, and locale-aware labels
+- Locations CSV import now supports row-by-row hierarchy resolution, partial success handling, structured summaries, and import activity logging
 
 ## Canonical Working Documents
 
@@ -56,12 +57,13 @@ We will instead:
 | Theme and motion foundation | done | Dark/light/system theme resolution, top-bar preference controls, and reduced-motion-safe utilities are active |
 | Locations CRUD routes | done | API handlers, service layer, validation, and audit logging now exist for the full location hierarchy |
 | Locations UI tree/list screens | done | Protected `/locations` now renders the live hierarchy with responsive tree/list behavior and state handling |
+| Locations import flow | done | `/api/locations/import` plus `/locations` upload UI now support CSV imports with row-level error handling |
 | Proctors module | todo | Depends on schema/bootstrap |
 
 ## Immediate Next Focus
 
-- Build the locations import flow on top of the new CRUD routes and tree/list screens
-- Continue strengthening hierarchy validations as the import workflow is added
+- Continue strengthening hierarchy validations on top of the new import workflow
+- Ensure location labels and views support Arabic and English fields where needed
 - Continue preserving UX and notification-system requirements from v3.0
 
 ## Update Log
@@ -106,3 +108,6 @@ We will instead:
 - Added structured `activity_log.metadata` payloads for location create, update, and soft-delete operations
 - Added a protected `/api/locations` hierarchy endpoint for UI consumption and a protected `/locations` page with responsive tree/list rendering, expand/collapse behavior, loading states, and empty/error handling
 - Verified the locations hardening and UI milestone with `npm run typecheck`, `npm run lint`, and `npm run build`
+- Added a CSV locations import service with row-by-row transactions, duplicate reuse, parent-chain validation, partial success reporting, and import activity logging
+- Added `/api/locations/import` plus `/locations` import UI with upload, sample format guidance, progress state, and result/error summaries
+- Verified the locations import milestone with `npm run typecheck`, `npm run lint`, and `npm run build`

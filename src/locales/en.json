@@ -98,6 +98,7 @@
     "title": "Locations hierarchy",
     "subtitle": "Browse the active location structure across governorates, universities, buildings, floors, and rooms.",
     "description": "This tree is powered by the real locations API and respects soft-deactivation by default.",
+    "import": "Import",
     "showInactive": "Show inactive records",
     "showActiveOnly": "Show active only",
     "reload": "Reload",
@@ -129,6 +130,27 @@
       "EST1": "EST1",
       "EST2": "EST2",
       "EST_ASSN": "EST ASSN"
+    },
+    "importFlow": {
+      "title": "Import locations",
+      "subtitle": "Upload a CSV file to create or reuse locations row by row without stopping on the first invalid row.",
+      "fileLabel": "CSV file",
+      "submit": "Run import",
+      "submitting": "Importing...",
+      "cancel": "Cancel",
+      "close": "Close",
+      "sampleTitle": "CSV structure",
+      "sampleBody": "Every row represents one hierarchy path. Partial rows are allowed if the chain stops cleanly at the deepest provided level.",
+      "resultTitle": "Import summary",
+      "row": "Row",
+      "total": "Total rows",
+      "success": "Successful rows",
+      "failed": "Failed rows",
+      "created": "Created records",
+      "errorsTitle": "Row errors",
+      "noErrors": "No row-level errors were returned.",
+      "missingFile": "Choose a CSV file before starting the import.",
+      "unsupportedFile": "Only CSV files are supported for locations import."
     }
   },
   "roles": {
