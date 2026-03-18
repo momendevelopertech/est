@@ -60,6 +60,10 @@ export const governorateListQuerySchema = z.object({
   search: querySearchSchema
 });
 
+export const locationDetailQuerySchema = z.object({
+  includeInactive: booleanQueryParamSchema.default(false)
+});
+
 export const universityListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: querySearchSchema,
@@ -82,6 +86,10 @@ export const roomListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: querySearchSchema,
   floorId: uuidSchema.optional()
+});
+
+export const locationsTreeQuerySchema = z.object({
+  includeInactive: booleanQueryParamSchema.default(false)
 });
 
 export const createGovernorateSchema = z.object(bilingualLocationFields);

@@ -6,11 +6,15 @@ import {
   updateBuilding
 } from "@/lib/locations/service";
 import {
+  getRequestQuery,
   handleLocationRouteError,
   readJsonBody,
   requireLocationsApiRole
 } from "@/lib/locations/http";
-import { updateBuildingSchema } from "@/lib/locations/validation";
+import {
+  locationDetailQuerySchema,
+  updateBuildingSchema
+} from "@/lib/locations/validation";
 
 type BuildingRouteContext = {
   params: {
@@ -26,7 +30,10 @@ export async function GET(_: Request, { params }: BuildingRouteContext) {
   }
 
   try {
-    const data = await getBuilding(params.buildingId);
+    const query = locationDetailQuerySchema.parse(getRequestQuery(_));
+    const data = await getBuilding(params.buildingId, {
+      includeInactive: query.includeInactive
+    });
 
     return NextResponse.json({
       ok: true,

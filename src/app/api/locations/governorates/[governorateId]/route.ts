@@ -6,11 +6,15 @@ import {
   updateGovernorate
 } from "@/lib/locations/service";
 import {
+  getRequestQuery,
   handleLocationRouteError,
   readJsonBody,
   requireLocationsApiRole
 } from "@/lib/locations/http";
-import { updateGovernorateSchema } from "@/lib/locations/validation";
+import {
+  locationDetailQuerySchema,
+  updateGovernorateSchema
+} from "@/lib/locations/validation";
 
 type GovernorateRouteContext = {
   params: {
@@ -26,7 +30,10 @@ export async function GET(_: Request, { params }: GovernorateRouteContext) {
   }
 
   try {
-    const data = await getGovernorate(params.governorateId);
+    const query = locationDetailQuerySchema.parse(getRequestQuery(_));
+    const data = await getGovernorate(params.governorateId, {
+      includeInactive: query.includeInactive
+    });
 
     return NextResponse.json({
       ok: true,

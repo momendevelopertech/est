@@ -6,11 +6,15 @@ import {
   updateRoom
 } from "@/lib/locations/service";
 import {
+  getRequestQuery,
   handleLocationRouteError,
   readJsonBody,
   requireLocationsApiRole
 } from "@/lib/locations/http";
-import { updateRoomSchema } from "@/lib/locations/validation";
+import {
+  locationDetailQuerySchema,
+  updateRoomSchema
+} from "@/lib/locations/validation";
 
 type RoomRouteContext = {
   params: {
@@ -26,7 +30,10 @@ export async function GET(_: Request, { params }: RoomRouteContext) {
   }
 
   try {
-    const data = await getRoom(params.roomId);
+    const query = locationDetailQuerySchema.parse(getRequestQuery(_));
+    const data = await getRoom(params.roomId, {
+      includeInactive: query.includeInactive
+    });
 
     return NextResponse.json({
       ok: true,

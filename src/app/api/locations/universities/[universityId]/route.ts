@@ -6,11 +6,15 @@ import {
   updateUniversity
 } from "@/lib/locations/service";
 import {
+  getRequestQuery,
   handleLocationRouteError,
   readJsonBody,
   requireLocationsApiRole
 } from "@/lib/locations/http";
-import { updateUniversitySchema } from "@/lib/locations/validation";
+import {
+  locationDetailQuerySchema,
+  updateUniversitySchema
+} from "@/lib/locations/validation";
 
 type UniversityRouteContext = {
   params: {
@@ -26,7 +30,10 @@ export async function GET(_: Request, { params }: UniversityRouteContext) {
   }
 
   try {
-    const data = await getUniversity(params.universityId);
+    const query = locationDetailQuerySchema.parse(getRequestQuery(_));
+    const data = await getUniversity(params.universityId, {
+      includeInactive: query.includeInactive
+    });
 
     return NextResponse.json({
       ok: true,

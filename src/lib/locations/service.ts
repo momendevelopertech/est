@@ -20,6 +20,11 @@ import type {
   UpdateUniversityInput
 } from "./validation";
 
+type IncludeInactiveOptions = {
+  includeInactive?: boolean;
+  requireActiveParent?: boolean;
+};
+
 export class LocationsServiceError extends Error {
   constructor(
     public readonly code: string,
@@ -178,6 +183,73 @@ const roomSelect = {
   }
 } satisfies Prisma.RoomSelect;
 
+const locationTreeSelect = {
+  id: true,
+  code: true,
+  name: true,
+  nameEn: true,
+  sortOrder: true,
+  isActive: true,
+  notes: true,
+  universities: {
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      id: true,
+      governorateId: true,
+      code: true,
+      name: true,
+      nameEn: true,
+      sortOrder: true,
+      isActive: true,
+      notes: true,
+      buildings: {
+        orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+        select: {
+          id: true,
+          universityId: true,
+          code: true,
+          name: true,
+          nameEn: true,
+          address: true,
+          sortOrder: true,
+          isActive: true,
+          notes: true,
+          floors: {
+            orderBy: [{ sortOrder: "asc" }, { levelNumber: "asc" }, { name: "asc" }],
+            select: {
+              id: true,
+              buildingId: true,
+              code: true,
+              name: true,
+              nameEn: true,
+              levelNumber: true,
+              sortOrder: true,
+              isActive: true,
+              notes: true,
+              rooms: {
+                orderBy: [{ name: "asc" }],
+                select: {
+                  id: true,
+                  floorId: true,
+                  code: true,
+                  name: true,
+                  nameEn: true,
+                  roomType: true,
+                  supportedExamTypes: true,
+                  capacityMin: true,
+                  capacityMax: true,
+                  isActive: true,
+                  notes: true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} satisfies Prisma.GovernorateSelect;
+
 function createSearchFilter(search?: string) {
   if (!search) {
     return undefined;
@@ -240,7 +312,10 @@ function normalizeMutationError(error: unknown): never {
   throw error;
 }
 
-async function assertGovernorateExists(governorateId: string) {
+async function assertGovernorateExists(
+  governorateId: string,
+  options: IncludeInactiveOptions = {}
+) {
   const governorate = await db.governorate.findUnique({
     where: {
       id: governorateId
@@ -257,10 +332,25 @@ async function assertGovernorateExists(governorateId: string) {
     throw new LocationsServiceError("governorate_not_found", 404, "Governorate not found.");
   }
 
+  if (!options.includeInactive && !governorate.isActive) {
+    throw new LocationsServiceError("governorate_not_found", 404, "Governorate not found.");
+  }
+
+  if (options.requireActiveParent && !governorate.isActive) {
+    throw new LocationsServiceError(
+      "inactive_parent",
+      409,
+      "Cannot attach records to an inactive governorate."
+    );
+  }
+
   return governorate;
 }
 
-async function assertUniversityExists(universityId: string) {
+async function assertUniversityExists(
+  universityId: string,
+  options: IncludeInactiveOptions = {}
+) {
   const university = await db.university.findUnique({
     where: {
       id: universityId
@@ -278,10 +368,25 @@ async function assertUniversityExists(universityId: string) {
     throw new LocationsServiceError("university_not_found", 404, "University not found.");
   }
 
+  if (!options.includeInactive && !university.isActive) {
+    throw new LocationsServiceError("university_not_found", 404, "University not found.");
+  }
+
+  if (options.requireActiveParent && !university.isActive) {
+    throw new LocationsServiceError(
+      "inactive_parent",
+      409,
+      "Cannot attach records to an inactive university."
+    );
+  }
+
   return university;
 }
 
-async function assertBuildingExists(buildingId: string) {
+async function assertBuildingExists(
+  buildingId: string,
+  options: IncludeInactiveOptions = {}
+) {
   const building = await db.building.findUnique({
     where: {
       id: buildingId
@@ -299,10 +404,25 @@ async function assertBuildingExists(buildingId: string) {
     throw new LocationsServiceError("building_not_found", 404, "Building not found.");
   }
 
+  if (!options.includeInactive && !building.isActive) {
+    throw new LocationsServiceError("building_not_found", 404, "Building not found.");
+  }
+
+  if (options.requireActiveParent && !building.isActive) {
+    throw new LocationsServiceError(
+      "inactive_parent",
+      409,
+      "Cannot attach records to an inactive building."
+    );
+  }
+
   return building;
 }
 
-async function assertFloorExists(floorId: string) {
+async function assertFloorExists(
+  floorId: string,
+  options: IncludeInactiveOptions = {}
+) {
   const floor = await db.floor.findUnique({
     where: {
       id: floorId
@@ -320,10 +440,22 @@ async function assertFloorExists(floorId: string) {
     throw new LocationsServiceError("floor_not_found", 404, "Floor not found.");
   }
 
+  if (!options.includeInactive && !floor.isActive) {
+    throw new LocationsServiceError("floor_not_found", 404, "Floor not found.");
+  }
+
+  if (options.requireActiveParent && !floor.isActive) {
+    throw new LocationsServiceError(
+      "inactive_parent",
+      409,
+      "Cannot attach records to an inactive floor."
+    );
+  }
+
   return floor;
 }
 
-async function assertRoomExists(roomId: string) {
+async function assertRoomExists(roomId: string, options: IncludeInactiveOptions = {}) {
   const room = await db.room.findUnique({
     where: {
       id: roomId
@@ -335,17 +467,22 @@ async function assertRoomExists(roomId: string) {
     throw new LocationsServiceError("room_not_found", 404, "Room not found.");
   }
 
+  if (!options.includeInactive && !room.isActive) {
+    throw new LocationsServiceError("room_not_found", 404, "Room not found.");
+  }
+
   return room;
 }
 
 function createActivityLogEntry(params: {
   actorAppUserId: string;
-  action: string;
+  action: "create" | "update" | "delete";
   entityType: string;
   entityId: string;
   description: string;
   beforePayload?: unknown;
   afterPayload?: unknown;
+  metadata?: Record<string, unknown>;
 }) {
   return {
     actorAppUserId: params.actorAppUserId,
@@ -353,6 +490,13 @@ function createActivityLogEntry(params: {
     entityType: params.entityType,
     entityId: params.entityId,
     description: params.description,
+    metadata: {
+      userId: params.actorAppUserId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      action: params.action,
+      ...(params.metadata ?? {})
+    } as Prisma.InputJsonValue,
     beforePayload:
       params.beforePayload === undefined
         ? undefined
@@ -375,8 +519,11 @@ export async function listGovernorates(query: GovernorateListQuery) {
   });
 }
 
-export async function getGovernorate(governorateId: string) {
-  await assertGovernorateExists(governorateId);
+export async function getGovernorate(
+  governorateId: string,
+  options: IncludeInactiveOptions = {}
+) {
+  await assertGovernorateExists(governorateId, options);
 
   return db.governorate.findUniqueOrThrow({
     where: {
@@ -397,10 +544,14 @@ export async function createGovernorate(input: CreateGovernorateInput, actorAppU
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.governorates.create",
+          action: "create",
           entityType: "governorate",
           entityId: created.id,
           description: `Created governorate ${created.name}.`,
+          metadata: {
+            code: created.code,
+            isActive: created.isActive
+          },
           afterPayload: created
         })
       });
@@ -432,10 +583,13 @@ export async function updateGovernorate(
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.governorates.update",
+          action: "update",
           entityType: "governorate",
           entityId: updated.id,
           description: `Updated governorate ${updated.name}.`,
+          metadata: {
+            changedFields: Object.keys(input)
+          },
           beforePayload: before,
           afterPayload: updated
         })
@@ -449,13 +603,42 @@ export async function updateGovernorate(
 }
 
 export async function deactivateGovernorate(governorateId: string, actorAppUserId: string) {
-  return updateGovernorate(
-    governorateId,
-    {
-      isActive: false
-    },
-    actorAppUserId
-  );
+  const before = await getGovernorate(governorateId, {
+    includeInactive: true
+  });
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.governorate.update({
+        where: {
+          id: governorateId
+        },
+        data: {
+          isActive: false
+        },
+        select: governorateSelect
+      });
+
+      await tx.activityLog.create({
+        data: createActivityLogEntry({
+          actorAppUserId,
+          action: "delete",
+          entityType: "governorate",
+          entityId: updated.id,
+          description: `Deactivated governorate ${updated.name}.`,
+          metadata: {
+            softDeleted: true
+          },
+          beforePayload: before,
+          afterPayload: updated
+        })
+      });
+
+      return updated;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
 }
 
 export async function listUniversities(query: UniversityListQuery) {
@@ -478,8 +661,11 @@ export async function listUniversities(query: UniversityListQuery) {
   });
 }
 
-export async function getUniversity(universityId: string) {
-  await assertUniversityExists(universityId);
+export async function getUniversity(
+  universityId: string,
+  options: IncludeInactiveOptions = {}
+) {
+  await assertUniversityExists(universityId, options);
 
   return db.university.findUniqueOrThrow({
     where: {
@@ -490,7 +676,9 @@ export async function getUniversity(universityId: string) {
 }
 
 export async function createUniversity(input: CreateUniversityInput, actorAppUserId: string) {
-  await assertGovernorateExists(input.governorateId);
+  await assertGovernorateExists(input.governorateId, {
+    requireActiveParent: true
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -502,10 +690,15 @@ export async function createUniversity(input: CreateUniversityInput, actorAppUse
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.universities.create",
+          action: "create",
           entityType: "university",
           entityId: created.id,
           description: `Created university ${created.name}.`,
+          metadata: {
+            governorateId: created.governorateId,
+            code: created.code,
+            isActive: created.isActive
+          },
           afterPayload: created
         })
       });
@@ -523,7 +716,9 @@ export async function updateUniversity(
   actorAppUserId: string
 ) {
   if (input.governorateId) {
-    await assertGovernorateExists(input.governorateId);
+    await assertGovernorateExists(input.governorateId, {
+      requireActiveParent: true
+    });
   }
 
   const before = await getUniversity(universityId);
@@ -541,10 +736,13 @@ export async function updateUniversity(
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.universities.update",
+          action: "update",
           entityType: "university",
           entityId: updated.id,
           description: `Updated university ${updated.name}.`,
+          metadata: {
+            changedFields: Object.keys(input)
+          },
           beforePayload: before,
           afterPayload: updated
         })
@@ -558,13 +756,43 @@ export async function updateUniversity(
 }
 
 export async function deactivateUniversity(universityId: string, actorAppUserId: string) {
-  return updateUniversity(
-    universityId,
-    {
-      isActive: false
-    },
-    actorAppUserId
-  );
+  const before = await getUniversity(universityId, {
+    includeInactive: true
+  });
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.university.update({
+        where: {
+          id: universityId
+        },
+        data: {
+          isActive: false
+        },
+        select: universitySelect
+      });
+
+      await tx.activityLog.create({
+        data: createActivityLogEntry({
+          actorAppUserId,
+          action: "delete",
+          entityType: "university",
+          entityId: updated.id,
+          description: `Deactivated university ${updated.name}.`,
+          metadata: {
+            softDeleted: true,
+            governorateId: updated.governorateId
+          },
+          beforePayload: before,
+          afterPayload: updated
+        })
+      });
+
+      return updated;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
 }
 
 export async function listBuildings(query: BuildingListQuery) {
@@ -587,8 +815,11 @@ export async function listBuildings(query: BuildingListQuery) {
   });
 }
 
-export async function getBuilding(buildingId: string) {
-  await assertBuildingExists(buildingId);
+export async function getBuilding(
+  buildingId: string,
+  options: IncludeInactiveOptions = {}
+) {
+  await assertBuildingExists(buildingId, options);
 
   return db.building.findUniqueOrThrow({
     where: {
@@ -599,7 +830,9 @@ export async function getBuilding(buildingId: string) {
 }
 
 export async function createBuilding(input: CreateBuildingInput, actorAppUserId: string) {
-  await assertUniversityExists(input.universityId);
+  await assertUniversityExists(input.universityId, {
+    requireActiveParent: true
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -611,10 +844,15 @@ export async function createBuilding(input: CreateBuildingInput, actorAppUserId:
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.buildings.create",
+          action: "create",
           entityType: "building",
           entityId: created.id,
           description: `Created building ${created.name}.`,
+          metadata: {
+            universityId: created.universityId,
+            code: created.code,
+            isActive: created.isActive
+          },
           afterPayload: created
         })
       });
@@ -632,7 +870,9 @@ export async function updateBuilding(
   actorAppUserId: string
 ) {
   if (input.universityId) {
-    await assertUniversityExists(input.universityId);
+    await assertUniversityExists(input.universityId, {
+      requireActiveParent: true
+    });
   }
 
   const before = await getBuilding(buildingId);
@@ -650,10 +890,13 @@ export async function updateBuilding(
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.buildings.update",
+          action: "update",
           entityType: "building",
           entityId: updated.id,
           description: `Updated building ${updated.name}.`,
+          metadata: {
+            changedFields: Object.keys(input)
+          },
           beforePayload: before,
           afterPayload: updated
         })
@@ -667,13 +910,43 @@ export async function updateBuilding(
 }
 
 export async function deactivateBuilding(buildingId: string, actorAppUserId: string) {
-  return updateBuilding(
-    buildingId,
-    {
-      isActive: false
-    },
-    actorAppUserId
-  );
+  const before = await getBuilding(buildingId, {
+    includeInactive: true
+  });
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.building.update({
+        where: {
+          id: buildingId
+        },
+        data: {
+          isActive: false
+        },
+        select: buildingSelect
+      });
+
+      await tx.activityLog.create({
+        data: createActivityLogEntry({
+          actorAppUserId,
+          action: "delete",
+          entityType: "building",
+          entityId: updated.id,
+          description: `Deactivated building ${updated.name}.`,
+          metadata: {
+            softDeleted: true,
+            universityId: updated.universityId
+          },
+          beforePayload: before,
+          afterPayload: updated
+        })
+      });
+
+      return updated;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
 }
 
 export async function listFloors(query: FloorListQuery) {
@@ -696,8 +969,11 @@ export async function listFloors(query: FloorListQuery) {
   });
 }
 
-export async function getFloor(floorId: string) {
-  await assertFloorExists(floorId);
+export async function getFloor(
+  floorId: string,
+  options: IncludeInactiveOptions = {}
+) {
+  await assertFloorExists(floorId, options);
 
   return db.floor.findUniqueOrThrow({
     where: {
@@ -708,7 +984,9 @@ export async function getFloor(floorId: string) {
 }
 
 export async function createFloor(input: CreateFloorInput, actorAppUserId: string) {
-  await assertBuildingExists(input.buildingId);
+  await assertBuildingExists(input.buildingId, {
+    requireActiveParent: true
+  });
 
   try {
     return await db.$transaction(async (tx) => {
@@ -720,10 +998,15 @@ export async function createFloor(input: CreateFloorInput, actorAppUserId: strin
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.floors.create",
+          action: "create",
           entityType: "floor",
           entityId: created.id,
           description: `Created floor ${created.name}.`,
+          metadata: {
+            buildingId: created.buildingId,
+            levelNumber: created.levelNumber,
+            isActive: created.isActive
+          },
           afterPayload: created
         })
       });
@@ -741,7 +1024,9 @@ export async function updateFloor(
   actorAppUserId: string
 ) {
   if (input.buildingId) {
-    await assertBuildingExists(input.buildingId);
+    await assertBuildingExists(input.buildingId, {
+      requireActiveParent: true
+    });
   }
 
   const before = await getFloor(floorId);
@@ -759,10 +1044,13 @@ export async function updateFloor(
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.floors.update",
+          action: "update",
           entityType: "floor",
           entityId: updated.id,
           description: `Updated floor ${updated.name}.`,
+          metadata: {
+            changedFields: Object.keys(input)
+          },
           beforePayload: before,
           afterPayload: updated
         })
@@ -776,13 +1064,43 @@ export async function updateFloor(
 }
 
 export async function deactivateFloor(floorId: string, actorAppUserId: string) {
-  return updateFloor(
-    floorId,
-    {
-      isActive: false
-    },
-    actorAppUserId
-  );
+  const before = await getFloor(floorId, {
+    includeInactive: true
+  });
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.floor.update({
+        where: {
+          id: floorId
+        },
+        data: {
+          isActive: false
+        },
+        select: floorSelect
+      });
+
+      await tx.activityLog.create({
+        data: createActivityLogEntry({
+          actorAppUserId,
+          action: "delete",
+          entityType: "floor",
+          entityId: updated.id,
+          description: `Deactivated floor ${updated.name}.`,
+          metadata: {
+            softDeleted: true,
+            buildingId: updated.buildingId
+          },
+          beforePayload: before,
+          afterPayload: updated
+        })
+      });
+
+      return updated;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
 }
 
 function validateRoomCapacity(
@@ -825,12 +1143,14 @@ export async function listRooms(query: RoomListQuery) {
   });
 }
 
-export async function getRoom(roomId: string) {
-  return assertRoomExists(roomId);
+export async function getRoom(roomId: string, options: IncludeInactiveOptions = {}) {
+  return assertRoomExists(roomId, options);
 }
 
 export async function createRoom(input: CreateRoomInput, actorAppUserId: string) {
-  await assertFloorExists(input.floorId);
+  await assertFloorExists(input.floorId, {
+    requireActiveParent: true
+  });
   validateRoomCapacity(input);
 
   try {
@@ -846,10 +1166,17 @@ export async function createRoom(input: CreateRoomInput, actorAppUserId: string)
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.rooms.create",
+          action: "create",
           entityType: "room",
           entityId: created.id,
           description: `Created room ${created.name}.`,
+          metadata: {
+            floorId: created.floorId,
+            supportedExamTypes: created.supportedExamTypes,
+            capacityMin: created.capacityMin,
+            capacityMax: created.capacityMax,
+            isActive: created.isActive
+          },
           afterPayload: created
         })
       });
@@ -869,7 +1196,9 @@ export async function updateRoom(
   const before = await getRoom(roomId);
 
   if (input.floorId) {
-    await assertFloorExists(input.floorId);
+    await assertFloorExists(input.floorId, {
+      requireActiveParent: true
+    });
   }
 
   validateRoomCapacity(input, before);
@@ -887,10 +1216,13 @@ export async function updateRoom(
       await tx.activityLog.create({
         data: createActivityLogEntry({
           actorAppUserId,
-          action: "locations.rooms.update",
+          action: "update",
           entityType: "room",
           entityId: updated.id,
           description: `Updated room ${updated.name}.`,
+          metadata: {
+            changedFields: Object.keys(input)
+          },
           beforePayload: before,
           afterPayload: updated
         })
@@ -904,11 +1236,107 @@ export async function updateRoom(
 }
 
 export async function deactivateRoom(roomId: string, actorAppUserId: string) {
-  return updateRoom(
-    roomId,
-    {
-      isActive: false
-    },
-    actorAppUserId
-  );
+  const before = await getRoom(roomId, {
+    includeInactive: true
+  });
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.room.update({
+        where: {
+          id: roomId
+        },
+        data: {
+          isActive: false
+        },
+        select: roomSelect
+      });
+
+      await tx.activityLog.create({
+        data: createActivityLogEntry({
+          actorAppUserId,
+          action: "delete",
+          entityType: "room",
+          entityId: updated.id,
+          description: `Deactivated room ${updated.name}.`,
+          metadata: {
+            softDeleted: true,
+            floorId: updated.floorId
+          },
+          beforePayload: before,
+          afterPayload: updated
+        })
+      });
+
+      return updated;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
+}
+
+export async function getLocationsTree(includeInactive = false) {
+  const relationFilter = includeInactive ? undefined : { isActive: true };
+
+  return db.governorate.findMany({
+    where: includeInactive ? {} : { isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      ...locationTreeSelect,
+      universities: {
+        ...(locationTreeSelect.universities as Prisma.UniversityFindManyArgs),
+        where: relationFilter,
+        select: {
+          ...((locationTreeSelect.universities as Prisma.UniversityFindManyArgs).select ?? {}),
+          buildings: {
+            orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+            where: relationFilter,
+            select: {
+              id: true,
+              universityId: true,
+              code: true,
+              name: true,
+              nameEn: true,
+              address: true,
+              sortOrder: true,
+              isActive: true,
+              notes: true,
+              floors: {
+                orderBy: [{ sortOrder: "asc" }, { levelNumber: "asc" }, { name: "asc" }],
+                where: relationFilter,
+                select: {
+                  id: true,
+                  buildingId: true,
+                  code: true,
+                  name: true,
+                  nameEn: true,
+                  levelNumber: true,
+                  sortOrder: true,
+                  isActive: true,
+                  notes: true,
+                  rooms: {
+                    orderBy: [{ name: "asc" }],
+                    where: relationFilter,
+                    select: {
+                      id: true,
+                      floorId: true,
+                      code: true,
+                      name: true,
+                      nameEn: true,
+                      roomType: true,
+                      supportedExamTypes: true,
+                      capacityMin: true,
+                      capacityMax: true,
+                      isActive: true,
+                      notes: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
 }

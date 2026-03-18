@@ -6,11 +6,15 @@ import {
   updateFloor
 } from "@/lib/locations/service";
 import {
+  getRequestQuery,
   handleLocationRouteError,
   readJsonBody,
   requireLocationsApiRole
 } from "@/lib/locations/http";
-import { updateFloorSchema } from "@/lib/locations/validation";
+import {
+  locationDetailQuerySchema,
+  updateFloorSchema
+} from "@/lib/locations/validation";
 
 type FloorRouteContext = {
   params: {
@@ -26,7 +30,10 @@ export async function GET(_: Request, { params }: FloorRouteContext) {
   }
 
   try {
-    const data = await getFloor(params.floorId);
+    const query = locationDetailQuerySchema.parse(getRequestQuery(_));
+    const data = await getFloor(params.floorId, {
+      includeInactive: query.includeInactive
+    });
 
     return NextResponse.json({
       ok: true,
