@@ -133,7 +133,7 @@ function normalizeEmail(value?: string | null) {
 }
 
 function normalizePhone(value: string) {
-  return value.replace(/\s+/g, " ").trim();
+  return value.replace(/[\s\-()]+/g, "").trim();
 }
 
 function normalizeOptionalText(value?: string | null) {
