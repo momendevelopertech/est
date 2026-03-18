@@ -47,7 +47,7 @@ Status legend:
 
 ## Phase 3 - Locations Module
 
-- `todo` Build locations CRUD routes
+- `done` Build locations CRUD routes
 - `todo` Build locations UI tree/list screens
 - `todo` Build locations import flow
 - `todo` Add hierarchy validations

@@ -16,6 +16,7 @@
 - Locale-aware shell copy, Arabic/English switching, and RTL/LTR rendering are now working
 - Dark/light/system theme resolution is now live through database-backed preferences, cookies, and system fallback
 - Shared motion utilities now exist with reduced-motion-safe transitions for pages, panels, navigation, and controls
+- Database-backed locations CRUD routes now exist for governorates, universities, buildings, floors, and rooms with validation, soft-deactivation, and audit logging
 
 ## Canonical Working Documents
 
@@ -51,13 +52,13 @@ We will instead:
 | Auth shell | done | Database-backed auth now uses seeded app users, hashed passwords, persisted sessions, and role guards |
 | Bilingual shell foundation | done | Arabic/English copy, cookie-based language switching, and RTL/LTR direction are active |
 | Theme and motion foundation | done | Dark/light/system theme resolution, top-bar preference controls, and reduced-motion-safe utilities are active |
-| Locations module | todo | Depends on schema/bootstrap |
+| Locations CRUD routes | done | API handlers, service layer, validation, and audit logging now exist for the full location hierarchy |
+| Locations UI tree/list screens | todo | Depends on the new CRUD routes |
 | Proctors module | todo | Depends on schema/bootstrap |
 
 ## Immediate Next Focus
 
-- Build the first database-backed CRUD slice on top of the migrated schema, starting with locations routes
-- Build the companion locations UI tree/list screens on top of those routes
+- Build the companion locations UI tree/list screens on top of the new locations routes
 - Add location import flow and hierarchy validations
 - Continue preserving UX and notification-system requirements from v3.0
 
@@ -94,3 +95,8 @@ We will instead:
 - Added top-bar language and theme controls that persist preferences without full page reloads
 - Added reduced-motion-safe motion utilities for page transitions, panels, buttons, and navigation interactions
 - Verified the theme/motion milestone with `npm run lint`, `npm run typecheck`, `npm run build`, and a browser smoke test covering theme switching, locale switching, logout, and database-backed preference persistence
+- Resolved a documentation conflict by following the newer execution state in `docs/backlog.md` and `PROJECT_STATUS.md` instead of the outdated pre-implementation note in `AI_START_HERE.md`
+- Added a locations service layer with Prisma-backed CRUD operations for governorates, universities, buildings, floors, and rooms
+- Added authenticated locations API routes with role checks for super admins, coordinators, and data entry users
+- Added Zod validation, soft-deactivation via `isActive`, and activity-log entries for location mutations
+- Verified the locations CRUD routes milestone with `npm run typecheck`, `npm run lint`, and `npm run build`
