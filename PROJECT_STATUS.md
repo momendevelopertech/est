@@ -26,6 +26,8 @@
 - Protected `/proctors` list/detail UI now exists with live API loading, bilingual search, source/block filters, detail inspection, and typed error handling
 - Assignment service contracts are now implemented with validated create/list/detail/cancel flows and typed assignment-domain error handling
 - Auto-assignment algorithm v1 is now implemented with dry-run support, overlap exclusion, manual-role skipping, idempotent reruns, activity logging, and Neon-backed verification coverage
+- Manual assignment paths are now live through protected assignment create/list/detail/cancel APIs with placement and scope validation
+- ASSN manual-only behavior is now enforced by role-definition policy (`manualOnly`) and blocked from non-manual assignment methods
 
 ## Canonical Working Documents
 
@@ -70,6 +72,8 @@ We will instead:
 | Proctors list/detail UI | done | Protected `/proctors` now renders live proctor list/detail states with bilingual search and responsive filters |
 | Assignment service contracts | done | Assignment API/service contracts and validation are now production-validated on Neon |
 | Auto-assignment algorithm v1 | done | `/api/assignments/auto` now supports dry-run, execute, rerun idempotency, overlap blocking, manual-role skip, and audit logging |
+| Manual assignment paths | done | `/api/assignments` create/list/detail/cancel flows are implemented and validated end-to-end |
+| ASSN manual-only logic | done | `manualOnly` role policy is enforced in assignment creation and excluded from auto-assignment |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
@@ -138,6 +142,7 @@ We will instead:
 - Added assignment auto-run request contracts, validation schema, and a protected `POST /api/assignments/auto` route
 - Implemented auto-assignment algorithm v1 with settings-driven rating threshold resolution, role-scope slot generation, overlap-aware candidate filtering, dry-run planning, and transactional creation
 - Hardened candidate de-duplication so users with historical cancelled assignments in the same session are excluded from auto-assignment user pools, preventing unique-key failures
+- Confirmed manual assignment coverage and ASSN manual-only enforcement are implemented in code and synced tracking status accordingly
 - Verified Phase 6 end-to-end on real Neon DB in production mode with:
   - assignment contracts checks (create/list/detail/duplicate/orphan/cancel flows)
   - auto-assignment v1 dry-run + execute + rerun idempotency

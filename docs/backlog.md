@@ -76,8 +76,8 @@ Status legend:
 - `done` Implement assignment service contracts
 - `done` Implement auto-assignment algorithm v1
 - `todo` Implement pre-lock validation
-- `todo` Implement manual assignment paths
-- `todo` Implement ASSN manual-only logic
+- `done` Implement manual assignment paths
+- `done` Implement ASSN manual-only logic
 - `todo` Build assignment UI foundation
 - `todo` Make assignment UI responsive across tablet and desktop with acceptable mobile fallback
 - `todo` Add late-import re-ranking flow with manual override preservation
