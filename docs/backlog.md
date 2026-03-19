@@ -67,9 +67,9 @@ Status legend:
 - `done` Build cycles CRUD routes
 - `done` Build sessions CRUD routes
 - `done` Add session status flow
-- `todo` Build cycle/session UI
-- `todo` Add clone workflow foundation
-- `todo` Support bilingual cycle and session naming
+- `done` Build cycle/session UI
+- `done` Add clone workflow foundation
+- `done` Support bilingual cycle and session naming
 
 ## Phase 6 - Assignment Engine
 

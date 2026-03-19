@@ -192,7 +192,7 @@
     },
     "cloneFlow": {
       "title": "Clone cycle",
-      "subtitle": "Create a new cycle and clone all active session structure with shifted dates.",
+      "subtitle": "Create a new cycle and clone all session structure with shifted dates.",
       "sourceCycle": "Source cycle",
       "sourceRange": "Source date range",
       "newStartDate": "New start date",
