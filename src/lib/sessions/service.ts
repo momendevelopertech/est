@@ -318,7 +318,13 @@ function getLockedSessionProtectedFields(input: UpdateSessionInput) {
 }
 
 function assertLockedSessionSafety(session: SessionRecord, input: UpdateSessionInput) {
-  if (session.status !== SessionStatus.LOCKED) {
+  const derivedStatus = getDerivedSessionStatus(session);
+
+  if (
+    session.status !== SessionStatus.LOCKED &&
+    derivedStatus !== SessionStatus.IN_PROGRESS &&
+    derivedStatus !== SessionStatus.COMPLETED
+  ) {
     return;
   }
 
@@ -331,9 +337,11 @@ function assertLockedSessionSafety(session: SessionRecord, input: UpdateSessionI
   throw new SessionsServiceError(
     ERROR_CODES.sessionLocked,
     409,
-    "Locked sessions cannot change scheduling or location fields.",
+    "Protected sessions cannot change scheduling or location fields.",
     {
       sessionId: session.id,
+      status: session.status,
+      derivedStatus,
       protectedFields
     }
   );
@@ -352,6 +360,8 @@ function assertSessionStatusTransition(
   nextStatus: SessionStatus,
   now = new Date()
 ) {
+  const derivedStatus = getDerivedSessionStatus(session, now);
+
   if (!session.isActive) {
     throw new SessionsServiceError(
       ERROR_CODES.sessionStatusConstraintFailed,
@@ -422,6 +432,44 @@ function assertSessionStatusTransition(
     }
   }
 
+  if (
+    nextStatus === SessionStatus.SCHEDULED &&
+    hasStartedSession(session, now)
+  ) {
+    throw new SessionsServiceError(
+      ERROR_CODES.sessionStatusConstraintFailed,
+      409,
+      "Sessions cannot be scheduled after their start time.",
+      {
+        sessionId: session.id,
+        currentStatus: session.status,
+        nextStatus,
+        derivedStatus,
+        startsAt: session.startsAt,
+        now
+      }
+    );
+  }
+
+  if (
+    nextStatus === SessionStatus.LOCKED &&
+    hasStartedSession(session, now)
+  ) {
+    throw new SessionsServiceError(
+      ERROR_CODES.sessionStatusConstraintFailed,
+      409,
+      "Sessions cannot be locked after they have started.",
+      {
+        sessionId: session.id,
+        currentStatus: session.status,
+        nextStatus,
+        derivedStatus,
+        startsAt: session.startsAt,
+        now
+      }
+    );
+  }
+
   if (nextStatus === SessionStatus.COMPLETED && !hasEndedSession(session, now)) {
     throw new SessionsServiceError(
       ERROR_CODES.sessionStatusConstraintFailed,
@@ -438,9 +486,25 @@ function assertSessionStatusTransition(
   }
 
   if (nextStatus === SessionStatus.CANCELLED) {
+    if (hasStartedSession(session, now)) {
+      throw new SessionsServiceError(
+        ERROR_CODES.sessionCancellationNotAllowed,
+        409,
+        "Sessions cannot be cancelled after they have started.",
+        {
+          sessionId: session.id,
+          currentStatus: session.status,
+          nextStatus,
+          derivedStatus,
+          startsAt: session.startsAt,
+          now
+        }
+      );
+    }
+
     if (
       session.status === SessionStatus.LOCKED &&
-      (hasStartedSession(session, now) || hasRelatedRecords(session))
+      hasRelatedRecords(session)
     ) {
       throw new SessionsServiceError(
         ERROR_CODES.sessionCancellationNotAllowed,
