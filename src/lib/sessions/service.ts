@@ -565,9 +565,10 @@ function normalizeMutationError(error: unknown): never {
 
 async function assertCycleExists(
   cycleId: string,
-  options: IncludeInactiveOptions & { requireActive?: boolean } = {}
+  options: IncludeInactiveOptions & { requireActive?: boolean } = {},
+  client: ActivityClient = db
 ) {
-  const cycle = await db.cycle.findUnique({
+  const cycle = await client.cycle.findUnique({
     where: {
       id: cycleId
     },
@@ -594,9 +595,10 @@ async function assertCycleExists(
 
 async function assertBuildingExists(
   buildingId: string,
-  options: IncludeInactiveOptions & { requireActive?: boolean } = {}
+  options: IncludeInactiveOptions & { requireActive?: boolean } = {},
+  client: ActivityClient = db
 ) {
-  const building = await db.building.findUnique({
+  const building = await client.building.findUnique({
     where: {
       id: buildingId
     },
@@ -627,10 +629,11 @@ async function assertBuildingExists(
 
 async function assertBuildingsExist(
   buildingIds: string[],
-  options: IncludeInactiveOptions & { requireActive?: boolean } = {}
+  options: IncludeInactiveOptions & { requireActive?: boolean } = {},
+  client: ActivityClient = db
 ) {
   const normalizedIds = normalizeBuildingIds(buildingIds);
-  const buildings = await db.building.findMany({
+  const buildings = await client.building.findMany({
     where: {
       id: {
         in: normalizedIds
@@ -708,10 +711,10 @@ async function assertNoOverlappingSessions(input: {
   endDateTime: Date;
   buildingIds: string[];
   excludeId?: string;
-}) {
+}, client: ActivityClient = db) {
   const normalizedBuildingIds = normalizeBuildingIds(input.buildingIds);
   const sessionDate = normalizeDateOnly(input.startDateTime);
-  const overlappingSessions = await db.session.findMany({
+  const overlappingSessions = await client.session.findMany({
     where: {
       isActive: true,
       ...(input.excludeId
@@ -994,16 +997,40 @@ export async function getSessionById(
   return assertSessionExists(sessionId, options);
 }
 
-export async function createSession(input: CreateSessionInput, actorAppUserId: string) {
+type SessionCreationInput = {
+  cycleId: string;
+  name?: string;
+  nameEn?: string;
+  examType: SessionRecord["examType"];
+  startDateTime: Date;
+  endDateTime: Date;
+  buildingIds: string[];
+  notes?: string | null;
+  isActive?: boolean;
+  status?: SessionStatus;
+  lockedAt?: Date | null;
+};
+
+type SessionCreationOptions = {
+  actorAppUserId?: string;
+  shouldLogActivity: boolean;
+};
+
+async function createSessionWithValidation(
+  client: ActivityClient,
+  input: SessionCreationInput,
+  options: SessionCreationOptions
+) {
+  const nextIsActive = input.isActive ?? true;
   const cycle = await assertCycleExists(input.cycleId, {
-    requireActive: input.isActive ?? true
-  });
+    requireActive: nextIsActive
+  }, client);
   const buildingIds = normalizeBuildingIds(input.buildingIds);
   assertHasBuildings(buildingIds);
 
   await assertBuildingsExist(buildingIds, {
-    requireActive: input.isActive ?? true
-  });
+    requireActive: nextIsActive
+  }, client);
 
   const sessionData = buildSessionData({
     cycle,
@@ -1012,9 +1039,10 @@ export async function createSession(input: CreateSessionInput, actorAppUserId: s
     examType: input.examType,
     startDateTime: input.startDateTime,
     endDateTime: input.endDateTime,
-    status: SessionStatus.DRAFT,
+    status: input.status ?? SessionStatus.DRAFT,
+    lockedAt: input.lockedAt,
     notes: input.notes,
-    isActive: input.isActive ?? true
+    isActive: nextIsActive
   });
 
   if (sessionData.isActive) {
@@ -1022,43 +1050,85 @@ export async function createSession(input: CreateSessionInput, actorAppUserId: s
       startDateTime: sessionData.startsAt!,
       endDateTime: sessionData.endsAt!,
       buildingIds
+    }, client);
+  }
+
+  const created = await client.session.create({
+    data: sessionData,
+    select: sessionSelect
+  });
+
+  await syncSessionBuildings(client, created.id, buildingIds, created.buildings);
+
+  const hydrated = await client.session.findUniqueOrThrow({
+    where: {
+      id: created.id
+    },
+    select: sessionSelect
+  });
+
+  if (options.shouldLogActivity) {
+    await logActivity({
+      client,
+      userId: options.actorAppUserId,
+      action: "create",
+      entityType: "session",
+      entityId: hydrated.id,
+      description: `Created session ${hydrated.name}.`,
+      metadata: {
+        cycleId: hydrated.cycleId,
+        examType: hydrated.examType,
+        sessionDate: hydrated.sessionDate,
+        buildingIds
+      },
+      afterPayload: hydrated
     });
   }
 
+  return hydrated;
+}
+
+export async function createSessionInTransaction(
+  client: Prisma.TransactionClient,
+  input: SessionCreationInput
+) {
+  return createSessionWithValidation(
+    client,
+    {
+      ...input,
+      status: SessionStatus.DRAFT,
+      lockedAt: null
+    },
+    {
+      shouldLogActivity: false
+    }
+  );
+}
+
+export async function createSession(input: CreateSessionInput, actorAppUserId: string) {
   try {
-    return await db.$transaction(async (tx) => {
-      const created = await tx.session.create({
-        data: sessionData,
-        select: sessionSelect
-      });
-
-      await syncSessionBuildings(tx, created.id, buildingIds, created.buildings);
-
-      const hydrated = await tx.session.findUniqueOrThrow({
-        where: {
-          id: created.id
+    return await db.$transaction(async (tx) =>
+      createSessionWithValidation(
+        tx,
+        {
+          cycleId: input.cycleId,
+          name: input.name,
+          nameEn: input.nameEn,
+          examType: input.examType,
+          startDateTime: input.startDateTime,
+          endDateTime: input.endDateTime,
+          buildingIds: input.buildingIds,
+          notes: input.notes,
+          isActive: input.isActive ?? true,
+          status: SessionStatus.DRAFT,
+          lockedAt: null
         },
-        select: sessionSelect
-      });
-
-      await logActivity({
-        client: tx,
-        userId: actorAppUserId,
-        action: "create",
-        entityType: "session",
-        entityId: hydrated.id,
-        description: `Created session ${hydrated.name}.`,
-        metadata: {
-          cycleId: hydrated.cycleId,
-          examType: hydrated.examType,
-          sessionDate: hydrated.sessionDate,
-          buildingIds
-        },
-        afterPayload: hydrated
-      });
-
-      return hydrated;
-    });
+        {
+          actorAppUserId,
+          shouldLogActivity: true
+        }
+      )
+    );
   } catch (error) {
     normalizeMutationError(error);
   }
