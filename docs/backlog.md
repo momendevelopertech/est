@@ -57,10 +57,10 @@ Status legend:
 
 - `done` Build proctors CRUD routes
 - `done` Build proctors list/detail UI
-- `todo` Build proctors import flow
-- `todo` Build proctors export flow
-- `todo` Add profile history aggregation
-- `todo` Ensure proctor-facing admin screens are responsive and locale-ready
+- `done` Build proctors import flow
+- `done` Build proctors export flow
+- `done` Add profile history aggregation
+- `done` Ensure proctor-facing admin screens are responsive and locale-ready
 
 ## Phase 5 - Cycles And Sessions
 

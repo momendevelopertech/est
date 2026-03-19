@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { useRouter } from "next/navigation";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,10 +19,19 @@ import {
   getAlternateLocalizedName,
   getLocalizedName
 } from "@/lib/locations/presentation";
+import { cn } from "@/lib/utils";
 
 type ProctorSource = "SPHINX" | "UNIVERSITY" | "EXTERNAL";
 type BlockStatus = "CLEAR" | "TEMPORARY" | "PERMANENT";
 type PreferredLanguage = "AR" | "EN" | null;
+type ExportFormat = "csv" | "excel";
+type ExportStatus = "active" | "inactive" | "all";
+
+type GovernorateOption = {
+  id: string;
+  name: string;
+  nameEn: string | null;
+};
 
 type ProctorRecord = {
   id: string;
@@ -70,10 +81,45 @@ type ProctorDetailResponse = {
   message?: string;
 };
 
+type ProctorsImportTemplateResponse = {
+  ok: boolean;
+  sampleCsv?: string;
+  columns?: string[];
+};
+
+type ProctorsImportResponse = {
+  ok: boolean;
+  summary?: {
+    total: number;
+    success: number;
+    failed: number;
+    created: number;
+    reused: number;
+  };
+  errors?: Array<{
+    row: number;
+    error: string;
+    message: string;
+    details?: Record<string, unknown> | null;
+  }>;
+  error?: string;
+  message?: string;
+};
+
+type LocationsResponse = {
+  ok: boolean;
+  data?: GovernorateOption[];
+  error?: string;
+  message?: string;
+};
+
 type ProctorsDirectoryProps = {
   locale: Locale;
   messages: Messages;
 };
+
+const selectClassName =
+  "h-11 w-full rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent";
 
 function DetailSkeleton() {
   return (
@@ -112,49 +158,77 @@ function toPreferredLanguageLabel(
     return messages.common.english;
   }
 
-  return locale === "ar" ? "—" : "—";
+  return locale === "ar" ? "-" : "-";
 }
 
-function DetailRow({ label, value }: { label: string; value: string | number | null }) {
+function DetailRow({
+  label,
+  value
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
   return (
     <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
       <p className="text-xs font-medium uppercase tracking-[0.18em] text-text-secondary">
         {label}
       </p>
-      <p className="mt-2 text-sm leading-7 text-text-primary">{value ?? "—"}</p>
+      <div className="mt-2 text-sm leading-7 text-text-primary">{value ?? "-"}</div>
     </div>
   );
 }
 
+function MetricCard({
+  label,
+  value
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardDescription>{label}</CardDescription>
+        <CardTitle className="text-3xl">{value}</CardTitle>
+      </CardHeader>
+    </Card>
+  );
+}
+
 export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"" | ProctorSource>("");
   const [blockStatusFilter, setBlockStatusFilter] = useState<"" | BlockStatus>("");
   const [includeInactive, setIncludeInactive] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [listState, setListState] = useState<{
-    isLoading: boolean;
-    error: string | null;
-    errorCode: string | null;
-    data: ProctorRecord[];
-  }>({
+  const [listState, setListState] = useState({
     isLoading: true,
-    error: null,
-    errorCode: null,
-    data: []
+    error: null as string | null,
+    errorCode: null as string | null,
+    data: [] as ProctorRecord[]
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [detailState, setDetailState] = useState<{
-    isLoading: boolean;
-    error: string | null;
-    errorCode: string | null;
-    data: ProctorRecord | null;
-  }>({
+  const [detailState, setDetailState] = useState({
     isLoading: false,
-    error: null,
-    errorCode: null,
-    data: null
+    error: null as string | null,
+    errorCode: null as string | null,
+    data: null as ProctorRecord | null
   });
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<ProctorsImportResponse | null>(null);
+  const [importSample, setImportSample] = useState("");
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
+  const [exportStatus, setExportStatus] = useState<ExportStatus>("active");
+  const [exportGovernorateId, setExportGovernorateId] = useState("");
+  const [governorates, setGovernorates] = useState<GovernorateOption[]>([]);
+  const [isGovernoratesLoading, setIsGovernoratesLoading] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -307,8 +381,188 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
     };
   }, [includeInactive, messages.proctors.detailErrorBody, selectedId]);
 
+  async function openImportModal() {
+    setIsImportOpen(true);
+    setImportError(null);
+
+    if (importSample) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/proctors/import", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+
+      const payload = (await response.json()) as ProctorsImportTemplateResponse;
+
+      if (response.ok && payload.ok && payload.sampleCsv) {
+        setImportSample(payload.sampleCsv);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleImportSubmit() {
+    if (!selectedFile) {
+      setImportError(messages.proctors.importFlow.missingFile);
+      return;
+    }
+
+    if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
+      setImportError(messages.proctors.importFlow.unsupportedFile);
+      return;
+    }
+
+    setIsImporting(true);
+    setImportError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+
+      const response = await fetch("/api/proctors/import", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin"
+      });
+      const payload = (await response.json()) as ProctorsImportResponse;
+
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.message ?? payload.error ?? "proctors_import_failed");
+      }
+
+      setImportResult(payload);
+      setSelectedFile(null);
+      setRefreshKey((current) => current + 1);
+    } catch (error) {
+      console.error(error);
+      setImportError(
+        error instanceof Error ? error.message : messages.proctors.importFlow.submit
+      );
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  async function loadGovernorates() {
+    if (governorates.length > 0 || isGovernoratesLoading) {
+      return;
+    }
+
+    setIsGovernoratesLoading(true);
+
+    try {
+      const response = await fetch("/api/locations?includeInactive=false", {
+        method: "GET",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+      const payload = (await response.json()) as LocationsResponse;
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        throw new Error(payload.message ?? payload.error ?? "governorates_request_failed");
+      }
+
+      setGovernorates(
+        payload.data.map((governorate) => ({
+          id: governorate.id,
+          name: governorate.name,
+          nameEn: governorate.nameEn
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGovernoratesLoading(false);
+    }
+  }
+
+  async function openExportModal() {
+    setIsExportOpen(true);
+    setExportError(null);
+    await loadGovernorates();
+  }
+
+  async function handleExportSubmit() {
+    setIsExporting(true);
+    setExportError(null);
+
+    try {
+      const params = new URLSearchParams();
+      params.set("format", exportFormat);
+      params.set("status", exportStatus);
+      params.set("locale", locale);
+
+      if (exportGovernorateId) {
+        params.set("governorateId", exportGovernorateId);
+      }
+
+      const response = await fetch(`/api/proctors/export?${params.toString()}`, {
+        method: "GET",
+        credentials: "same-origin"
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as {
+          error?: string;
+          message?: string;
+        };
+        throw new Error(payload.message ?? payload.error ?? "proctors_export_failed");
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const disposition = response.headers.get("content-disposition");
+      const fileNameMatch = disposition?.match(/filename=\"([^\"]+)\"/);
+
+      anchor.href = downloadUrl;
+      anchor.download =
+        fileNameMatch?.[1] ??
+        (exportFormat === "excel" ? "proctors-export.xls" : "proctors-export.csv");
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(downloadUrl);
+      setIsExportOpen(false);
+    } catch (error) {
+      console.error(error);
+      setExportError(
+        error instanceof Error ? error.message : messages.proctors.exportFlow.submit
+      );
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   const selectedProctor = detailState.data;
   const listCount = listState.data.length;
+  const metrics = [
+    {
+      label: messages.proctors.labels.sessions,
+      value: listState.data.reduce((sum, proctor) => sum + proctor.totalSessions, 0)
+    },
+    {
+      label: messages.proctors.labels.assignments,
+      value: listState.data.reduce((sum, proctor) => sum + proctor._count.assignments, 0)
+    },
+    {
+      label: messages.proctors.labels.waitingList,
+      value: listState.data.reduce((sum, proctor) => sum + proctor._count.waitingListEntries, 0)
+    },
+    {
+      label: messages.proctors.labels.blocks,
+      value: listState.data.reduce((sum, proctor) => sum + proctor._count.blocks, 0)
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -327,8 +581,8 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.proctors.description}
           </p>
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            <div className="space-y-2 xl:col-span-2">
+          <div className="grid gap-4 xl:grid-cols-[2fr_repeat(2,1fr)]">
+            <div className="space-y-2">
               <label className="text-sm font-medium text-text-primary" htmlFor="proctors-search">
                 {messages.proctors.searchLabel}
               </label>
@@ -349,7 +603,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                 onChange={(event) =>
                   setSourceFilter(event.target.value as "" | ProctorSource)
                 }
-                className="h-11 w-full rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className={selectClassName}
               >
                 <option value="">{messages.proctors.filters.allSources}</option>
                 <option value="SPHINX">{messages.proctors.sources.SPHINX}</option>
@@ -358,7 +612,10 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="proctors-block-status">
+              <label
+                className="text-sm font-medium text-text-primary"
+                htmlFor="proctors-block-status"
+              >
                 {messages.proctors.filters.blockStatus}
               </label>
               <select
@@ -367,7 +624,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                 onChange={(event) =>
                   setBlockStatusFilter(event.target.value as "" | BlockStatus)
                 }
-                className="h-11 w-full rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                className={selectClassName}
               >
                 <option value="">{messages.proctors.filters.allBlockStatuses}</option>
                 <option value="CLEAR">{messages.proctors.blockStatuses.CLEAR}</option>
@@ -377,6 +634,12 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
+            <Button variant="secondary" size="sm" onClick={() => void openImportModal()}>
+              {messages.proctors.import}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => void openExportModal()}>
+              {messages.proctors.export}
+            </Button>
             <Button
               variant="secondary"
               size="sm"
@@ -394,6 +657,18 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               {messages.proctors.reload}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.proctors.snapshotTitle}</CardTitle>
+          <CardDescription>{messages.proctors.snapshotBody}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <MetricCard key={metric.label} label={metric.label} value={metric.value} />
+          ))}
         </CardContent>
       </Card>
 
@@ -447,11 +722,12 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                       key={proctor.id}
                       type="button"
                       onClick={() => setSelectedId(proctor.id)}
-                      className={`w-full rounded-3xl border px-4 py-4 text-start transition-colors ${
+                      className={cn(
+                        "w-full rounded-3xl border px-4 py-4 text-start transition-colors",
                         isSelected
                           ? "border-accent bg-surface-elevated"
                           : "border-border bg-surface hover:bg-surface-elevated"
-                      }`}
+                      )}
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="accent">
@@ -478,14 +754,13 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                           {messages.proctors.labels.sessions}: {proctor.totalSessions}
                         </p>
                         <p>
-                          {messages.proctors.labels.organization}:{" "}
-                          {proctor.organization ?? "—"}
+                          {messages.proctors.labels.organization}: {proctor.organization ?? "-"}
                         </p>
                         <p>
                           {messages.proctors.labels.governorate}:{" "}
                           {proctor.governorate
                             ? getLocalizedName(proctor.governorate, locale)
-                            : "—"}
+                            : "-"}
                         </p>
                       </div>
                     </button>
@@ -558,6 +833,14 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                   <p className="mt-4 text-sm leading-7 text-text-secondary">
                     {selectedProctor.notes ?? messages.proctors.noNotes}
                   </p>
+                  <div className="mt-4">
+                    <Button
+                      size="sm"
+                      onClick={() => router.push(`/proctors/${selectedProctor.id}`)}
+                    >
+                      {messages.proctors.viewProfile}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -567,26 +850,26 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                   />
                   <DetailRow
                     label={messages.proctors.labels.email}
-                    value={selectedProctor.email}
+                    value={selectedProctor.email ?? "-"}
                   />
                   <DetailRow
                     label={messages.proctors.labels.nationalId}
-                    value={selectedProctor.nationalId}
+                    value={selectedProctor.nationalId ?? "-"}
                   />
                   <DetailRow
                     label={messages.proctors.labels.organization}
-                    value={selectedProctor.organization}
+                    value={selectedProctor.organization ?? "-"}
                   />
                   <DetailRow
                     label={messages.proctors.labels.branch}
-                    value={selectedProctor.branch}
+                    value={selectedProctor.branch ?? "-"}
                   />
                   <DetailRow
                     label={messages.proctors.labels.governorate}
                     value={
                       selectedProctor.governorate
                         ? getLocalizedName(selectedProctor.governorate, locale)
-                        : null
+                        : "-"
                     }
                   />
                   <DetailRow
@@ -619,11 +902,11 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                   />
                   <DetailRow
                     label={messages.proctors.labels.blockEndsAt}
-                    value={formatDate(locale, selectedProctor.blockEndsAt)}
+                    value={formatDate(locale, selectedProctor.blockEndsAt) ?? "-"}
                   />
                   <DetailRow
                     label={messages.proctors.labels.updatedAt}
-                    value={formatDate(locale, selectedProctor.updatedAt)}
+                    value={formatDate(locale, selectedProctor.updatedAt) ?? "-"}
                   />
                 </div>
               </>
@@ -631,6 +914,253 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
           </CardContent>
         </Card>
       </div>
+
+      {isImportOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+          <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
+            <CardHeader>
+              <CardTitle>{messages.proctors.importFlow.title}</CardTitle>
+              <CardDescription>{messages.proctors.importFlow.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="proctors-import-file"
+                >
+                  {messages.proctors.importFlow.fileLabel}
+                </label>
+                <Input
+                  id="proctors-import-file"
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={(event) => {
+                    setSelectedFile(event.target.files?.[0] ?? null);
+                    setImportError(null);
+                  }}
+                />
+              </div>
+
+              {importError ? (
+                <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4 text-sm text-danger">
+                  {importError}
+                </div>
+              ) : null}
+
+              <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+                <p className="text-sm font-medium text-text-primary">
+                  {messages.proctors.importFlow.sampleTitle}
+                </p>
+                <p className="mt-2 text-sm leading-7 text-text-secondary">
+                  {messages.proctors.importFlow.sampleBody}
+                </p>
+                {importSample ? (
+                  <pre className="mt-4 overflow-x-auto rounded-2xl bg-background px-4 py-4 text-xs leading-6 text-text-secondary">
+                    {importSample}
+                  </pre>
+                ) : null}
+              </div>
+
+              {importResult?.summary ? (
+                <div className="space-y-4 rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+                  <p className="text-sm font-medium text-text-primary">
+                    {messages.proctors.importFlow.resultTitle}
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                    <MetricCard
+                      label={messages.proctors.importFlow.total}
+                      value={importResult.summary.total}
+                    />
+                    <MetricCard
+                      label={messages.proctors.importFlow.success}
+                      value={importResult.summary.success}
+                    />
+                    <MetricCard
+                      label={messages.proctors.importFlow.failed}
+                      value={importResult.summary.failed}
+                    />
+                    <MetricCard
+                      label={messages.proctors.importFlow.created}
+                      value={importResult.summary.created}
+                    />
+                    <MetricCard
+                      label={messages.proctors.importFlow.reused}
+                      value={importResult.summary.reused}
+                    />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      {messages.proctors.importFlow.errorsTitle}
+                    </p>
+                    {importResult.errors && importResult.errors.length > 0 ? (
+                      <div className="mt-3 space-y-3">
+                        {importResult.errors.map((rowError) => (
+                          <div
+                            key={`${rowError.row}-${rowError.error}`}
+                            className="rounded-2xl border border-danger/30 bg-background px-4 py-4"
+                          >
+                            <p className="text-sm font-semibold text-text-primary">
+                              {messages.proctors.importFlow.row} {rowError.row}
+                            </p>
+                            <p className="mt-1 text-sm text-danger">{rowError.message}</p>
+                            <p className="mt-1 text-xs uppercase tracking-[0.18em] text-text-secondary">
+                              {rowError.error}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-text-secondary">
+                        {messages.proctors.importFlow.noErrors}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setIsImportOpen(false);
+                    setImportError(null);
+                  }}
+                >
+                  {messages.proctors.importFlow.close}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setImportResult(null);
+                    setImportError(null);
+                    setIsImportOpen(false);
+                  }}
+                >
+                  {messages.proctors.importFlow.cancel}
+                </Button>
+                <Button onClick={() => void handleImportSubmit()} disabled={isImporting}>
+                  {isImporting
+                    ? messages.proctors.importFlow.submitting
+                    : messages.proctors.importFlow.submit}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+
+      {isExportOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+          <Card className="panel w-full max-w-2xl border-transparent">
+            <CardHeader>
+              <CardTitle>{messages.proctors.exportFlow.title}</CardTitle>
+              <CardDescription>{messages.proctors.exportFlow.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-primary" htmlFor="export-format">
+                    {messages.proctors.exportFlow.formatLabel}
+                  </label>
+                  <select
+                    id="export-format"
+                    value={exportFormat}
+                    onChange={(event) =>
+                      setExportFormat(event.target.value as ExportFormat)
+                    }
+                    className={selectClassName}
+                  >
+                    <option value="csv">{messages.proctors.exportFlow.csv}</option>
+                    <option value="excel">{messages.proctors.exportFlow.excel}</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-primary" htmlFor="export-status">
+                    {messages.proctors.exportFlow.statusLabel}
+                  </label>
+                  <select
+                    id="export-status"
+                    value={exportStatus}
+                    onChange={(event) =>
+                      setExportStatus(event.target.value as ExportStatus)
+                    }
+                    className={selectClassName}
+                  >
+                    <option value="active">{messages.proctors.exportFlow.activeOnly}</option>
+                    <option value="inactive">{messages.proctors.exportFlow.inactiveOnly}</option>
+                    <option value="all">{messages.proctors.exportFlow.allStatuses}</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="export-governorate"
+                >
+                  {messages.proctors.exportFlow.governorateLabel}
+                </label>
+                <select
+                  id="export-governorate"
+                  value={exportGovernorateId}
+                  onChange={(event) => setExportGovernorateId(event.target.value)}
+                  className={selectClassName}
+                >
+                  <option value="">{messages.proctors.exportFlow.allGovernorates}</option>
+                  {governorates.map((governorate) => (
+                    <option key={governorate.id} value={governorate.id}>
+                      {getLocalizedName(governorate, locale)}
+                    </option>
+                  ))}
+                </select>
+                {isGovernoratesLoading ? (
+                  <p className="text-xs text-text-secondary">
+                    {messages.proctors.exportFlow.loadingGovernorates}
+                  </p>
+                ) : null}
+              </div>
+
+              {exportError ? (
+                <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4 text-sm text-danger">
+                  {exportError}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setIsExportOpen(false);
+                    setExportError(null);
+                  }}
+                >
+                  {messages.proctors.exportFlow.close}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setExportGovernorateId("");
+                    setExportStatus("active");
+                    setExportFormat("csv");
+                    setExportError(null);
+                    setIsExportOpen(false);
+                  }}
+                >
+                  {messages.proctors.exportFlow.cancel}
+                </Button>
+                <Button onClick={() => void handleExportSubmit()} disabled={isExporting}>
+                  {isExporting
+                    ? messages.proctors.exportFlow.submitting
+                    : messages.proctors.exportFlow.submit}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
     </div>
   );
 }
