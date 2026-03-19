@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { authCookieName } from "@/lib/auth/config";
+import { ERROR_CODES } from "@/lib/errors/codes";
 import {
   authenticateAppUser,
   createPersistedSession
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
 
   if (!appUser) {
     const loginUrl = new URL("/login", getRequestOrigin(request));
-    loginUrl.searchParams.set("error", "invalid_credentials");
+    loginUrl.searchParams.set("error", ERROR_CODES.invalidCredentials);
 
     return NextResponse.redirect(loginUrl, {
       status: 303

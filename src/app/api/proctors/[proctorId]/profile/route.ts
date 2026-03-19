@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { toProctorProfileDTO } from "@/lib/proctors/dto";
 import { requireProctorsApiRole, handleProctorRouteError } from "@/lib/proctors/http";
 import { getProctorProfile } from "@/lib/proctors/service";
 import {
@@ -30,7 +31,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toProctorProfileDTO(data)
     });
   } catch (error) {
     return handleProctorRouteError(error);

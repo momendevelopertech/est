@@ -3,15 +3,17 @@ import { randomUUID } from "node:crypto";
 import { LocaleCode, Prisma, UserSource } from "@prisma/client";
 import { z } from "zod";
 
+import { logActivity } from "@/lib/activity/log";
 import { parseCsvRows } from "@/lib/csv";
 import { db } from "@/lib/db";
+import { ERROR_CODES } from "@/lib/errors/codes";
+import { MAX_IMPORT_ROW_COUNT } from "@/lib/import/constants";
+import { normalizePhone, validatePhone } from "@/lib/utils/phone";
 
 import {
   ProctorsServiceError,
-  createActivityLogEntry,
   normalizeEmail,
   normalizeOptionalText,
-  normalizePhone,
   proctorSelect
 } from "./service";
 
@@ -102,7 +104,7 @@ function resolveLocalizedName(name: string, nameEn: string) {
 
   if (!fallbackName) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       "name or nameEn is required for every imported proctor row.",
       {
         field: "name"
@@ -132,7 +134,7 @@ function parsePreferredLanguage(value: string) {
   }
 
   createImportValidationError(
-    "invalid_preferred_language",
+    ERROR_CODES.invalidPreferredLanguage,
     "preferredLanguage must be AR or EN when provided.",
     {
       field: "preferredLanguage",
@@ -152,10 +154,14 @@ function parseSource(value: string) {
     return normalized as UserSource;
   }
 
-  createImportValidationError("invalid_source", "source must be SPHINX, UNIVERSITY, or EXTERNAL.", {
-    field: "source",
-    value
-  });
+  createImportValidationError(
+    ERROR_CODES.invalidSource,
+    "source must be SPHINX, UNIVERSITY, or EXTERNAL.",
+    {
+      field: "source",
+      value
+    }
+  );
 }
 
 function parseActiveStatus(value: string) {
@@ -173,7 +179,7 @@ function parseActiveStatus(value: string) {
     return false;
   }
 
-  createImportValidationError("invalid_status", "status must be active or inactive.", {
+  createImportValidationError(ERROR_CODES.invalidStatus, "status must be active or inactive.", {
     field: "status",
     value
   });
@@ -183,17 +189,28 @@ function parseRows(csvText: string) {
   const rows = parseCsvRows(csvText);
 
   if (rows.length === 0) {
-    throw new ProctorsServiceError("empty_import_file", 400, "The uploaded CSV file is empty.");
+    throw new ProctorsServiceError(
+      ERROR_CODES.emptyImportFile,
+      400,
+      "The uploaded CSV file is empty."
+    );
   }
 
   const header = rows[0].map((column) => trimCell(column));
   const missingColumns = proctorImportColumns.filter((column) => !header.includes(column));
+  const unexpectedColumns = header.filter((column) => !proctorImportColumns.includes(column as ProctorImportColumn));
+  const duplicateColumns = header.filter((column, index) => header.indexOf(column) !== index);
 
-  if (missingColumns.length > 0) {
+  if (missingColumns.length > 0 || unexpectedColumns.length > 0 || duplicateColumns.length > 0) {
     throw new ProctorsServiceError(
-      "invalid_import_headers",
+      ERROR_CODES.invalidImportHeaders,
       400,
-      `The CSV file is missing required columns: ${missingColumns.join(", ")}.`
+      "The CSV file headers do not match the required proctors import template.",
+      {
+        missingColumns,
+        unexpectedColumns,
+        duplicateColumns: Array.from(new Set(duplicateColumns))
+      }
     );
   }
 
@@ -203,7 +220,34 @@ function parseRows(csvText: string) {
     headerIndexMap.set(column, header.indexOf(column));
   }
 
-  return rows.slice(1).map((row, index) => {
+  const dataRows = rows.slice(1);
+
+  if (dataRows.length > MAX_IMPORT_ROW_COUNT) {
+    throw new ProctorsServiceError(
+      ERROR_CODES.importRowLimitExceeded,
+      400,
+      `The CSV file exceeds the maximum of ${MAX_IMPORT_ROW_COUNT} rows.`,
+      {
+        maxRows: MAX_IMPORT_ROW_COUNT,
+        receivedRows: dataRows.length
+      }
+    );
+  }
+
+  return dataRows.map((row, index) => {
+    if (row.length > header.length) {
+      throw new ProctorsServiceError(
+        ERROR_CODES.invalidImportStructure,
+        400,
+        "The CSV file contains rows with more columns than the header.",
+        {
+          row: index + 2,
+          expectedColumns: header.length,
+          receivedColumns: row.length
+        }
+      );
+    }
+
     const rawRecord = Object.fromEntries(
       proctorImportColumns.map((column) => [column, row[headerIndexMap.get(column) ?? -1] ?? ""])
     );
@@ -278,7 +322,7 @@ function chooseGovernorateMatch(
 
   if (resolvedMatches.length > 1) {
     createImportValidationError(
-      "ambiguous_governorate_match",
+      ERROR_CODES.ambiguousGovernorateMatch,
       "The governorate columns match multiple records. Use a more specific code or name.",
       {
         code: filters.code,
@@ -355,7 +399,7 @@ async function resolveGovernorateId(
 
   if (!governorate) {
     createImportValidationError(
-      "governorate_not_found",
+      ERROR_CODES.governorateNotFound,
       "The referenced governorate was not found.",
       {
         code,
@@ -367,7 +411,7 @@ async function resolveGovernorateId(
 
   if (!governorate.isActive) {
     createImportValidationError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       "Cannot import a proctor into an inactive governorate.",
       {
         governorateId: governorate.id
@@ -388,12 +432,20 @@ async function processImportRow(
   const rawPhone = normalizeOptionalText(row.phone);
 
   if (!rawPhone) {
-    createImportValidationError("missing_required_field", "phone is required for every row.", {
+    createImportValidationError(ERROR_CODES.missingRequiredField, "phone is required for every row.", {
       field: "phone"
     });
   }
 
   const phone = normalizePhone(rawPhone);
+
+  if (!validatePhone(phone)) {
+    createImportValidationError(ERROR_CODES.invalidPhone, "phone is invalid.", {
+      field: "phone",
+      value: row.phone
+    });
+  }
+
   const email = normalizeEmail(row.email);
   const nationalId = normalizeOptionalText(row.nationalId);
   const source = parseSource(row.source);
@@ -451,7 +503,7 @@ async function processImportRow(
   if (phoneMatch) {
     if (emailMatch && emailMatch.id !== phoneMatch.id) {
       createImportValidationError(
-        "duplicate_email",
+        ERROR_CODES.duplicateEmail,
         "The imported email is already linked to a different proctor.",
         {
           field: "email",
@@ -463,7 +515,7 @@ async function processImportRow(
 
     if (nationalIdMatch && nationalIdMatch.id !== phoneMatch.id) {
       createImportValidationError(
-        "duplicate_national_id",
+        ERROR_CODES.duplicateNationalId,
         "The imported national ID is already linked to a different proctor.",
         {
           field: "nationalId",
@@ -479,7 +531,7 @@ async function processImportRow(
       phoneMatch.email.trim().toLowerCase() !== email.toLowerCase()
     ) {
       createImportValidationError(
-        "phone_reuse_email_mismatch",
+        ERROR_CODES.phoneReuseEmailMismatch,
         "The row matches an existing phone number but has a different email.",
         {
           field: "email",
@@ -495,7 +547,7 @@ async function processImportRow(
       phoneMatch.nationalId.trim().toLowerCase() !== nationalId.toLowerCase()
     ) {
       createImportValidationError(
-        "phone_reuse_national_id_mismatch",
+        ERROR_CODES.phoneReuseNationalIdMismatch,
         "The row matches an existing phone number but has a different national ID.",
         {
           field: "nationalId",
@@ -514,7 +566,7 @@ async function processImportRow(
 
   if (emailMatch) {
     createImportValidationError(
-      "duplicate_email",
+      ERROR_CODES.duplicateEmail,
       "The imported email is already linked to an existing proctor.",
       {
         field: "email",
@@ -526,7 +578,7 @@ async function processImportRow(
 
   if (nationalIdMatch) {
     createImportValidationError(
-      "duplicate_national_id",
+      ERROR_CODES.duplicateNationalId,
       "The imported national ID is already linked to an existing proctor.",
       {
         field: "nationalId",
@@ -538,7 +590,7 @@ async function processImportRow(
 
   if (!source) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       "source is required when creating a new proctor.",
       {
         field: "source"
@@ -564,21 +616,21 @@ async function processImportRow(
     select: proctorSelect
   });
 
-  await tx.activityLog.create({
-    data: createActivityLogEntry({
-      actorAppUserId,
-      action: "create",
-      entityId: created.id,
-      description: `Created proctor ${created.name} via import.`,
-      metadata: {
-        source: "import",
-        rowNumber,
-        phone: created.phone,
-        email: created.email,
-        governorateId: created.governorateId
-      },
-      afterPayload: created
-    })
+  await logActivity({
+    client: tx,
+    userId: actorAppUserId,
+    action: "create",
+    entityType: "proctor",
+    entityId: created.id,
+    description: `Created proctor ${created.name} via import.`,
+    metadata: {
+      source: "import",
+      rowNumber,
+      phone: created.phone,
+      email: created.email,
+      governorateId: created.governorateId
+    },
+    afterPayload: created
   });
 
   return {
@@ -627,7 +679,7 @@ export async function importProctorsCsv(params: {
                   : null
             }
           : {
-              code: "unexpected_import_error",
+              code: ERROR_CODES.internalServerError,
               message: error instanceof Error ? error.message : "Unexpected import error.",
               details: null
             };
@@ -674,29 +726,24 @@ export async function importProctorsCsv(params: {
     .filter((result) => !result.success && result.error)
     .map((result) => ({
       row: result.row,
-      error: result.error?.code ?? "unexpected_import_error",
+      error: result.error?.code ?? ERROR_CODES.internalServerError,
       message: result.error?.message ?? "Unexpected import error.",
       details: result.error?.details ?? null
     }));
 
-  await db.activityLog.create({
-    data: {
-      actorAppUserId: params.actorAppUserId,
-      action: "import",
-      entityType: "proctors_import",
-      entityId: randomUUID(),
-      description: `Imported proctors from ${params.fileName ?? "uploaded CSV"}.`,
-      metadata: {
-        userId: params.actorAppUserId,
-        action: "import",
-        entityType: "proctors_import",
-        totalRows: summary.total,
-        successRows: summary.success,
-        failedRows: summary.failed,
-        createdRows: summary.created,
-        reusedRows: summary.reused,
-        fileName: params.fileName ?? null
-      }
+  await logActivity({
+    userId: params.actorAppUserId,
+    action: "import",
+    entityType: "proctors_import",
+    entityId: randomUUID(),
+    description: `Imported proctors from ${params.fileName ?? "uploaded CSV"}.`,
+    metadata: {
+      totalRows: summary.total,
+      successRows: summary.success,
+      failedRows: summary.failed,
+      createdRows: summary.created,
+      reusedRows: summary.reused,
+      fileName: params.fileName ?? null
     }
   });
 

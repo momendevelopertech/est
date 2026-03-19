@@ -1,7 +1,7 @@
 import { stringifyCsv } from "@/lib/csv";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getMessages } from "@/lib/i18n";
-import { getLocalizedName } from "@/lib/locations/presentation";
+import { getLocalizedName } from "@/lib/i18n/presentation";
 import { createSpreadsheetXml } from "@/lib/tabular";
 
 import { db } from "@/lib/db";

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { toLocationDTO } from "@/lib/locations/dto";
 import {
   createBuilding,
   listBuildings
@@ -24,11 +25,12 @@ export async function GET(request: Request) {
 
   try {
     const query = buildingListQuerySchema.parse(getRequestQuery(request));
-    const data = await listBuildings(query);
+    const result = await listBuildings(query);
 
     return NextResponse.json({
       ok: true,
-      data
+      data: result.data.map((location) => toLocationDTO(location)),
+      pagination: result.pagination
     });
   } catch (error) {
     return handleLocationRouteError(error);
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: true,
-        data
+        data: toLocationDTO(data)
       },
       {
         status: 201

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ERROR_CODES } from "@/lib/errors/codes";
 import { getSession } from "@/lib/auth/session";
 import { updateAppUserLocalePreference } from "@/lib/auth/service";
 import { env } from "@/lib/env";
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "invalid_locale"
+        error: ERROR_CODES.invalidLocale
       },
       {
         status: 400

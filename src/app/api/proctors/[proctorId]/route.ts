@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { toProctorDTO } from "@/lib/proctors/dto";
 import {
   deactivateProctor,
   getProctor,
@@ -39,7 +40,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toProctorDTO(data)
     });
   } catch (error) {
     return handleProctorRouteError(error);
@@ -61,7 +62,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toProctorDTO(data)
     });
   } catch (error) {
     return handleProctorRouteError(error);
@@ -81,7 +82,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toProctorDTO(data)
     });
   } catch (error) {
     return handleProctorRouteError(error);

@@ -3,8 +3,11 @@ import { randomUUID } from "node:crypto";
 import { ExamType, Prisma } from "@prisma/client";
 import { z } from "zod";
 
+import { logActivity } from "@/lib/activity/log";
 import { parseCsvRows } from "@/lib/csv";
 import { db } from "@/lib/db";
+import { ERROR_CODES } from "@/lib/errors/codes";
+import { MAX_IMPORT_ROW_COUNT } from "@/lib/import/constants";
 
 import { LocationsServiceError, validateRoomIntegrity } from "./service";
 
@@ -132,7 +135,7 @@ function resolveLocalizedName(
 
   if (!fallbackName) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       `${fieldBase} name is required when ${fieldBase} data is present.`
     );
   }
@@ -153,7 +156,7 @@ function parseInteger(value: string, fieldName: string) {
   const parsed = Number(normalized);
 
   if (!Number.isInteger(parsed)) {
-    createImportValidationError("invalid_integer", `${fieldName} must be an integer.`, {
+    createImportValidationError(ERROR_CODES.invalidInteger, `${fieldName} must be an integer.`, {
       fieldName,
       value: normalized
     });
@@ -180,7 +183,7 @@ function parseExamTypes(value: string) {
 
   if (invalid.length > 0) {
     createImportValidationError(
-      "invalid_exam_type",
+      ERROR_CODES.invalidExamType,
       `roomSupportedExamTypes contains invalid values: ${invalid.join(", ")}.`,
       {
         invalidValues: invalid
@@ -195,17 +198,30 @@ function parseRows(csvText: string) {
   const rows = parseCsvRows(csvText);
 
   if (rows.length === 0) {
-    throw new LocationsServiceError("empty_import_file", 400, "The uploaded CSV file is empty.");
+    throw new LocationsServiceError(
+      ERROR_CODES.emptyImportFile,
+      400,
+      "The uploaded CSV file is empty."
+    );
   }
 
   const header = rows[0].map((column) => trimCell(column));
   const missingColumns = locationImportColumns.filter((column) => !header.includes(column));
+  const unexpectedColumns = header.filter(
+    (column) => !locationImportColumns.includes(column as LocationImportColumn)
+  );
+  const duplicateColumns = header.filter((column, index) => header.indexOf(column) !== index);
 
-  if (missingColumns.length > 0) {
+  if (missingColumns.length > 0 || unexpectedColumns.length > 0 || duplicateColumns.length > 0) {
     throw new LocationsServiceError(
-      "invalid_import_headers",
+      ERROR_CODES.invalidImportHeaders,
       400,
-      `The CSV file is missing required columns: ${missingColumns.join(", ")}.`
+      "The CSV file headers do not match the required locations import template.",
+      {
+        missingColumns,
+        unexpectedColumns,
+        duplicateColumns: Array.from(new Set(duplicateColumns))
+      }
     );
   }
 
@@ -215,7 +231,34 @@ function parseRows(csvText: string) {
     headerIndexMap.set(column, header.indexOf(column));
   }
 
-  return rows.slice(1).map((row, index) => {
+  const dataRows = rows.slice(1);
+
+  if (dataRows.length > MAX_IMPORT_ROW_COUNT) {
+    throw new LocationsServiceError(
+      ERROR_CODES.importRowLimitExceeded,
+      400,
+      `The CSV file exceeds the maximum of ${MAX_IMPORT_ROW_COUNT} rows.`,
+      {
+        maxRows: MAX_IMPORT_ROW_COUNT,
+        receivedRows: dataRows.length
+      }
+    );
+  }
+
+  return dataRows.map((row, index) => {
+    if (row.length > header.length) {
+      throw new LocationsServiceError(
+        ERROR_CODES.invalidImportStructure,
+        400,
+        "The CSV file contains rows with more columns than the header.",
+        {
+          row: index + 2,
+          expectedColumns: header.length,
+          receivedColumns: row.length
+        }
+      );
+    }
+
     const rawRecord = Object.fromEntries(
       locationImportColumns.map((column) => [column, row[headerIndexMap.get(column) ?? -1] ?? ""])
     );
@@ -258,7 +301,7 @@ function validateRowShape(record: ParsedImportRow) {
 
   if (!hasGovernorate) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       "governorateName or governorateNameEn is required for every import row."
     );
   }
@@ -269,14 +312,14 @@ function validateRowShape(record: ParsedImportRow) {
     !normalizeOptionalText(record.universityNameEn)
   ) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       "universityName or universityNameEn is required when university data is present."
     );
   }
 
   if (hasBuilding && !hasUniversity) {
     createImportValidationError(
-      "invalid_hierarchy_order",
+      ERROR_CODES.invalidHierarchyOrder,
       "Building data requires a university in the same row."
     );
   }
@@ -287,14 +330,14 @@ function validateRowShape(record: ParsedImportRow) {
     !normalizeOptionalText(record.buildingNameEn)
   ) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       "buildingName or buildingNameEn is required when building data is present."
     );
   }
 
   if (hasFloor && !hasBuilding) {
     createImportValidationError(
-      "invalid_hierarchy_order",
+      ERROR_CODES.invalidHierarchyOrder,
       "Floor data requires a building in the same row."
     );
   }
@@ -305,14 +348,14 @@ function validateRowShape(record: ParsedImportRow) {
     !normalizeOptionalText(record.floorNameEn)
   ) {
     createImportValidationError(
-      "missing_required_field",
+      ERROR_CODES.missingRequiredField,
       "floorName or floorNameEn is required when floor data is present."
     );
   }
 
   if (hasRoom && !hasFloor) {
     createImportValidationError(
-      "invalid_hierarchy_order",
+      ERROR_CODES.invalidHierarchyOrder,
       "Room data requires a floor in the same row."
     );
   }
@@ -320,28 +363,28 @@ function validateRowShape(record: ParsedImportRow) {
   if (hasRoom) {
     if (!normalizeOptionalText(record.roomName) && !normalizeOptionalText(record.roomNameEn)) {
       createImportValidationError(
-        "missing_required_field",
+        ERROR_CODES.missingRequiredField,
         "roomName or roomNameEn is required when room data is present."
       );
     }
 
     if (!normalizeOptionalText(record.roomType)) {
       createImportValidationError(
-        "missing_required_field",
+        ERROR_CODES.missingRequiredField,
         "roomType is required when room data is present."
       );
     }
 
     if (!normalizeOptionalText(record.roomSupportedExamTypes)) {
       createImportValidationError(
-        "missing_required_field",
+        ERROR_CODES.missingRequiredField,
         "roomSupportedExamTypes is required when room data is present."
       );
     }
 
     if (!normalizeOptionalText(record.roomCapacityMax)) {
       createImportValidationError(
-        "missing_required_field",
+        ERROR_CODES.missingRequiredField,
         "roomCapacityMax is required when room data is present."
       );
     }
@@ -384,7 +427,7 @@ function chooseSingleMatch<
     matches.length > 1
   ) {
     createImportValidationError(
-      "ambiguous_existing_match",
+      ERROR_CODES.ambiguousExistingMatch,
       `Multiple ${entityType} records matched the same import row.`,
       {
         entityType
@@ -399,7 +442,7 @@ function chooseSingleMatch<
     new Set(namedMatches.map((match) => match?.id)).size > 1
   ) {
     createImportValidationError(
-      "conflicting_duplicate_match",
+      ERROR_CODES.conflictingDuplicateMatch,
       `${entityType} code and names match different existing records.`,
       {
         entityType
@@ -411,7 +454,7 @@ function chooseSingleMatch<
 
   if (!match.isActive) {
     createImportValidationError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       `Cannot import into inactive ${entityType} "${match.name}".`,
       {
         entityType,
@@ -777,15 +820,18 @@ async function resolveRoom(
   const capacityMax = parseInteger(record.roomCapacityMax, "roomCapacityMax");
 
   if (!roomType) {
-    createImportValidationError("missing_required_field", "roomType is required.");
+    createImportValidationError(ERROR_CODES.missingRequiredField, "roomType is required.");
   }
 
   if (!supportedExamTypes || supportedExamTypes.length === 0) {
-    createImportValidationError("missing_required_field", "roomSupportedExamTypes is required.");
+    createImportValidationError(
+      ERROR_CODES.missingRequiredField,
+      "roomSupportedExamTypes is required."
+    );
   }
 
   if (capacityMax === undefined) {
-    createImportValidationError("missing_required_field", "roomCapacityMax is required.");
+    createImportValidationError(ERROR_CODES.missingRequiredField, "roomCapacityMax is required.");
   }
 
   validateRoomIntegrity({
@@ -961,7 +1007,7 @@ export async function importLocationsCsv(params: {
               message: error.message
             }
           : {
-              code: "unexpected_import_error",
+              code: ERROR_CODES.internalServerError,
               message: error instanceof Error ? error.message : "Unexpected import error."
             };
 
@@ -1016,27 +1062,22 @@ export async function importLocationsCsv(params: {
     .filter((result) => !result.success && result.error)
     .map((result) => ({
       row: result.row,
-      error: result.error?.code ?? "unexpected_import_error",
+      error: result.error?.code ?? ERROR_CODES.internalServerError,
       message: result.error?.message ?? "Unexpected import error."
     }));
 
-  await db.activityLog.create({
-    data: {
-      actorAppUserId: params.actorAppUserId,
-      action: "import",
-      entityType: "locations_import",
-      entityId: randomUUID(),
-      description: `Imported locations from ${params.fileName ?? "uploaded CSV"}.`,
-      metadata: {
-        userId: params.actorAppUserId,
-        action: "import",
-        entityType: "locations_import",
-        totalRows: summary.total,
-        successRows: summary.success,
-        failedRows: summary.failed,
-        created: summary.created,
-        fileName: params.fileName ?? null
-      }
+  await logActivity({
+    userId: params.actorAppUserId,
+    action: "import",
+    entityType: "locations_import",
+    entityId: randomUUID(),
+    description: `Imported locations from ${params.fileName ?? "uploaded CSV"}.`,
+    metadata: {
+      totalRows: summary.total,
+      successRows: summary.success,
+      failedRows: summary.failed,
+      created: summary.created,
+      fileName: params.fileName ?? null
     }
   });
 

@@ -1,46 +1,27 @@
 import { BlockStatus, LocaleCode, UserSource } from "@prisma/client";
 import { z } from "zod";
 
-const trimmedOptionalString = (maxLength: number) =>
-  z
-    .string()
-    .trim()
-    .max(maxLength)
-    .transform((value) => (value.length > 0 ? value : undefined))
-    .optional();
+import { ERROR_CODES } from "@/lib/errors/codes";
+import { normalizePhone, validatePhone } from "@/lib/utils/phone";
+import {
+  booleanQueryParamSchema,
+  createUpdateSchema,
+  localeQuerySchema,
+  nonEmptyString,
+  paginationQueryFields,
+  trimmedOptionalString,
+  uuidSchema
+} from "@/lib/validation/common";
 
-const nonEmptyString = (maxLength: number) =>
-  z.string().trim().min(1).max(maxLength);
-
-const uuidSchema = z.string().uuid();
-const localeQuerySchema = z.enum(["en", "ar"]);
-
-const booleanQueryParamSchema = z.preprocess((value) => {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    if (value === "true") {
-      return true;
-    }
-
-    if (value === "false") {
-      return false;
-    }
-  }
-
-  return undefined;
-}, z.boolean().optional());
-
-function createUpdateSchema<T extends z.ZodRawShape>(shape: T) {
-  return z
-    .object(shape)
-    .partial()
-    .refine((value) => Object.keys(value).length > 0, {
-      message: "At least one field must be provided."
-    });
-}
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(50)
+  .transform((value) => normalizePhone(value))
+  .refine((value) => validatePhone(value), {
+    message: ERROR_CODES.invalidPhone
+  });
 
 const preferredLanguageSchema = z.nativeEnum(LocaleCode).optional();
 const nullableUuidSchema = z.union([uuidSchema, z.null()]);
@@ -48,7 +29,7 @@ const nullableUuidSchema = z.union([uuidSchema, z.null()]);
 const proctorMutationFields = {
   name: nonEmptyString(255),
   nameEn: trimmedOptionalString(255),
-  phone: nonEmptyString(50),
+  phone: phoneSchema,
   nationalId: trimmedOptionalString(50),
   email: z
     .string()
@@ -71,7 +52,8 @@ export const proctorListQuerySchema = z.object({
   search: trimmedOptionalString(255),
   source: z.nativeEnum(UserSource).optional(),
   governorateId: uuidSchema.optional(),
-  blockStatus: z.nativeEnum(BlockStatus).optional()
+  blockStatus: z.nativeEnum(BlockStatus).optional(),
+  ...paginationQueryFields
 });
 
 export const proctorDetailQuerySchema = z.object({

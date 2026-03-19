@@ -1,6 +1,11 @@
 import { LocaleCode, Prisma, UserSource, type PrismaClient } from "@prisma/client";
 
+import { logActivity } from "@/lib/activity/log";
 import { db } from "@/lib/db";
+import { ERROR_CODES } from "@/lib/errors/codes";
+import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
+import { createBilingualSearchFilter } from "@/lib/search/bilingual";
+import { normalizePhone, validatePhone } from "@/lib/utils/phone";
 
 import type {
   CreateProctorInput,
@@ -71,56 +76,13 @@ export const proctorSelect = {
 } satisfies Prisma.UserSelect;
 
 function createSearchFilter(search?: string) {
-  if (!search) {
-    return undefined;
-  }
-
-  return {
-    OR: [
-      {
-        name: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        nameEn: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        phone: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        email: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        nationalId: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        organization: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        branch: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      }
-    ]
-  };
+  return createBilingualSearchFilter(search, [
+    "phone",
+    "email",
+    "nationalId",
+    "organization",
+    "branch"
+  ]);
 }
 
 function createActiveFilter(includeInactive: boolean) {
@@ -132,60 +94,50 @@ export function normalizeEmail(value?: string | null) {
   return normalized && normalized.length > 0 ? normalized : undefined;
 }
 
-export function normalizePhone(value: string) {
-  return value.replace(/[\s\-()]+/g, "").trim();
-}
-
 export function normalizeOptionalText(value?: string | null) {
   const normalized = value?.trim();
   return normalized && normalized.length > 0 ? normalized : undefined;
-}
-
-function toRecordJson(value: unknown) {
-  return value as Prisma.InputJsonValue;
-}
-
-export function createActivityLogEntry(params: {
-  actorAppUserId: string;
-  action: "create" | "update" | "delete";
-  entityId: string;
-  description: string;
-  metadata?: Record<string, unknown>;
-  beforePayload?: unknown;
-  afterPayload?: unknown;
-}) {
-  return {
-    actorAppUserId: params.actorAppUserId,
-    action: params.action,
-    entityType: "proctor",
-    entityId: params.entityId,
-    description: params.description,
-    metadata: toRecordJson({
-      userId: params.actorAppUserId,
-      entityType: "proctor",
-      entityId: params.entityId,
-      action: params.action,
-      ...(params.metadata ?? {})
-    }),
-    beforePayload:
-      params.beforePayload === undefined ? undefined : toRecordJson(params.beforePayload),
-    afterPayload:
-      params.afterPayload === undefined ? undefined : toRecordJson(params.afterPayload)
-  } satisfies Prisma.ActivityLogUncheckedCreateInput;
 }
 
 function isKnownPrismaError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError;
 }
 
+function getDuplicateErrorCode(error: Prisma.PrismaClientKnownRequestError) {
+  const targets = Array.isArray(error.meta?.target)
+    ? error.meta.target.map((value) => String(value))
+    : typeof error.meta?.target === "string"
+      ? [error.meta.target]
+      : [];
+
+  if (targets.some((target) => target.includes("phone"))) {
+    return ERROR_CODES.duplicatePhone;
+  }
+
+  if (targets.some((target) => target.includes("email"))) {
+    return ERROR_CODES.duplicateEmail;
+  }
+
+  if (targets.some((target) => target.includes("national"))) {
+    return ERROR_CODES.duplicateNationalId;
+  }
+
+  return ERROR_CODES.duplicateProctor;
+}
+
 function normalizeMutationError(error: unknown): never {
   if (isKnownPrismaError(error) && error.code === "P2025") {
-    throw new ProctorsServiceError("proctor_not_found", 404, "Proctor not found.");
+    throw new ProctorsServiceError(
+      ERROR_CODES.proctorNotFound,
+      404,
+      "Proctor not found."
+    );
   }
 
   if (isKnownPrismaError(error) && error.code === "P2002") {
+    const duplicateCode = getDuplicateErrorCode(error);
     throw new ProctorsServiceError(
-      "duplicate_proctor",
+      duplicateCode,
       409,
       "The requested proctor change conflicts with an existing record.",
       error.meta ?? null
@@ -212,12 +164,16 @@ export async function assertGovernorateExists(
   });
 
   if (!governorate) {
-    throw new ProctorsServiceError("governorate_not_found", 404, "Governorate not found.");
+    throw new ProctorsServiceError(
+      ERROR_CODES.governorateNotFound,
+      404,
+      "Governorate not found."
+    );
   }
 
   if (options.requireActive && !governorate.isActive) {
     throw new ProctorsServiceError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       409,
       "Cannot link a proctor to an inactive governorate."
     );
@@ -238,7 +194,11 @@ async function assertProctorExists(
   });
 
   if (!proctor || (!options.includeInactive && !proctor.isActive)) {
-    throw new ProctorsServiceError("proctor_not_found", 404, "Proctor not found.");
+    throw new ProctorsServiceError(
+      ERROR_CODES.proctorNotFound,
+      404,
+      "Proctor not found."
+    );
   }
 
   return proctor;
@@ -338,7 +298,11 @@ async function findDuplicateConflicts(
   if (conflicts.length > 0) {
     const primaryConflict = conflicts[0];
     throw new ProctorsServiceError(
-      `duplicate_${primaryConflict.field}`,
+      primaryConflict.field === "phone"
+        ? ERROR_CODES.duplicatePhone
+        : primaryConflict.field === "email"
+          ? ERROR_CODES.duplicateEmail
+          : ERROR_CODES.duplicateNationalId,
       409,
       `A proctor with the same ${primaryConflict.field} already exists.`,
       conflicts
@@ -346,10 +310,26 @@ async function findDuplicateConflicts(
   }
 }
 
+function assertValidNormalizedPhone(phone: string) {
+  if (!validatePhone(phone)) {
+    throw new ProctorsServiceError(
+      ERROR_CODES.invalidPhone,
+      400,
+      "Phone number is invalid."
+    );
+  }
+
+  return phone;
+}
+
 function normalizeUpdateInput(input: UpdateProctorInput) {
   return {
     ...input,
-    ...(input.phone ? { phone: normalizePhone(input.phone) } : {}),
+    ...(input.phone
+      ? {
+          phone: assertValidNormalizedPhone(normalizePhone(input.phone))
+        }
+      : {}),
     ...(input.email !== undefined ? { email: normalizeEmail(input.email) } : {}),
     ...(input.nationalId !== undefined
       ? { nationalId: normalizeOptionalText(input.nationalId) }
@@ -366,7 +346,7 @@ function normalizeCreateInput(input: CreateProctorInput) {
   return {
     ...input,
     name: input.name.trim(),
-    phone: normalizePhone(input.phone),
+    phone: assertValidNormalizedPhone(normalizePhone(input.phone)),
     email: normalizeEmail(input.email),
     nationalId: normalizeOptionalText(input.nationalId),
     organization: normalizeOptionalText(input.organization),
@@ -430,29 +410,48 @@ export async function listProctors(query: ProctorListQuery) {
     await assertGovernorateExists(query.governorateId);
   }
 
-  return db.user.findMany({
-    where: {
-      ...(query.governorateId
+  const pagination = resolvePagination(query);
+  const where = {
+    ...(query.governorateId
+      ? {
+          governorateId: query.governorateId
+        }
+      : {}),
+    ...(query.source
+      ? {
+          source: query.source
+        }
+      : {}),
+    ...(query.blockStatus
+      ? {
+          blockStatus: query.blockStatus
+        }
+      : {}),
+    ...createActiveFilter(query.includeInactive),
+    ...createSearchFilter(query.search)
+  } satisfies Prisma.UserWhereInput;
+
+  const [data, total] = await Promise.all([
+    db.user.findMany({
+      where,
+      orderBy: [{ name: "asc" }],
+      ...(pagination
         ? {
-            governorateId: query.governorateId
+            skip: pagination.skip,
+            take: pagination.take
           }
         : {}),
-      ...(query.source
-        ? {
-            source: query.source
-          }
-        : {}),
-      ...(query.blockStatus
-        ? {
-            blockStatus: query.blockStatus
-          }
-        : {}),
-      ...createActiveFilter(query.includeInactive),
-      ...createSearchFilter(query.search)
-    },
-    orderBy: [{ name: "asc" }],
-    select: proctorSelect
-  });
+      select: proctorSelect
+    }),
+    db.user.count({
+      where
+    })
+  ]);
+
+  return {
+    data,
+    pagination: buildPaginationMeta(total, pagination)
+  };
 }
 
 export async function getProctor(
@@ -672,20 +671,20 @@ export async function createProctor(input: CreateProctorInput, actorAppUserId: s
         select: proctorSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "create",
-          entityId: created.id,
-          description: `Created proctor ${created.name}.`,
-          metadata: {
-            source: created.source,
-            governorateId: created.governorateId,
-            phone: created.phone,
-            email: created.email
-          },
-          afterPayload: created
-        })
+      await logActivity({
+        client: tx,
+        userId: actorAppUserId,
+        action: "create",
+        entityType: "proctor",
+        entityId: created.id,
+        description: `Created proctor ${created.name}.`,
+        metadata: {
+          source: created.source,
+          governorateId: created.governorateId,
+          phone: created.phone,
+          email: created.email
+        },
+        afterPayload: created
       });
 
       return created;
@@ -738,18 +737,18 @@ export async function updateProctor(
         select: proctorSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "update",
-          entityId: updated.id,
-          description: `Updated proctor ${updated.name}.`,
-          metadata: {
-            changedFields: Object.keys(normalizedInput)
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await logActivity({
+        client: tx,
+        userId: actorAppUserId,
+        action: "update",
+        entityType: "proctor",
+        entityId: updated.id,
+        description: `Updated proctor ${updated.name}.`,
+        metadata: {
+          changedFields: Object.keys(normalizedInput)
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -776,19 +775,19 @@ export async function deactivateProctor(proctorId: string, actorAppUserId: strin
         select: proctorSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "delete",
-          entityId: updated.id,
-          description: `Deactivated proctor ${updated.name}.`,
-          metadata: {
-            softDeleted: true,
-            source: updated.source
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await logActivity({
+        client: tx,
+        userId: actorAppUserId,
+        action: "delete",
+        entityType: "proctor",
+        entityId: updated.id,
+        description: `Deactivated proctor ${updated.name}.`,
+        metadata: {
+          softDeleted: true,
+          source: updated.source
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;

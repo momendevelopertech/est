@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { ERROR_CODES } from "@/lib/errors/codes";
 import { getSession } from "@/lib/auth/session";
 import { updateAppUserThemePreference } from "@/lib/auth/service";
 import { env } from "@/lib/env";
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error: "invalid_theme"
+        error: ERROR_CODES.invalidTheme
       },
       {
         status: 400

@@ -1,6 +1,10 @@
 import { Prisma, ExamType, type ExamType as ExamTypeValue } from "@prisma/client";
 
+import { logActivity } from "@/lib/activity/log";
 import { db } from "@/lib/db";
+import { ERROR_CODES } from "@/lib/errors/codes";
+import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
+import { createBilingualSearchFilter } from "@/lib/search/bilingual";
 
 import type {
   BuildingListQuery,
@@ -266,32 +270,7 @@ const locationTreeSelect = {
 } satisfies Prisma.GovernorateSelect;
 
 function createSearchFilter(search?: string) {
-  if (!search) {
-    return undefined;
-  }
-
-  return {
-    OR: [
-      {
-        name: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        nameEn: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      },
-      {
-        code: {
-          contains: search,
-          mode: "insensitive" as const
-        }
-      }
-    ]
-  };
+  return createBilingualSearchFilter(search, ["code"]);
 }
 
 function createActiveFilter(includeInactive: boolean) {
@@ -308,7 +287,7 @@ function isNotFoundError(error: unknown): error is Prisma.PrismaClientKnownReque
 
 function toConflictError(error: Prisma.PrismaClientKnownRequestError) {
   return new LocationsServiceError(
-    "unique_constraint_violation",
+    ERROR_CODES.uniqueConstraintViolation,
     409,
     "The requested location change conflicts with an existing record.",
     error.meta ?? null
@@ -321,7 +300,11 @@ function normalizeMutationError(error: unknown): never {
   }
 
   if (isNotFoundError(error)) {
-    throw new LocationsServiceError("location_not_found", 404, "The requested location was not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.locationNotFound,
+      404,
+      "The requested location was not found."
+    );
   }
 
   throw error;
@@ -353,7 +336,7 @@ function validateSupportedExamTypes(
 
   if (invalidValues.length > 0) {
     throw new LocationsServiceError(
-      "invalid_exam_type",
+      ERROR_CODES.invalidExamType,
       400,
       "supportedExamTypes contains invalid exam types.",
       {
@@ -380,7 +363,7 @@ export function validateRoomIntegrity(
 
   if (capacityMax !== undefined && capacityMax <= 0) {
     throw new LocationsServiceError(
-      "invalid_capacity_range",
+      ERROR_CODES.invalidCapacityRange,
       400,
       "capacityMax must be greater than zero.",
       {
@@ -395,7 +378,7 @@ export function validateRoomIntegrity(
     capacityMax < capacityMin
   ) {
     throw new LocationsServiceError(
-      "invalid_capacity_range",
+      ERROR_CODES.invalidCapacityRange,
       400,
       "capacityMax must be greater than or equal to capacityMin.",
       {
@@ -432,7 +415,7 @@ function assertNoNameConflict(input: DuplicateCheckInput, matches: ScopedLocatio
   }
 
   throwTypedValidationError(
-    "duplicate_location_name",
+    ERROR_CODES.duplicateLocationName,
     `A ${input.entityType} with the same name already exists in this scope.`,
     buildDuplicateDetails(input, conflictingRecord)
   );
@@ -454,7 +437,7 @@ function assertNoCodeConflict(input: DuplicateCheckInput, matches: ScopedLocatio
   }
 
   throwTypedValidationError(
-    "duplicate_location_code",
+    ERROR_CODES.duplicateLocationCode,
     `A ${input.entityType} with the same code already exists in this scope.`,
     buildDuplicateDetails(input, conflictingRecord)
   );
@@ -826,7 +809,7 @@ async function assertNoActiveChildren(params: {
 
   if (activeChildren > 0) {
     throw new LocationsServiceError(
-      "has_active_children",
+      ERROR_CODES.hasActiveChildren,
       409,
       "Cannot deactivate a location while it still has active child records.",
       {
@@ -856,16 +839,24 @@ async function assertGovernorateExists(
   });
 
   if (!governorate) {
-    throw new LocationsServiceError("governorate_not_found", 404, "Governorate not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.governorateNotFound,
+      404,
+      "Governorate not found."
+    );
   }
 
   if (!options.includeInactive && !governorate.isActive) {
-    throw new LocationsServiceError("governorate_not_found", 404, "Governorate not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.governorateNotFound,
+      404,
+      "Governorate not found."
+    );
   }
 
   if (options.requireActiveParent && !governorate.isActive) {
     throw new LocationsServiceError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       409,
       "Cannot attach records to an inactive governorate."
     );
@@ -892,16 +883,24 @@ async function assertUniversityExists(
   });
 
   if (!university) {
-    throw new LocationsServiceError("university_not_found", 404, "University not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.universityNotFound,
+      404,
+      "University not found."
+    );
   }
 
   if (!options.includeInactive && !university.isActive) {
-    throw new LocationsServiceError("university_not_found", 404, "University not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.universityNotFound,
+      404,
+      "University not found."
+    );
   }
 
   if (options.requireActiveParent && !university.isActive) {
     throw new LocationsServiceError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       409,
       "Cannot attach records to an inactive university."
     );
@@ -928,16 +927,24 @@ async function assertBuildingExists(
   });
 
   if (!building) {
-    throw new LocationsServiceError("building_not_found", 404, "Building not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.buildingNotFound,
+      404,
+      "Building not found."
+    );
   }
 
   if (!options.includeInactive && !building.isActive) {
-    throw new LocationsServiceError("building_not_found", 404, "Building not found.");
+    throw new LocationsServiceError(
+      ERROR_CODES.buildingNotFound,
+      404,
+      "Building not found."
+    );
   }
 
   if (options.requireActiveParent && !building.isActive) {
     throw new LocationsServiceError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       409,
       "Cannot attach records to an inactive building."
     );
@@ -964,16 +971,16 @@ async function assertFloorExists(
   });
 
   if (!floor) {
-    throw new LocationsServiceError("floor_not_found", 404, "Floor not found.");
+    throw new LocationsServiceError(ERROR_CODES.floorNotFound, 404, "Floor not found.");
   }
 
   if (!options.includeInactive && !floor.isActive) {
-    throw new LocationsServiceError("floor_not_found", 404, "Floor not found.");
+    throw new LocationsServiceError(ERROR_CODES.floorNotFound, 404, "Floor not found.");
   }
 
   if (options.requireActiveParent && !floor.isActive) {
     throw new LocationsServiceError(
-      "inactive_parent",
+      ERROR_CODES.inactiveParent,
       409,
       "Cannot attach records to an inactive floor."
     );
@@ -991,17 +998,19 @@ async function assertRoomExists(roomId: string, options: IncludeInactiveOptions 
   });
 
   if (!room) {
-    throw new LocationsServiceError("room_not_found", 404, "Room not found.");
+    throw new LocationsServiceError(ERROR_CODES.roomNotFound, 404, "Room not found.");
   }
 
   if (!options.includeInactive && !room.isActive) {
-    throw new LocationsServiceError("room_not_found", 404, "Room not found.");
+    throw new LocationsServiceError(ERROR_CODES.roomNotFound, 404, "Room not found.");
   }
 
   return room;
 }
 
-function createActivityLogEntry(params: {
+async function recordLocationActivity(
+  client: Prisma.TransactionClient,
+  params: {
   actorAppUserId: string;
   action: "create" | "update" | "delete";
   entityType: string;
@@ -1011,39 +1020,46 @@ function createActivityLogEntry(params: {
   afterPayload?: unknown;
   metadata?: Record<string, unknown>;
 }) {
-  return {
-    actorAppUserId: params.actorAppUserId,
+  await logActivity({
+    client,
+    userId: params.actorAppUserId,
     action: params.action,
     entityType: params.entityType,
     entityId: params.entityId,
     description: params.description,
-    metadata: {
-      userId: params.actorAppUserId,
-      entityType: params.entityType,
-      entityId: params.entityId,
-      action: params.action,
-      ...(params.metadata ?? {})
-    } as Prisma.InputJsonValue,
-    beforePayload:
-      params.beforePayload === undefined
-        ? undefined
-        : (JSON.parse(JSON.stringify(params.beforePayload)) as Prisma.InputJsonValue),
-    afterPayload:
-      params.afterPayload === undefined
-        ? undefined
-        : (JSON.parse(JSON.stringify(params.afterPayload)) as Prisma.InputJsonValue)
-  };
+    metadata: params.metadata,
+    beforePayload: params.beforePayload,
+    afterPayload: params.afterPayload
+  });
 }
 
 export async function listGovernorates(query: GovernorateListQuery) {
-  return db.governorate.findMany({
-    where: {
-      ...createActiveFilter(query.includeInactive),
-      ...createSearchFilter(query.search)
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: governorateSelect
-  });
+  const pagination = resolvePagination(query);
+  const where = {
+    ...createActiveFilter(query.includeInactive),
+    ...createSearchFilter(query.search)
+  } satisfies Prisma.GovernorateWhereInput;
+  const [data, total] = await Promise.all([
+    db.governorate.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      ...(pagination
+        ? {
+            skip: pagination.skip,
+            take: pagination.take
+          }
+        : {}),
+      select: governorateSelect
+    }),
+    db.governorate.count({
+      where
+    })
+  ]);
+
+  return {
+    data,
+    pagination: buildPaginationMeta(total, pagination)
+  };
 }
 
 export async function getGovernorate(
@@ -1073,19 +1089,17 @@ export async function createGovernorate(input: CreateGovernorateInput, actorAppU
         select: governorateSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "create",
-          entityType: "governorate",
-          entityId: created.id,
-          description: `Created governorate ${created.name}.`,
-          metadata: {
-            code: created.code,
-            isActive: created.isActive
-          },
-          afterPayload: created
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "create",
+        entityType: "governorate",
+        entityId: created.id,
+        description: `Created governorate ${created.name}.`,
+        metadata: {
+          code: created.code,
+          isActive: created.isActive
+        },
+        afterPayload: created
       });
 
       return created;
@@ -1126,19 +1140,17 @@ export async function updateGovernorate(
         select: governorateSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "update",
-          entityType: "governorate",
-          entityId: updated.id,
-          description: `Updated governorate ${updated.name}.`,
-          metadata: {
-            changedFields: Object.keys(input)
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "update",
+        entityType: "governorate",
+        entityId: updated.id,
+        description: `Updated governorate ${updated.name}.`,
+        metadata: {
+          changedFields: Object.keys(input)
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1173,19 +1185,17 @@ export async function deactivateGovernorate(governorateId: string, actorAppUserI
         select: governorateSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "delete",
-          entityType: "governorate",
-          entityId: updated.id,
-          description: `Deactivated governorate ${updated.name}.`,
-          metadata: {
-            softDeleted: true
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "delete",
+        entityType: "governorate",
+        entityId: updated.id,
+        description: `Deactivated governorate ${updated.name}.`,
+        metadata: {
+          softDeleted: true
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1200,19 +1210,37 @@ export async function listUniversities(query: UniversityListQuery) {
     await assertGovernorateExists(query.governorateId);
   }
 
-  return db.university.findMany({
-    where: {
-      ...(query.governorateId
+  const pagination = resolvePagination(query);
+  const where = {
+    ...(query.governorateId
+      ? {
+          governorateId: query.governorateId
+        }
+      : {}),
+    ...createActiveFilter(query.includeInactive),
+    ...createSearchFilter(query.search)
+  } satisfies Prisma.UniversityWhereInput;
+  const [data, total] = await Promise.all([
+    db.university.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      ...(pagination
         ? {
-            governorateId: query.governorateId
+            skip: pagination.skip,
+            take: pagination.take
           }
         : {}),
-      ...createActiveFilter(query.includeInactive),
-      ...createSearchFilter(query.search)
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: universitySelect
-  });
+      select: universitySelect
+    }),
+    db.university.count({
+      where
+    })
+  ]);
+
+  return {
+    data,
+    pagination: buildPaginationMeta(total, pagination)
+  };
 }
 
 export async function getUniversity(
@@ -1246,20 +1274,18 @@ export async function createUniversity(input: CreateUniversityInput, actorAppUse
         select: universitySelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "create",
-          entityType: "university",
-          entityId: created.id,
-          description: `Created university ${created.name}.`,
-          metadata: {
-            governorateId: created.governorateId,
-            code: created.code,
-            isActive: created.isActive
-          },
-          afterPayload: created
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "create",
+        entityType: "university",
+        entityId: created.id,
+        description: `Created university ${created.name}.`,
+        metadata: {
+          governorateId: created.governorateId,
+          code: created.code,
+          isActive: created.isActive
+        },
+        afterPayload: created
       });
 
       return created;
@@ -1315,19 +1341,17 @@ export async function updateUniversity(
         select: universitySelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "update",
-          entityType: "university",
-          entityId: updated.id,
-          description: `Updated university ${updated.name}.`,
-          metadata: {
-            changedFields: Object.keys(input)
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "update",
+        entityType: "university",
+        entityId: updated.id,
+        description: `Updated university ${updated.name}.`,
+        metadata: {
+          changedFields: Object.keys(input)
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1362,20 +1386,18 @@ export async function deactivateUniversity(universityId: string, actorAppUserId:
         select: universitySelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "delete",
-          entityType: "university",
-          entityId: updated.id,
-          description: `Deactivated university ${updated.name}.`,
-          metadata: {
-            softDeleted: true,
-            governorateId: updated.governorateId
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "delete",
+        entityType: "university",
+        entityId: updated.id,
+        description: `Deactivated university ${updated.name}.`,
+        metadata: {
+          softDeleted: true,
+          governorateId: updated.governorateId
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1390,19 +1412,37 @@ export async function listBuildings(query: BuildingListQuery) {
     await assertUniversityExists(query.universityId);
   }
 
-  return db.building.findMany({
-    where: {
-      ...(query.universityId
+  const pagination = resolvePagination(query);
+  const where = {
+    ...(query.universityId
+      ? {
+          universityId: query.universityId
+        }
+      : {}),
+    ...createActiveFilter(query.includeInactive),
+    ...createSearchFilter(query.search)
+  } satisfies Prisma.BuildingWhereInput;
+  const [data, total] = await Promise.all([
+    db.building.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      ...(pagination
         ? {
-            universityId: query.universityId
+            skip: pagination.skip,
+            take: pagination.take
           }
         : {}),
-      ...createActiveFilter(query.includeInactive),
-      ...createSearchFilter(query.search)
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-    select: buildingSelect
-  });
+      select: buildingSelect
+    }),
+    db.building.count({
+      where
+    })
+  ]);
+
+  return {
+    data,
+    pagination: buildPaginationMeta(total, pagination)
+  };
 }
 
 export async function getBuilding(
@@ -1436,20 +1476,18 @@ export async function createBuilding(input: CreateBuildingInput, actorAppUserId:
         select: buildingSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "create",
-          entityType: "building",
-          entityId: created.id,
-          description: `Created building ${created.name}.`,
-          metadata: {
-            universityId: created.universityId,
-            code: created.code,
-            isActive: created.isActive
-          },
-          afterPayload: created
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "create",
+        entityType: "building",
+        entityId: created.id,
+        description: `Created building ${created.name}.`,
+        metadata: {
+          universityId: created.universityId,
+          code: created.code,
+          isActive: created.isActive
+        },
+        afterPayload: created
       });
 
       return created;
@@ -1505,19 +1543,17 @@ export async function updateBuilding(
         select: buildingSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "update",
-          entityType: "building",
-          entityId: updated.id,
-          description: `Updated building ${updated.name}.`,
-          metadata: {
-            changedFields: Object.keys(input)
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "update",
+        entityType: "building",
+        entityId: updated.id,
+        description: `Updated building ${updated.name}.`,
+        metadata: {
+          changedFields: Object.keys(input)
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1552,20 +1588,18 @@ export async function deactivateBuilding(buildingId: string, actorAppUserId: str
         select: buildingSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "delete",
-          entityType: "building",
-          entityId: updated.id,
-          description: `Deactivated building ${updated.name}.`,
-          metadata: {
-            softDeleted: true,
-            universityId: updated.universityId
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "delete",
+        entityType: "building",
+        entityId: updated.id,
+        description: `Deactivated building ${updated.name}.`,
+        metadata: {
+          softDeleted: true,
+          universityId: updated.universityId
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1580,19 +1614,37 @@ export async function listFloors(query: FloorListQuery) {
     await assertBuildingExists(query.buildingId);
   }
 
-  return db.floor.findMany({
-    where: {
-      ...(query.buildingId
+  const pagination = resolvePagination(query);
+  const where = {
+    ...(query.buildingId
+      ? {
+          buildingId: query.buildingId
+        }
+      : {}),
+    ...createActiveFilter(query.includeInactive),
+    ...createSearchFilter(query.search)
+  } satisfies Prisma.FloorWhereInput;
+  const [data, total] = await Promise.all([
+    db.floor.findMany({
+      where,
+      orderBy: [{ sortOrder: "asc" }, { levelNumber: "asc" }, { name: "asc" }],
+      ...(pagination
         ? {
-            buildingId: query.buildingId
+            skip: pagination.skip,
+            take: pagination.take
           }
         : {}),
-      ...createActiveFilter(query.includeInactive),
-      ...createSearchFilter(query.search)
-    },
-    orderBy: [{ sortOrder: "asc" }, { levelNumber: "asc" }, { name: "asc" }],
-    select: floorSelect
-  });
+      select: floorSelect
+    }),
+    db.floor.count({
+      where
+    })
+  ]);
+
+  return {
+    data,
+    pagination: buildPaginationMeta(total, pagination)
+  };
 }
 
 export async function getFloor(
@@ -1626,20 +1678,18 @@ export async function createFloor(input: CreateFloorInput, actorAppUserId: strin
         select: floorSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "create",
-          entityType: "floor",
-          entityId: created.id,
-          description: `Created floor ${created.name}.`,
-          metadata: {
-            buildingId: created.buildingId,
-            levelNumber: created.levelNumber,
-            isActive: created.isActive
-          },
-          afterPayload: created
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "create",
+        entityType: "floor",
+        entityId: created.id,
+        description: `Created floor ${created.name}.`,
+        metadata: {
+          buildingId: created.buildingId,
+          levelNumber: created.levelNumber,
+          isActive: created.isActive
+        },
+        afterPayload: created
       });
 
       return created;
@@ -1695,19 +1745,17 @@ export async function updateFloor(
         select: floorSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "update",
-          entityType: "floor",
-          entityId: updated.id,
-          description: `Updated floor ${updated.name}.`,
-          metadata: {
-            changedFields: Object.keys(input)
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "update",
+        entityType: "floor",
+        entityId: updated.id,
+        description: `Updated floor ${updated.name}.`,
+        metadata: {
+          changedFields: Object.keys(input)
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1742,20 +1790,18 @@ export async function deactivateFloor(floorId: string, actorAppUserId: string) {
         select: floorSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "delete",
-          entityType: "floor",
-          entityId: updated.id,
-          description: `Deactivated floor ${updated.name}.`,
-          metadata: {
-            softDeleted: true,
-            buildingId: updated.buildingId
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "delete",
+        entityType: "floor",
+        entityId: updated.id,
+        description: `Deactivated floor ${updated.name}.`,
+        metadata: {
+          softDeleted: true,
+          buildingId: updated.buildingId
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1770,19 +1816,37 @@ export async function listRooms(query: RoomListQuery) {
     await assertFloorExists(query.floorId);
   }
 
-  return db.room.findMany({
-    where: {
-      ...(query.floorId
+  const pagination = resolvePagination(query);
+  const where = {
+    ...(query.floorId
+      ? {
+          floorId: query.floorId
+        }
+      : {}),
+    ...createActiveFilter(query.includeInactive),
+    ...createSearchFilter(query.search)
+  } satisfies Prisma.RoomWhereInput;
+  const [data, total] = await Promise.all([
+    db.room.findMany({
+      where,
+      orderBy: [{ name: "asc" }],
+      ...(pagination
         ? {
-            floorId: query.floorId
+            skip: pagination.skip,
+            take: pagination.take
           }
         : {}),
-      ...createActiveFilter(query.includeInactive),
-      ...createSearchFilter(query.search)
-    },
-    orderBy: [{ name: "asc" }],
-    select: roomSelect
-  });
+      select: roomSelect
+    }),
+    db.room.count({
+      where
+    })
+  ]);
+
+  return {
+    data,
+    pagination: buildPaginationMeta(total, pagination)
+  };
 }
 
 export async function getRoom(roomId: string, options: IncludeInactiveOptions = {}) {
@@ -1810,22 +1874,20 @@ export async function createRoom(input: CreateRoomInput, actorAppUserId: string)
         select: roomSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "create",
-          entityType: "room",
-          entityId: created.id,
-          description: `Created room ${created.name}.`,
-          metadata: {
-            floorId: created.floorId,
-            supportedExamTypes: created.supportedExamTypes,
-            capacityMin: created.capacityMin,
-            capacityMax: created.capacityMax,
-            isActive: created.isActive
-          },
-          afterPayload: created
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "create",
+        entityType: "room",
+        entityId: created.id,
+        description: `Created room ${created.name}.`,
+        metadata: {
+          floorId: created.floorId,
+          supportedExamTypes: created.supportedExamTypes,
+          capacityMin: created.capacityMin,
+          capacityMax: created.capacityMax,
+          isActive: created.isActive
+        },
+        afterPayload: created
       });
 
       return created;
@@ -1874,19 +1936,17 @@ export async function updateRoom(
         select: roomSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "update",
-          entityType: "room",
-          entityId: updated.id,
-          description: `Updated room ${updated.name}.`,
-          metadata: {
-            changedFields: Object.keys(input)
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "update",
+        entityType: "room",
+        entityId: updated.id,
+        description: `Updated room ${updated.name}.`,
+        metadata: {
+          changedFields: Object.keys(input)
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;
@@ -1913,20 +1973,18 @@ export async function deactivateRoom(roomId: string, actorAppUserId: string) {
         select: roomSelect
       });
 
-      await tx.activityLog.create({
-        data: createActivityLogEntry({
-          actorAppUserId,
-          action: "delete",
-          entityType: "room",
-          entityId: updated.id,
-          description: `Deactivated room ${updated.name}.`,
-          metadata: {
-            softDeleted: true,
-            floorId: updated.floorId
-          },
-          beforePayload: before,
-          afterPayload: updated
-        })
+      await recordLocationActivity(tx, {
+        actorAppUserId,
+        action: "delete",
+        entityType: "room",
+        entityId: updated.id,
+        description: `Deactivated room ${updated.name}.`,
+        metadata: {
+          softDeleted: true,
+          floorId: updated.floorId
+        },
+        beforePayload: before,
+        afterPayload: updated
       });
 
       return updated;

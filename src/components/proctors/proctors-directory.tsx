@@ -18,7 +18,7 @@ import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
   getLocalizedName
-} from "@/lib/locations/presentation";
+} from "@/lib/i18n/presentation";
 import { cn } from "@/lib/utils";
 
 type ProctorSource = "SPHINX" | "UNIVERSITY" | "EXTERNAL";

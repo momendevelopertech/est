@@ -9,7 +9,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import type { Messages, Locale } from "@/lib/i18n";
-import { getAlternateLocalizedName, getLocalizedName } from "@/lib/locations/presentation";
+import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
 import type { getProctorProfile } from "@/lib/proctors/service";
 
 type ProctorProfileData = Awaited<ReturnType<typeof getProctorProfile>>;

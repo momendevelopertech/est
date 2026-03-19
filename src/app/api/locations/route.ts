@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { toLocationDTO } from "@/lib/locations/dto";
 import {
   getRequestQuery,
   handleLocationRouteError,
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: data.map((location) => toLocationDTO(location))
     });
   } catch (error) {
     return handleLocationRouteError(error);

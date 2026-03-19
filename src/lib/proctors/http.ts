@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
+import { ERROR_CODES } from "@/lib/errors/codes";
 
 import { ProctorsServiceError } from "./service";
 
@@ -23,7 +24,11 @@ export async function readJsonBody(request: Request) {
   try {
     return await request.json();
   } catch {
-    throw new ProctorsServiceError("invalid_json", 400, "Request body must be valid JSON.");
+    throw new ProctorsServiceError(
+      ERROR_CODES.invalidJson,
+      400,
+      "Request body must be valid JSON."
+    );
   }
 }
 
@@ -32,7 +37,7 @@ export function handleProctorRouteError(error: unknown) {
     return NextResponse.json(
       {
         ok: false,
-        error: "validation_error",
+        error: ERROR_CODES.validationError,
         details: error.flatten()
       },
       {
@@ -58,10 +63,10 @@ export function handleProctorRouteError(error: unknown) {
   console.error(error);
 
   return NextResponse.json(
-    {
-      ok: false,
-      error: "internal_server_error"
-    },
+      {
+        ok: false,
+        error: ERROR_CODES.internalServerError
+      },
     {
       status: 500
     }

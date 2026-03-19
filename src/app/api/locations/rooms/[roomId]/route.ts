@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { toLocationDTO } from "@/lib/locations/dto";
 import {
   deactivateRoom,
   getRoom,
@@ -37,7 +38,7 @@ export async function GET(_: Request, { params }: RoomRouteContext) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toLocationDTO(data)
     });
   } catch (error) {
     return handleLocationRouteError(error);
@@ -62,7 +63,7 @@ export async function PATCH(request: Request, { params }: RoomRouteContext) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toLocationDTO(data)
     });
   } catch (error) {
     return handleLocationRouteError(error);
@@ -84,7 +85,7 @@ export async function DELETE(_: Request, { params }: RoomRouteContext) {
 
     return NextResponse.json({
       ok: true,
-      data
+      data: toLocationDTO(data)
     });
   } catch (error) {
     return handleLocationRouteError(error);

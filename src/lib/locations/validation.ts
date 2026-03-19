@@ -1,50 +1,19 @@
 import { ExamType } from "@prisma/client";
 import { z } from "zod";
 
-const trimmedOptionalString = (maxLength: number) =>
-  z
-    .string()
-    .trim()
-    .max(maxLength)
-    .transform((value) => (value.length > 0 ? value : undefined))
-    .optional();
-
-const nonEmptyString = (maxLength: number) =>
-  z.string().trim().min(1).max(maxLength);
-
-const uuidSchema = z.string().uuid();
-
-const booleanQueryParamSchema = z.preprocess((value) => {
-  if (typeof value === "boolean") {
-    return value;
-  }
-
-  if (typeof value === "string") {
-    if (value === "true") {
-      return true;
-    }
-
-    if (value === "false") {
-      return false;
-    }
-  }
-
-  return undefined;
-}, z.boolean().optional());
+import {
+  booleanQueryParamSchema,
+  createUpdateSchema,
+  nonEmptyString,
+  paginationQueryFields,
+  trimmedOptionalString,
+  uuidSchema
+} from "@/lib/validation/common";
 
 const querySearchSchema = trimmedOptionalString(255);
 const notesSchema = trimmedOptionalString(4000);
 const sortOrderSchema = z.coerce.number().int().min(0).default(0);
 const isActiveSchema = z.boolean().optional().default(true);
-
-function createUpdateSchema<T extends z.ZodRawShape>(shape: T) {
-  return z
-    .object(shape)
-    .partial()
-    .refine((value) => Object.keys(value).length > 0, {
-      message: "At least one field must be provided."
-    });
-}
 
 const bilingualLocationFields = {
   code: trimmedOptionalString(50),
@@ -57,7 +26,8 @@ const bilingualLocationFields = {
 
 export const governorateListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
-  search: querySearchSchema
+  search: querySearchSchema,
+  ...paginationQueryFields
 });
 
 export const locationDetailQuerySchema = z.object({
@@ -67,25 +37,29 @@ export const locationDetailQuerySchema = z.object({
 export const universityListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: querySearchSchema,
-  governorateId: uuidSchema.optional()
+  governorateId: uuidSchema.optional(),
+  ...paginationQueryFields
 });
 
 export const buildingListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: querySearchSchema,
-  universityId: uuidSchema.optional()
+  universityId: uuidSchema.optional(),
+  ...paginationQueryFields
 });
 
 export const floorListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: querySearchSchema,
-  buildingId: uuidSchema.optional()
+  buildingId: uuidSchema.optional(),
+  ...paginationQueryFields
 });
 
 export const roomListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: querySearchSchema,
-  floorId: uuidSchema.optional()
+  floorId: uuidSchema.optional(),
+  ...paginationQueryFields
 });
 
 export const locationsTreeQuerySchema = z.object({

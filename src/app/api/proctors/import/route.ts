@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { ERROR_CODES } from "@/lib/errors/codes";
+import { MAX_IMPORT_FILE_SIZE_BYTES } from "@/lib/import/constants";
 import {
   getProctorsImportSampleCsv,
   getProctorsImportTemplateColumns,
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "missing_import_file"
+          error: ERROR_CODES.missingImportFile
         },
         {
           status: 400
@@ -67,7 +69,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "empty_import_file"
+          error: ERROR_CODES.emptyImportFile
+        },
+        {
+          status: 400
+        }
+      );
+    }
+
+    if (file.size > MAX_IMPORT_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: ERROR_CODES.importFileTooLarge,
+          message: `CSV files must be ${Math.floor(MAX_IMPORT_FILE_SIZE_BYTES / (1024 * 1024))} MB or smaller.`
         },
         {
           status: 400
@@ -79,7 +94,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           ok: false,
-          error: "unsupported_import_file",
+          error: ERROR_CODES.unsupportedImportFile,
           message: "Only CSV files are supported for proctors import."
         },
         {

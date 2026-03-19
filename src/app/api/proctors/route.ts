@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { toProctorDTO } from "@/lib/proctors/dto";
 import {
   createProctor,
   listProctors
@@ -24,11 +25,12 @@ export async function GET(request: Request) {
 
   try {
     const query = proctorListQuerySchema.parse(getRequestQuery(request));
-    const data = await listProctors(query);
+    const result = await listProctors(query);
 
     return NextResponse.json({
       ok: true,
-      data
+      data: result.data.map((proctor) => toProctorDTO(proctor)),
+      pagination: result.pagination
     });
   } catch (error) {
     return handleProctorRouteError(error);
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: true,
-        data
+        data: toProctorDTO(data)
       },
       {
         status: 201

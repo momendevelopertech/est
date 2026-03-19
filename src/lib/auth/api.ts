@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { ERROR_CODES } from "@/lib/errors/codes";
+
 import type { AppRole, AuthSession } from "./types";
 import { getSession } from "./session";
 
@@ -21,7 +23,7 @@ export async function requireApiRole(allowedRoles: AppRole[]): Promise<ApiSessio
       response: NextResponse.json(
         {
           ok: false,
-          error: "unauthorized"
+          error: ERROR_CODES.unauthorized
         },
         {
           status: 401
@@ -35,7 +37,7 @@ export async function requireApiRole(allowedRoles: AppRole[]): Promise<ApiSessio
       response: NextResponse.json(
         {
           ok: false,
-          error: "forbidden"
+          error: ERROR_CODES.forbidden
         },
         {
           status: 403

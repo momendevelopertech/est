@@ -16,7 +16,8 @@ import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
   getLocalizedName
-} from "@/lib/locations/presentation";
+} from "@/lib/i18n/presentation";
+import { matchesBilingualSearch } from "@/lib/search/bilingual";
 
 type RoomRecord = {
   id: string;
@@ -238,15 +239,12 @@ function createInitialExpandedState(nodes: TreeNode[]) {
 }
 
 function matchesSearch(node: TreeNode, searchTerm: string) {
-  const normalized = searchTerm.trim().toLocaleLowerCase();
-
-  if (!normalized) {
-    return true;
-  }
-
-  return [node.name, node.nameEn ?? "", node.code ?? "", node.meta.roomType ?? ""].some((value) =>
-    value.toLocaleLowerCase().includes(normalized)
-  );
+  return matchesBilingualSearch(searchTerm, [
+    node.name,
+    node.nameEn,
+    node.code,
+    node.meta.roomType
+  ]);
 }
 
 function filterTreeNodes(nodes: TreeNode[], searchTerm: string): TreeNode[] {
