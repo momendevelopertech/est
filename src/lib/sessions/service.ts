@@ -160,6 +160,21 @@ function normalizeBuildingIds(buildingIds: string[]) {
   return Array.from(new Set(buildingIds));
 }
 
+function assertHasBuildings(buildingIds: string[]) {
+  if (buildingIds.length > 0) {
+    return;
+  }
+
+  throw new SessionsServiceError(
+    ERROR_CODES.validationError,
+    400,
+    "At least one building is required for a session.",
+    {
+      field: "buildingIds"
+    }
+  );
+}
+
 function deriveDayIndex(cycleStartDate: Date | null, sessionDate: Date) {
   if (!cycleStartDate) {
     return null;
@@ -743,6 +758,7 @@ export async function createSession(input: CreateSessionInput, actorAppUserId: s
     requireActive: input.isActive ?? true
   });
   const buildingIds = normalizeBuildingIds(input.buildingIds);
+  assertHasBuildings(buildingIds);
 
   await assertBuildingsExist(buildingIds, {
     requireActive: input.isActive ?? true
@@ -827,6 +843,7 @@ export async function updateSession(
         .filter((buildingLink) => buildingLink.isActive)
         .map((buildingLink) => buildingLink.buildingId)
   );
+  assertHasBuildings(nextBuildingIds);
 
   await assertBuildingsExist(nextBuildingIds, {
     includeInactive: true,

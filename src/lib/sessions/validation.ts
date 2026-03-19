@@ -83,7 +83,16 @@ export const sessionListQuerySchema = z.object({
   startFrom: dateTimeInputSchema.optional(),
   endTo: dateTimeInputSchema.optional(),
   ...paginationQueryFields
-});
+}).refine(
+  (value) =>
+    value.startFrom === undefined ||
+    value.endTo === undefined ||
+    value.startFrom.getTime() < value.endTo.getTime(),
+  {
+    message: "startFrom must be earlier than endTo.",
+    path: ["endTo"]
+  }
+);
 
 export const sessionDetailQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false)
