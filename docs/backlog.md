@@ -73,7 +73,7 @@ Status legend:
 
 ## Phase 6 - Assignment Engine
 
-- `todo` Implement assignment service contracts
+- `done` Implement assignment service contracts
 - `todo` Implement auto-assignment algorithm v1
 - `todo` Implement pre-lock validation
 - `todo` Implement manual assignment paths
