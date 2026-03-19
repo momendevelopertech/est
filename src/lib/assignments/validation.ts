@@ -33,6 +33,27 @@ export const createAssignmentSchema = z.object({
   overrideNote: trimmedOptionalString(4000)
 });
 
+const uniqueUuidArraySchema = z
+  .array(uuidSchema)
+  .min(1)
+  .max(500)
+  .superRefine((value, ctx) => {
+    if (new Set(value).size !== value.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Duplicate values are not allowed."
+      });
+    }
+  });
+
+export const autoAssignAssignmentsSchema = z.object({
+  sessionId: uuidSchema,
+  roleDefinitionIds: uniqueUuidArraySchema.optional(),
+  candidateUserIds: uniqueUuidArraySchema.optional(),
+  dryRun: z.boolean().optional().default(false)
+});
+
 export type AssignmentRouteParams = z.infer<typeof assignmentRouteParamsSchema>;
 export type AssignmentListQuery = z.infer<typeof assignmentListQuerySchema>;
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
+export type AutoAssignAssignmentsInput = z.infer<typeof autoAssignAssignmentsSchema>;

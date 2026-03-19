@@ -54,6 +54,41 @@ export type AssignmentEngineSnapshotContract = {
   existingAssignmentsCount: number;
 };
 
+export type AutoAssignmentSlotContract = AssignmentPlacementContract & {
+  roleDefinitionId: string;
+};
+
+export type AutoAssignmentInputContract = {
+  sessionId: string;
+  roleDefinitionIds?: string[];
+  candidateUserIds?: string[];
+  dryRun?: boolean;
+};
+
+export type AutoAssignmentPlannedItemContract = AutoAssignmentSlotContract & {
+  userId: string;
+};
+
+export type AutoAssignmentResultContract = {
+  sessionId: string;
+  dryRun: boolean;
+  settings: {
+    minRatingThreshold: number;
+  };
+  roleCount: number;
+  totalSlots: number;
+  existingAssignmentsCount: number;
+  plannedAssignmentsCount: number;
+  createdAssignmentsCount: number;
+  unfilledSlotsCount: number;
+  skippedManualRoleCount: number;
+  skippedExistingSlotCount: number;
+  skippedUserPoolCount: number;
+  plannedAssignments: AutoAssignmentPlannedItemContract[];
+  unfilledSlots: AutoAssignmentSlotContract[];
+  createdAssignmentIds: string[];
+};
+
 export const assignmentMutableSessionStatuses: SessionStatus[] = [
   "DRAFT",
   "SCHEDULED",

@@ -16,11 +16,17 @@ import { createBilingualSearchFilter } from "@/lib/search/bilingual";
 import { getDerivedSessionStatus } from "@/lib/sessions/status";
 
 import type {
+  AutoAssignmentInputContract,
+  AutoAssignmentResultContract,
+  AutoAssignmentSlotContract,
   AssignmentEngineSnapshotContract,
   AssignmentListContract,
   AssignmentSessionContextContract
 } from "./contracts";
-import type { CreateAssignmentInput } from "./validation";
+import type {
+  AutoAssignAssignmentsInput,
+  CreateAssignmentInput
+} from "./validation";
 
 type ActivityClient = Prisma.TransactionClient | PrismaClient;
 
@@ -653,6 +659,303 @@ async function assertAssignmentExists(client: ActivityClient, assignmentId: stri
   return assignment;
 }
 
+type AutoRoleDefinitionRecord = {
+  id: string;
+  key: string;
+  scope: OperationalRoleScope;
+  manualOnly: boolean;
+  sortOrder: number;
+};
+
+type AutoCandidateUserRecord = {
+  id: string;
+};
+
+type AutoSessionFloorRecord = {
+  id: string;
+  buildingId: string;
+  levelNumber: number | null;
+};
+
+type AutoSessionRoomRecord = {
+  id: string;
+  floorId: string;
+  floor: {
+    buildingId: string;
+    levelNumber: number | null;
+  };
+};
+
+function resolveNumberSetting(value: unknown, fallback: number) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+
+  return fallback;
+}
+
+async function getMinRatingThreshold(client: ActivityClient) {
+  const setting = await client.setting.findUnique({
+    where: {
+      key: "distribution.min_rating_threshold"
+    },
+    select: {
+      value: true
+    }
+  });
+
+  return resolveNumberSetting(setting?.value, 0);
+}
+
+function createSlotKey(slot: AutoAssignmentSlotContract) {
+  return [
+    slot.roleDefinitionId,
+    slot.buildingId,
+    slot.floorId ?? "",
+    slot.roomId ?? ""
+  ].join(":");
+}
+
+function buildAutoAssignmentSlots(input: {
+  buildingIds: string[];
+  roles: AutoRoleDefinitionRecord[];
+  floors: AutoSessionFloorRecord[];
+  rooms: AutoSessionRoomRecord[];
+}) {
+  const slots: AutoAssignmentSlotContract[] = [];
+  const floorsByBuildingId = new Map<string, AutoSessionFloorRecord[]>();
+  const roomsByBuildingId = new Map<string, AutoSessionRoomRecord[]>();
+
+  for (const floor of input.floors) {
+    const current = floorsByBuildingId.get(floor.buildingId) ?? [];
+    current.push(floor);
+    floorsByBuildingId.set(floor.buildingId, current);
+  }
+
+  for (const room of input.rooms) {
+    const current = roomsByBuildingId.get(room.floor.buildingId) ?? [];
+    current.push(room);
+    roomsByBuildingId.set(room.floor.buildingId, current);
+  }
+
+  for (const role of input.roles) {
+    for (const buildingId of input.buildingIds) {
+      if (role.scope === OperationalRoleScope.BUILDING) {
+        slots.push({
+          roleDefinitionId: role.id,
+          buildingId,
+          floorId: null,
+          roomId: null
+        });
+        continue;
+      }
+
+      if (role.scope === OperationalRoleScope.FLOOR) {
+        const floors = floorsByBuildingId.get(buildingId) ?? [];
+
+        for (const floor of floors) {
+          slots.push({
+            roleDefinitionId: role.id,
+            buildingId,
+            floorId: floor.id,
+            roomId: null
+          });
+        }
+        continue;
+      }
+
+      const rooms = roomsByBuildingId.get(buildingId) ?? [];
+
+      for (const room of rooms) {
+        slots.push({
+          roleDefinitionId: role.id,
+          buildingId,
+          floorId: room.floorId,
+          roomId: room.id
+        });
+      }
+    }
+  }
+
+  return slots;
+}
+
+async function resolveAutoAssignableRoles(
+  client: ActivityClient,
+  roleDefinitionIds?: string[]
+) {
+  const where = roleDefinitionIds
+    ? {
+        id: {
+          in: roleDefinitionIds
+        },
+        isActive: true
+      }
+    : {
+        isActive: true
+      };
+  const roles = await client.assignmentRoleDefinition.findMany({
+    where,
+    orderBy: [{ sortOrder: "asc" }, { key: "asc" }],
+    select: {
+      id: true,
+      key: true,
+      scope: true,
+      manualOnly: true,
+      sortOrder: true
+    }
+  });
+
+  if (roleDefinitionIds && roles.length !== roleDefinitionIds.length) {
+    const roleIdSet = new Set(roles.map((role) => role.id));
+    const missingRoleDefinitionIds = roleDefinitionIds.filter(
+      (roleDefinitionId) => !roleIdSet.has(roleDefinitionId)
+    );
+
+    throw new AssignmentsServiceError(
+      ERROR_CODES.roleDefinitionNotFound,
+      404,
+      "One or more role definitions were not found.",
+      {
+        roleDefinitionIds: missingRoleDefinitionIds
+      }
+    );
+  }
+
+  const manualRoles = roles.filter((role) => role.manualOnly);
+  const autoRoles = roles.filter((role) => !role.manualOnly);
+
+  return {
+    roles: autoRoles,
+    skippedManualRoleCount: manualRoles.length
+  };
+}
+
+async function resolveAutoAssignmentCandidates(input: {
+  client: ActivityClient;
+  candidateUserIds?: string[];
+  minRatingThreshold: number;
+  session: SessionRecord;
+  existingAssignedUserIds: string[];
+}) {
+  if (input.candidateUserIds && input.candidateUserIds.length > 0) {
+    const requestedUsers = await input.client.user.findMany({
+      where: {
+        id: {
+          in: input.candidateUserIds
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+    const requestedUserIdSet = new Set(requestedUsers.map((user) => user.id));
+    const missingUserIds = input.candidateUserIds.filter(
+      (candidateUserId) => !requestedUserIdSet.has(candidateUserId)
+    );
+
+    if (missingUserIds.length > 0) {
+      throw new AssignmentsServiceError(
+        ERROR_CODES.userNotFound,
+        404,
+        "One or more users were not found.",
+        {
+          userIds: missingUserIds
+        }
+      );
+    }
+  }
+
+  const now = new Date();
+  const baseCandidates = await input.client.user.findMany({
+    where: {
+      isActive: true,
+      averageRating: {
+        gte: input.minRatingThreshold
+      },
+      ...(input.candidateUserIds && input.candidateUserIds.length > 0
+        ? {
+            id: {
+              in: input.candidateUserIds
+            }
+          }
+        : {}),
+      OR: [
+        {
+          blockStatus: BlockStatus.CLEAR
+        },
+        {
+          blockStatus: BlockStatus.TEMPORARY,
+          blockEndsAt: {
+            lte: now
+          }
+        }
+      ]
+    },
+    orderBy: [{ averageRating: "desc" }, { totalSessions: "asc" }, { createdAt: "asc" }],
+    select: {
+      id: true
+    }
+  });
+  const existingAssignedUserIdSet = new Set(input.existingAssignedUserIds);
+  let overlappingUserIdSet = new Set<string>();
+
+  if (
+    baseCandidates.length > 0 &&
+    input.session.startsAt &&
+    input.session.endsAt
+  ) {
+    const overlappingAssignments = await input.client.assignment.findMany({
+      where: {
+        userId: {
+          in: baseCandidates.map((candidate) => candidate.id)
+        },
+        status: {
+          not: AssignmentStatus.CANCELLED
+        },
+        sessionId: {
+          not: input.session.id
+        },
+        session: {
+          isActive: true,
+          startsAt: {
+            lt: input.session.endsAt
+          },
+          endsAt: {
+            gt: input.session.startsAt
+          }
+        }
+      },
+      select: {
+        userId: true
+      }
+    });
+    overlappingUserIdSet = new Set(
+      overlappingAssignments.map((assignment) => assignment.userId)
+    );
+  }
+
+  const resolvedCandidates: AutoCandidateUserRecord[] = baseCandidates.filter(
+    (candidate) =>
+      !existingAssignedUserIdSet.has(candidate.id) &&
+      !overlappingUserIdSet.has(candidate.id)
+  );
+  const skippedUserPoolCount = baseCandidates.length - resolvedCandidates.length;
+
+  return {
+    candidates: resolvedCandidates,
+    skippedUserPoolCount
+  };
+}
+
 async function createAssignmentWithValidation(
   client: ActivityClient,
   input: AssignmentCreationInput,
@@ -847,6 +1150,245 @@ export async function createAssignment(input: CreateAssignmentInput, actorAppUse
           shouldLogActivity: true
         }
       )
+    );
+  } catch (error) {
+    normalizeMutationError(error);
+  }
+}
+
+export async function autoAssignSessionAssignments(
+  input: AutoAssignAssignmentsInput,
+  actorAppUserId: string
+): Promise<AutoAssignmentResultContract> {
+  const dryRun = input.dryRun ?? false;
+  const contractInput: AutoAssignmentInputContract = {
+    sessionId: input.sessionId,
+    roleDefinitionIds: input.roleDefinitionIds,
+    candidateUserIds: input.candidateUserIds,
+    dryRun
+  };
+
+  try {
+    return await db.$transaction(
+      async (tx) => {
+        const session = await assertSessionExists(tx, contractInput.sessionId, {
+          requireActive: true
+        });
+        assertSessionAssignable(session);
+
+        const buildingIds = session.buildings.map((link) => link.buildingId);
+        const [
+          minRatingThreshold,
+          roleResolution,
+          existingAssignments,
+          sessionAssignedUsers
+        ] =
+          await Promise.all([
+            getMinRatingThreshold(tx),
+            resolveAutoAssignableRoles(tx, contractInput.roleDefinitionIds),
+            tx.assignment.findMany({
+              where: {
+                sessionId: session.id,
+                status: {
+                  not: AssignmentStatus.CANCELLED
+                }
+              },
+              select: {
+                id: true,
+                userId: true,
+                roleDefinitionId: true,
+                buildingId: true,
+                floorId: true,
+                roomId: true
+              }
+            }),
+            tx.assignment.findMany({
+              where: {
+                sessionId: session.id
+              },
+              distinct: ["userId"],
+              select: {
+                userId: true
+              }
+            })
+          ]);
+        const existingAssignmentsCount = existingAssignments.length;
+        const existingAssignedUserIds = sessionAssignedUsers.map(
+          (assignment) => assignment.userId
+        );
+        const occupiedSlotKeys = new Set(
+          existingAssignments.map((assignment) =>
+            createSlotKey({
+              roleDefinitionId: assignment.roleDefinitionId,
+              buildingId: assignment.buildingId,
+              floorId: assignment.floorId,
+              roomId: assignment.roomId
+            })
+          )
+        );
+
+        const roleScopes = new Set(roleResolution.roles.map((role) => role.scope));
+        const shouldLoadFloors =
+          buildingIds.length > 0 &&
+          (roleScopes.has(OperationalRoleScope.FLOOR) ||
+            roleScopes.has(OperationalRoleScope.ROOM));
+        const shouldLoadRooms =
+          buildingIds.length > 0 && roleScopes.has(OperationalRoleScope.ROOM);
+        const [floors, rooms] = await Promise.all([
+          shouldLoadFloors
+            ? tx.floor.findMany({
+                where: {
+                  buildingId: {
+                    in: buildingIds
+                  },
+                  isActive: true
+                },
+                orderBy: [{ buildingId: "asc" }, { levelNumber: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  buildingId: true,
+                  levelNumber: true
+                }
+              })
+            : Promise.resolve([] as AutoSessionFloorRecord[]),
+          shouldLoadRooms
+            ? tx.room.findMany({
+                where: {
+                  isActive: true,
+                  supportedExamTypes: {
+                    has: session.examType
+                  },
+                  floor: {
+                    isActive: true,
+                    buildingId: {
+                      in: buildingIds
+                    }
+                  }
+                },
+                orderBy: [{ floorId: "asc" }, { id: "asc" }],
+                select: {
+                  id: true,
+                  floorId: true,
+                  floor: {
+                    select: {
+                      buildingId: true,
+                      levelNumber: true
+                    }
+                  }
+                }
+              })
+            : Promise.resolve([] as AutoSessionRoomRecord[])
+        ]);
+        const slots = buildAutoAssignmentSlots({
+          buildingIds,
+          roles: roleResolution.roles,
+          floors,
+          rooms
+        });
+        const availableSlots = slots.filter(
+          (slot) => !occupiedSlotKeys.has(createSlotKey(slot))
+        );
+        const skippedExistingSlotCount = slots.length - availableSlots.length;
+        const candidateResolution = await resolveAutoAssignmentCandidates({
+          client: tx,
+          candidateUserIds: contractInput.candidateUserIds,
+          minRatingThreshold,
+          session,
+          existingAssignedUserIds
+        });
+
+        const plannedAssignments: AutoAssignmentResultContract["plannedAssignments"] = [];
+        const remainingCandidates = [...candidateResolution.candidates];
+
+        for (const slot of availableSlots) {
+          const nextCandidate = remainingCandidates.shift();
+
+          if (!nextCandidate) {
+            break;
+          }
+
+          plannedAssignments.push({
+            roleDefinitionId: slot.roleDefinitionId,
+            buildingId: slot.buildingId,
+            floorId: slot.floorId ?? null,
+            roomId: slot.roomId ?? null,
+            userId: nextCandidate.id
+          });
+        }
+
+        const unfilledSlots = availableSlots.slice(plannedAssignments.length);
+        const createdAssignmentIds: string[] = [];
+
+        if (!dryRun) {
+          for (const plannedAssignment of plannedAssignments) {
+            const createdAssignment = await createAssignmentInTransaction(tx, {
+              sessionId: session.id,
+              userId: plannedAssignment.userId,
+              roleDefinitionId: plannedAssignment.roleDefinitionId,
+              buildingId: plannedAssignment.buildingId,
+              floorId: plannedAssignment.floorId ?? undefined,
+              roomId: plannedAssignment.roomId ?? undefined,
+              assignedMethod: AssignmentMethod.AUTO,
+              status: AssignmentStatus.DRAFT,
+              isManualOverride: false
+            });
+            createdAssignmentIds.push(createdAssignment.id);
+          }
+
+          await logActivity({
+            client: tx,
+            userId: actorAppUserId,
+            action: "auto_assign",
+            entityType: "assignment",
+            entityId: session.id,
+            description: `Auto-assigned proctors for session ${session.name}.`,
+            metadata: {
+              sessionId: session.id,
+              dryRun: false,
+              roleDefinitionIds: contractInput.roleDefinitionIds ?? [],
+              candidateUserIds: contractInput.candidateUserIds ?? [],
+              roleCount: roleResolution.roles.length,
+              totalSlots: slots.length,
+              existingAssignmentsCount,
+              plannedAssignmentsCount: plannedAssignments.length,
+              createdAssignmentsCount: createdAssignmentIds.length,
+              unfilledSlotsCount: unfilledSlots.length,
+              skippedManualRoleCount: roleResolution.skippedManualRoleCount,
+              skippedExistingSlotCount,
+              skippedUserPoolCount: candidateResolution.skippedUserPoolCount,
+              minRatingThreshold
+            },
+            afterPayload: {
+              sessionId: session.id,
+              createdAssignmentIds
+            }
+          });
+        }
+
+        return {
+          sessionId: session.id,
+          dryRun,
+          settings: {
+            minRatingThreshold
+          },
+          roleCount: roleResolution.roles.length,
+          totalSlots: slots.length,
+          existingAssignmentsCount,
+          plannedAssignmentsCount: plannedAssignments.length,
+          createdAssignmentsCount: createdAssignmentIds.length,
+          unfilledSlotsCount: unfilledSlots.length,
+          skippedManualRoleCount: roleResolution.skippedManualRoleCount,
+          skippedExistingSlotCount,
+          skippedUserPoolCount: candidateResolution.skippedUserPoolCount,
+          plannedAssignments,
+          unfilledSlots,
+          createdAssignmentIds
+        };
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000
+      }
     );
   } catch (error) {
     normalizeMutationError(error);
