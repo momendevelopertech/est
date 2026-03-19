@@ -33,8 +33,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       {
         sourceCycleId: routeParams.cycleId,
         newStartDate: input.newStartDate,
-        newEndDate: input.newEndDate,
-        allowInactiveSource: input.allowInactiveSource
+        newEndDate: input.newEndDate
       },
       auth.session.user.id
     );

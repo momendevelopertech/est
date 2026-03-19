@@ -92,8 +92,7 @@ export const updateCycleSchema = createUpdateSchema({
 export const cloneCycleSchema = z
   .object({
     newStartDate: dateInputSchema,
-    newEndDate: dateInputSchema,
-    allowInactiveSource: z.boolean().optional().default(false)
+    newEndDate: dateInputSchema
   })
   .refine((value) => value.newStartDate.getTime() < value.newEndDate.getTime(), {
     message: "newStartDate must be earlier than newEndDate.",

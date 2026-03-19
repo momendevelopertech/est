@@ -9,7 +9,6 @@ import { logActivity } from "@/lib/activity/log";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
 
-import type { CloneCycleInput as CloneCyclePayload } from "./validation";
 import { CyclesServiceError, getCycleById } from "./service";
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
@@ -126,6 +125,30 @@ function assertSessionInsideCycleRange(input: {
       }
     );
   }
+}
+
+function assertSessionInSingleDay(input: {
+  sourceSessionId: string;
+  startDateTime: Date;
+  endDateTime: Date;
+}) {
+  const startDate = normalizeDateOnly(input.startDateTime);
+  const endDate = normalizeDateOnly(input.endDateTime);
+
+  if (startDate.getTime() === endDate.getTime()) {
+    return;
+  }
+
+  throw new CyclesServiceError(
+    ERROR_CODES.invalidDateRange,
+    409,
+    "Cloned session timing must stay within one calendar day.",
+    {
+      sourceSessionId: input.sourceSessionId,
+      startDateTime: input.startDateTime,
+      endDateTime: input.endDateTime
+    }
+  );
 }
 
 function assertCloneableSessionShape(sourceCycleId: string, session: SourceCycleRecord["sessions"][number]) {
@@ -364,8 +387,11 @@ export type CloneCycleResult = {
   };
 };
 
-export type CloneCycleInput = CloneCyclePayload & {
+export type CloneCycleInput = {
   sourceCycleId: string;
+  newStartDate: Date;
+  newEndDate: Date;
+  allowInactiveSource?: boolean;
 };
 
 export async function cloneCycle(
@@ -467,6 +493,11 @@ export async function cloneCycle(
           cycleId: clonedCycle.id,
           cycleStartDate: targetStartDate,
           cycleEndDate: targetEndDate,
+          startDateTime: shiftedStartsAt,
+          endDateTime: shiftedEndsAt
+        });
+        assertSessionInSingleDay({
+          sourceSessionId: sourceSession.id,
           startDateTime: shiftedStartsAt,
           endDateTime: shiftedEndsAt
         });
