@@ -16,6 +16,7 @@
     "team": "Team access",
     "proctors": "Proctors",
     "locations": "Locations",
+    "cycles": "Cycles",
     "settings": "Settings"
   },
   "shell": {
@@ -156,6 +157,88 @@
       "noErrors": "No row-level errors were returned.",
       "missingFile": "Choose a CSV file before starting the import.",
       "unsupportedFile": "Only CSV files are supported for locations import."
+    }
+  },
+  "cycles": {
+    "title": "Cycles management",
+    "subtitle": "Create, monitor, and maintain exam cycles from the live cycle API.",
+    "description": "Cycle records include bilingual names, date ranges, operational status, and soft-activation state.",
+    "searchLabel": "Search cycles",
+    "searchPlaceholder": "Search by Arabic or English name or code",
+    "showInactive": "Show inactive records",
+    "showActiveOnly": "Show active only",
+    "reload": "Reload",
+    "create": "Create cycle",
+    "snapshotTitle": "Cycle snapshot",
+    "snapshotBody": "Metrics are calculated from the live paginated response.",
+    "listTitle": "Cycles list",
+    "listBody": "Showing {count} cycles on this page.",
+    "emptyTitle": "No cycles found",
+    "emptyBody": "Create a cycle to start planning session schedules.",
+    "errorTitle": "Could not load cycles",
+    "errorBody": "The cycles API did not return list data. Check authentication and database connectivity, then try again.",
+    "detailTitle": "Cycle details",
+    "detailBody": "Open a cycle to review full metadata and linked counters.",
+    "detailNotFound": "The requested cycle could not be found.",
+    "detailBack": "Back to cycles",
+    "actions": {
+      "view": "View details",
+      "edit": "Edit",
+      "deactivate": "Deactivate",
+      "deactivating": "Deactivating..."
+    },
+    "form": {
+      "createTitle": "Create cycle",
+      "editTitle": "Edit cycle",
+      "subtitle": "Cycle start and end dates are validated against overlap rules.",
+      "code": "Code",
+      "nameAr": "Arabic name",
+      "nameEn": "English name",
+      "status": "Cycle status",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "notes": "Notes",
+      "isActive": "Active record",
+      "cancel": "Cancel",
+      "submitCreate": "Create cycle",
+      "submitEdit": "Save changes",
+      "submitting": "Saving...",
+      "nameRequired": "Provide Arabic or English name.",
+      "dateRangeInvalid": "Start date must be earlier than end date."
+    },
+    "labels": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "code": "Code",
+      "dateRange": "Date range",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "status": "Status",
+      "sourceCycle": "Source cycle",
+      "cloneMode": "Clone mode",
+      "sessions": "Sessions",
+      "waitingList": "Waiting list",
+      "clonedCycles": "Cloned cycles",
+      "updatedAt": "Last updated",
+      "notes": "Notes"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "ARCHIVED": "Archived"
+    },
+    "cloneModes": {
+      "STRUCTURE_ONLY": "Structure only",
+      "STRUCTURE_PLUS_MANAGEMENT": "Structure plus management",
+      "FULL": "Full clone"
+    },
+    "pagination": {
+      "summary": "Page {page} of {pageCount}",
+      "total": "Total records: {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "pageSize": "Rows per page"
     }
   },
   "proctors": {
