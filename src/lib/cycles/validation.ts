@@ -89,6 +89,18 @@ export const updateCycleSchema = createUpdateSchema({
   isActive: z.boolean()
 });
 
+export const cloneCycleSchema = z
+  .object({
+    newStartDate: dateInputSchema,
+    newEndDate: dateInputSchema,
+    allowInactiveSource: z.boolean().optional().default(false)
+  })
+  .refine((value) => value.newStartDate.getTime() < value.newEndDate.getTime(), {
+    message: "newStartDate must be earlier than newEndDate.",
+    path: ["newEndDate"]
+  });
+
 export type CycleListQuery = z.infer<typeof cycleListQuerySchema>;
 export type CreateCycleInput = z.infer<typeof createCycleSchema>;
 export type UpdateCycleInput = z.infer<typeof updateCycleSchema>;
+export type CloneCycleInput = z.infer<typeof cloneCycleSchema>;

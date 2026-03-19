@@ -74,6 +74,19 @@ type CycleMutationResponse = {
   message?: string;
 };
 
+type CycleCloneResponse = {
+  ok: boolean;
+  data?: CycleRecord;
+  summary?: {
+    clonedCycleId: string;
+    clonedSessionsCount: number;
+    dateShiftDays: number;
+    sourceCycleId: string;
+  };
+  error?: string;
+  message?: string;
+};
+
 type CycleFormState = {
   code: string;
   name: string;
@@ -85,6 +98,11 @@ type CycleFormState = {
   isActive: boolean;
 };
 
+type CloneFormState = {
+  newStartDate: string;
+  newEndDate: string;
+};
+
 type CyclesWorkspaceProps = {
   locale: Locale;
   messages: Messages;
@@ -92,6 +110,7 @@ type CyclesWorkspaceProps = {
 
 const pageSizeOptions = [10, 25, 50];
 const cycleStatuses: CycleStatus[] = ["DRAFT", "ACTIVE", "COMPLETED", "ARCHIVED"];
+const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
 const selectClassName =
   "h-11 w-full rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent";
@@ -125,6 +144,19 @@ function toDateInputValue(value: string | null) {
   return value.slice(0, 10);
 }
 
+function parseDateInput(value: string) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateInput(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 function replaceTokens(template: string, values: Record<string, string | number>) {
   return Object.entries(values).reduce(
     (result, [key, value]) => result.replace(`{${key}}`, String(value)),
@@ -154,6 +186,38 @@ function buildInitialFormState(): CycleFormState {
     endDate: "",
     notes: "",
     isActive: true
+  };
+}
+
+function buildInitialCloneFormState(cycle: CycleRecord | null): CloneFormState {
+  if (!cycle?.startDate || !cycle?.endDate) {
+    return {
+      newStartDate: "",
+      newEndDate: ""
+    };
+  }
+
+  const sourceStart = parseDateInput(toDateInputValue(cycle.startDate));
+  const sourceEnd = parseDateInput(toDateInputValue(cycle.endDate));
+
+  if (!sourceStart || !sourceEnd) {
+    return {
+      newStartDate: "",
+      newEndDate: ""
+    };
+  }
+
+  const durationDays = Math.round(
+    (sourceEnd.getTime() - sourceStart.getTime()) / millisecondsPerDay
+  );
+  const suggestedStart = new Date(sourceEnd.getTime() + millisecondsPerDay);
+  const suggestedEnd = new Date(
+    suggestedStart.getTime() + durationDays * millisecondsPerDay
+  );
+
+  return {
+    newStartDate: formatDateInput(suggestedStart),
+    newEndDate: formatDateInput(suggestedEnd)
   };
 }
 
@@ -215,6 +279,15 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
   const [formErrorCode, setFormErrorCode] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deactivatingCycleId, setDeactivatingCycleId] = useState<string | null>(null);
+  const [isCloneOpen, setIsCloneOpen] = useState(false);
+  const [cloningCycle, setCloningCycle] = useState<CycleRecord | null>(null);
+  const [cloneFormState, setCloneFormState] = useState<CloneFormState>({
+    newStartDate: "",
+    newEndDate: ""
+  });
+  const [cloneError, setCloneError] = useState<string | null>(null);
+  const [cloneErrorCode, setCloneErrorCode] = useState<string | null>(null);
+  const [isCloning, setIsCloning] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -317,6 +390,28 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
     [listState.data, messages.cycles.labels]
   );
 
+  const clonePreview = useMemo(() => {
+    if (!cloningCycle) {
+      return null;
+    }
+
+    const sourceStartDate = parseDateInput(toDateInputValue(cloningCycle.startDate));
+    const targetStartDate = parseDateInput(cloneFormState.newStartDate);
+    const targetEndDate = parseDateInput(cloneFormState.newEndDate);
+    const dateShiftDays =
+      sourceStartDate && targetStartDate
+        ? Math.round((targetStartDate.getTime() - sourceStartDate.getTime()) / millisecondsPerDay)
+        : null;
+
+    return {
+      sourceStartDate,
+      targetStartDate,
+      targetEndDate,
+      dateShiftDays,
+      sessionsCount: cloningCycle._count.sessions
+    };
+  }, [cloneFormState.newEndDate, cloneFormState.newStartDate, cloningCycle]);
+
   function openCreateModal() {
     setEditingCycle(null);
     setFormState(buildInitialFormState());
@@ -348,6 +443,25 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
     setFormError(null);
     setFormErrorCode(null);
     setFormState(buildInitialFormState());
+  }
+
+  function openCloneModal(cycle: CycleRecord) {
+    setCloningCycle(cycle);
+    setCloneFormState(buildInitialCloneFormState(cycle));
+    setCloneError(null);
+    setCloneErrorCode(null);
+    setIsCloneOpen(true);
+  }
+
+  function closeCloneModal() {
+    setIsCloneOpen(false);
+    setCloningCycle(null);
+    setCloneFormState({
+      newStartDate: "",
+      newEndDate: ""
+    });
+    setCloneError(null);
+    setCloneErrorCode(null);
   }
 
   async function submitForm() {
@@ -451,6 +565,62 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
       window.alert(error instanceof Error ? error.message : messages.cycles.errorBody);
     } finally {
       setDeactivatingCycleId(null);
+    }
+  }
+
+  async function submitClone() {
+    if (!cloningCycle) {
+      return;
+    }
+
+    const targetStartDate = parseDateInput(cloneFormState.newStartDate);
+    const targetEndDate = parseDateInput(cloneFormState.newEndDate);
+
+    if (!targetStartDate || !targetEndDate) {
+      setCloneError(messages.cycles.cloneFlow.dateRangeInvalid);
+      setCloneErrorCode(null);
+      return;
+    }
+
+    if (targetStartDate.getTime() >= targetEndDate.getTime()) {
+      setCloneError(messages.cycles.cloneFlow.dateRangeInvalid);
+      setCloneErrorCode(null);
+      return;
+    }
+
+    setIsCloning(true);
+    setCloneError(null);
+    setCloneErrorCode(null);
+
+    try {
+      const response = await fetch(`/api/cycles/${cloningCycle.id}/clone`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+        body: JSON.stringify({
+          newStartDate: cloneFormState.newStartDate,
+          newEndDate: cloneFormState.newEndDate
+        })
+      });
+      const payload = (await response.json()) as CycleCloneResponse;
+
+      if (!response.ok || !payload.ok || !payload.data) {
+        const apiError = getApiError(payload, messages.cycles.errorBody);
+        setCloneError(apiError.message);
+        setCloneErrorCode(apiError.code);
+        return;
+      }
+
+      closeCloneModal();
+      setRefreshKey((current) => current + 1);
+    } catch (error) {
+      setCloneError(messages.cycles.errorBody);
+      setCloneErrorCode(error instanceof Error ? error.message : "cycle_clone_failed");
+    } finally {
+      setIsCloning(false);
     }
   }
 
@@ -612,6 +782,14 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                           </Link>
                           <Button variant="secondary" size="sm" onClick={() => openEditModal(cycle)}>
                             {messages.cycles.actions.edit}
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => openCloneModal(cycle)}
+                            disabled={!cycle.isActive || isDeactivating}
+                          >
+                            {messages.cycles.actions.clone}
                           </Button>
                           <Button
                             variant="danger"
@@ -844,6 +1022,107 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                     : editingCycle
                       ? messages.cycles.form.submitEdit
                       : messages.cycles.form.submitCreate}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
+
+      {isCloneOpen && cloningCycle ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+          <Card className="panel max-h-[90vh] w-full max-w-2xl overflow-y-auto border-transparent">
+            <CardHeader>
+              <CardTitle>{messages.cycles.cloneFlow.title}</CardTitle>
+              <CardDescription>{messages.cycles.cloneFlow.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+                <p className="text-sm font-medium text-text-primary">
+                  {messages.cycles.cloneFlow.sourceCycle}: {getLocalizedName(cloningCycle, locale)}
+                </p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {messages.cycles.cloneFlow.sourceRange}: {formatDate(locale, cloningCycle.startDate)} -{" "}
+                  {formatDate(locale, cloningCycle.endDate)}
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-primary" htmlFor="clone-start-date">
+                    {messages.cycles.cloneFlow.newStartDate}
+                  </label>
+                  <Input
+                    id="clone-start-date"
+                    type="date"
+                    value={cloneFormState.newStartDate}
+                    onChange={(event) =>
+                      setCloneFormState((current) => ({
+                        ...current,
+                        newStartDate: event.target.value
+                      }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-text-primary" htmlFor="clone-end-date">
+                    {messages.cycles.cloneFlow.newEndDate}
+                  </label>
+                  <Input
+                    id="clone-end-date"
+                    type="date"
+                    value={cloneFormState.newEndDate}
+                    onChange={(event) =>
+                      setCloneFormState((current) => ({
+                        ...current,
+                        newEndDate: event.target.value
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
+                <h3 className="text-sm font-semibold text-text-primary">
+                  {messages.cycles.cloneFlow.previewTitle}
+                </h3>
+                <div className="mt-3 grid gap-2 text-sm text-text-secondary">
+                  <p>
+                    {messages.cycles.cloneFlow.sessionsCount}: {clonePreview?.sessionsCount ?? 0}
+                  </p>
+                  <p>
+                    {messages.cycles.cloneFlow.targetRange}:{" "}
+                    {clonePreview?.targetStartDate && clonePreview?.targetEndDate
+                      ? `${formatDate(locale, clonePreview.targetStartDate.toISOString())} - ${formatDate(locale, clonePreview.targetEndDate.toISOString())}`
+                      : "-"}
+                  </p>
+                  <p>
+                    {messages.cycles.cloneFlow.dateShiftDays}:{" "}
+                    {clonePreview?.dateShiftDays === null || clonePreview?.dateShiftDays === undefined
+                      ? "-"
+                      : replaceTokens(messages.cycles.cloneFlow.daysValue, {
+                          days: clonePreview.dateShiftDays
+                        })}
+                  </p>
+                </div>
+              </div>
+
+              {cloneError ? (
+                <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4">
+                  <p className="text-sm text-danger">{cloneError}</p>
+                  {cloneErrorCode ? (
+                    <p className="mt-2 text-xs uppercase tracking-[0.18em] text-danger">{cloneErrorCode}</p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-3">
+                <Button variant="secondary" onClick={closeCloneModal}>
+                  {messages.cycles.cloneFlow.cancel}
+                </Button>
+                <Button onClick={() => void submitClone()} disabled={isCloning}>
+                  {isCloning ? messages.cycles.actions.cloning : messages.cycles.cloneFlow.submit}
                 </Button>
               </div>
             </CardContent>

@@ -185,8 +185,26 @@
     "actions": {
       "view": "View details",
       "edit": "Edit",
+      "clone": "Clone cycle",
+      "cloning": "Cloning...",
       "deactivate": "Deactivate",
       "deactivating": "Deactivating..."
+    },
+    "cloneFlow": {
+      "title": "Clone cycle",
+      "subtitle": "Create a new cycle and clone all active session structure with shifted dates.",
+      "sourceCycle": "Source cycle",
+      "sourceRange": "Source date range",
+      "newStartDate": "New start date",
+      "newEndDate": "New end date",
+      "previewTitle": "Clone preview",
+      "sessionsCount": "Sessions to clone",
+      "targetRange": "Target date range",
+      "dateShiftDays": "Date shift",
+      "daysValue": "{days} days",
+      "dateRangeInvalid": "New start date must be earlier than new end date.",
+      "cancel": "Cancel",
+      "submit": "Clone cycle"
     },
     "form": {
       "createTitle": "Create cycle",
