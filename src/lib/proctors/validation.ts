@@ -13,6 +13,7 @@ const nonEmptyString = (maxLength: number) =>
   z.string().trim().min(1).max(maxLength);
 
 const uuidSchema = z.string().uuid();
+const localeQuerySchema = z.enum(["en", "ar"]);
 
 const booleanQueryParamSchema = z.preprocess((value) => {
   if (typeof value === "boolean") {
@@ -77,6 +78,13 @@ export const proctorDetailQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false)
 });
 
+export const proctorExportQuerySchema = z.object({
+  format: z.enum(["csv", "excel"]).default("csv"),
+  status: z.enum(["active", "inactive", "all"]).default("active"),
+  governorateId: uuidSchema.optional(),
+  locale: localeQuerySchema.optional()
+});
+
 export const proctorRouteParamsSchema = z.object({
   proctorId: uuidSchema
 });
@@ -88,3 +96,4 @@ export const updateProctorSchema = createUpdateSchema(proctorMutationFields);
 export type ProctorListQuery = z.infer<typeof proctorListQuerySchema>;
 export type CreateProctorInput = z.infer<typeof createProctorSchema>;
 export type UpdateProctorInput = z.infer<typeof updateProctorSchema>;
+export type ProctorExportQuery = z.infer<typeof proctorExportQuerySchema>;
