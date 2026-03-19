@@ -161,18 +161,22 @@
   "proctors": {
     "title": "Proctors directory",
     "subtitle": "Browse live proctor records backed by the ExamOps users table.",
-    "description": "This screen reads from the protected proctors API, supports bilingual search, and hides inactive records by default.",
+    "description": "This screen reads from the protected proctors API, supports bilingual search, and keeps import, export, and profile review in one responsive workspace.",
+    "import": "Import",
+    "export": "Export",
     "searchLabel": "Search proctors",
     "searchPlaceholder": "Search by Arabic or English name, phone, email, or national ID",
     "showInactive": "Show inactive records",
     "showActiveOnly": "Show active only",
     "reload": "Reload",
+    "snapshotTitle": "Operational snapshot",
+    "snapshotBody": "Summary cards update from the live list response so import and export work against the same source of truth.",
     "listTitle": "Proctors list",
     "listBody": "Showing {count} proctors from the live API response.",
     "detailTitle": "Proctor details",
     "detailBody": "Select a proctor to inspect profile details, status, and operational counts.",
     "emptyTitle": "No proctors found",
-    "emptyBody": "Create proctor records through the API or upcoming import tools to populate this directory.",
+    "emptyBody": "Create proctor records through the API or import tools to populate this directory.",
     "errorTitle": "Could not load proctors",
     "errorBody": "The proctors API did not return list data. Check authentication and database connectivity, then try again.",
     "detailErrorTitle": "Could not load the selected proctor",
@@ -180,6 +184,7 @@
     "detailEmptyTitle": "No proctor selected",
     "detailEmptyBody": "Choose a proctor from the list to view the full profile.",
     "noNotes": "No notes are stored for this proctor.",
+    "viewProfile": "Open full profile",
     "filters": {
       "source": "Source",
       "blockStatus": "Block status",
@@ -213,6 +218,140 @@
       "blocks": "Blocks",
       "blockEndsAt": "Block ends at",
       "updatedAt": "Last updated"
+    },
+    "importFlow": {
+      "title": "Import proctors",
+      "subtitle": "Upload a CSV file to create new proctors or safely reuse existing records row by row.",
+      "fileLabel": "CSV file",
+      "submit": "Run import",
+      "submitting": "Importing...",
+      "cancel": "Cancel",
+      "close": "Close",
+      "sampleTitle": "CSV structure",
+      "sampleBody": "The template supports bilingual names, phone normalization, optional governorate matching, and partial success reporting.",
+      "resultTitle": "Import summary",
+      "row": "Row",
+      "total": "Total rows",
+      "success": "Successful rows",
+      "failed": "Failed rows",
+      "created": "Created proctors",
+      "reused": "Reused proctors",
+      "errorsTitle": "Row errors",
+      "noErrors": "No row-level errors were returned.",
+      "missingFile": "Choose a CSV file before starting the import.",
+      "unsupportedFile": "Only CSV files are supported for proctors import."
+    },
+    "exportFlow": {
+      "title": "Export proctors",
+      "subtitle": "Download the current directory in localized CSV or Excel format with optional status and governorate filters.",
+      "formatLabel": "Format",
+      "statusLabel": "Record status",
+      "governorateLabel": "Governorate",
+      "allGovernorates": "All governorates",
+      "loadingGovernorates": "Loading governorates...",
+      "activeOnly": "Active only",
+      "inactiveOnly": "Inactive only",
+      "allStatuses": "All statuses",
+      "csv": "CSV",
+      "excel": "Excel",
+      "submit": "Download export",
+      "submitting": "Preparing file...",
+      "cancel": "Cancel",
+      "close": "Close",
+      "headers": {
+        "name": "Name",
+        "nameEn": "Name (English)",
+        "phone": "Phone",
+        "email": "Email",
+        "nationalId": "National ID",
+        "source": "Source",
+        "organization": "Organization",
+        "branch": "Branch",
+        "governorate": "Governorate",
+        "preferredLanguage": "Preferred language",
+        "status": "Status"
+      }
+    },
+    "profile": {
+      "subtitle": "Operational history and performance summary for the selected proctor.",
+      "backToDirectory": "Back to directory",
+      "summaryTitle": "Performance summary",
+      "summaryBody": "These totals are aggregated in one service call across assignments, attendance, evaluations, and blocks.",
+      "overviewTitle": "Profile overview",
+      "overviewBody": "Core identity and status fields stay localized with the same fallback rules used across the directory.",
+      "assignmentsTitle": "Assignments history",
+      "assignmentsBody": "Session placement, role distribution, and manual override history.",
+      "attendanceTitle": "Attendance history",
+      "attendanceBody": "Recorded attendance events for the proctor's assignments.",
+      "evaluationsTitle": "Evaluations history",
+      "evaluationsBody": "Performance evaluations submitted against this proctor.",
+      "blocksTitle": "Block history",
+      "blocksBody": "All current and historical block records for this proctor.",
+      "emptyAssignments": "No assignment history is available for this proctor.",
+      "emptyAttendance": "No attendance history is available for this proctor.",
+      "emptyEvaluations": "No evaluations are available for this proctor.",
+      "emptyBlocks": "No block history is available for this proctor.",
+      "stats": {
+        "totalSessions": "Total sessions",
+        "averageRating": "Average rating",
+        "assignments": "Assignments",
+        "attendance": "Attendance",
+        "evaluations": "Evaluations",
+        "blocks": "Blocks"
+      },
+      "labels": {
+        "examType": "Exam type",
+        "role": "Role",
+        "sessionDate": "Session date",
+        "assignedAt": "Assigned at",
+        "location": "Location",
+        "checkedInAt": "Checked in at",
+        "updatedBy": "Updated by",
+        "recordedAt": "Recorded at",
+        "assignmentId": "Assignment ID",
+        "score": "Score",
+        "evaluator": "Evaluator",
+        "startsAt": "Starts at",
+        "endsAt": "Ends at",
+        "createdBy": "Created by",
+        "liftedBy": "Lifted by"
+      }
+    },
+    "assignmentStatuses": {
+      "DRAFT": "Draft",
+      "CONFIRMED": "Confirmed",
+      "LOCKED": "Locked",
+      "CANCELLED": "Cancelled",
+      "COMPLETED": "Completed"
+    },
+    "assignmentMethods": {
+      "AUTO": "Auto",
+      "MANUAL": "Manual"
+    },
+    "attendanceStatuses": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ABSENT": "Absent",
+      "DECLINED": "Declined"
+    },
+    "examTypes": {
+      "EST1": "EST1",
+      "EST2": "EST2",
+      "EST_ASSN": "EST ASSN"
+    },
+    "blockTypes": {
+      "TEMPORARY": "Temporary",
+      "PERMANENT": "Permanent"
+    },
+    "blockRecordStatuses": {
+      "ACTIVE": "Active",
+      "LIFTED": "Lifted",
+      "EXPIRED": "Expired"
+    },
+    "blockSources": {
+      "MANUAL": "Manual",
+      "SUGGESTED": "Suggested",
+      "AUTOMATED": "Automated"
     }
   },
   "roles": {
