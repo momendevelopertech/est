@@ -24,6 +24,8 @@
 - Locations bilingual views now use a shared localized-name helper, support Arabic/English search in the tree UI, and accept English-only import rows through fallback-safe parsing
 - Database-backed proctors CRUD routes now exist for `users` with bilingual fields, governorate integrity checks, duplicate detection, soft-deactivation, and activity logging
 - Protected `/proctors` list/detail UI now exists with live API loading, bilingual search, source/block filters, detail inspection, and typed error handling
+- Assignment service contracts are now implemented with validated create/list/detail/cancel flows and typed assignment-domain error handling
+- Auto-assignment algorithm v1 is now implemented with dry-run support, overlap exclusion, manual-role skipping, idempotent reruns, activity logging, and Neon-backed verification coverage
 
 ## Canonical Working Documents
 
@@ -66,12 +68,14 @@ We will instead:
 | Locations bilingual labels/views | done | Shared name localization, bilingual tree search, and English-only import fallback now complete the locations UX slice |
 | Proctors CRUD routes | done | `/api/proctors` now manages `users` records with validation, role protection, soft delete, and audit logging |
 | Proctors list/detail UI | done | Protected `/proctors` now renders live proctor list/detail states with bilingual search and responsive filters |
+| Assignment service contracts | done | Assignment API/service contracts and validation are now production-validated on Neon |
+| Auto-assignment algorithm v1 | done | `/api/assignments/auto` now supports dry-run, execute, rerun idempotency, overlap blocking, manual-role skip, and audit logging |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Start the proctors import flow on top of the now-stable proctors CRUD and UI foundations
+- Start Phase 7 with waiting-list logic on top of the now-stable assignment engine foundation
 
 ## Update Log
 
@@ -128,3 +132,16 @@ We will instead:
 - Added authenticated `/api/proctors` routes with role checks for super admins, coordinators, and data entry users, plus UUID param validation and inactive-aware detail retrieval
 - Added a protected `/proctors` page with responsive list/detail behavior, bilingual search, source/block filters, locale-aware labels, and live API-backed detail states
 - Verified the proctors milestone with real Neon-backed Prisma queries, real authenticated CRUD API calls on Node `19.6.0`, and production build validation for `/api/proctors` plus `/proctors`
+
+### 2026-03-19
+
+- Added assignment auto-run request contracts, validation schema, and a protected `POST /api/assignments/auto` route
+- Implemented auto-assignment algorithm v1 with settings-driven rating threshold resolution, role-scope slot generation, overlap-aware candidate filtering, dry-run planning, and transactional creation
+- Hardened candidate de-duplication so users with historical cancelled assignments in the same session are excluded from auto-assignment user pools, preventing unique-key failures
+- Verified Phase 6 end-to-end on real Neon DB in production mode with:
+  - assignment contracts checks (create/list/detail/duplicate/orphan/cancel flows)
+  - auto-assignment v1 dry-run + execute + rerun idempotency
+  - overlap exclusion correctness
+  - cancelled-assignment duplicate guard behavior
+  - manual-role skip enforcement
+  - activity-log increment and payload integrity checks
