@@ -64,7 +64,7 @@ Status legend:
 
 ## Phase 5 - Cycles And Sessions
 
-- `todo` Build cycles CRUD routes
+- `done` Build cycles CRUD routes
 - `todo` Build sessions CRUD routes
 - `todo` Add session status flow
 - `todo` Build cycle/session UI
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build proctors CRUD routes
-2. Build proctors list/detail UI
-3. Build proctors import flow
-4. Build proctors export flow
-5. Add profile history aggregation
+1. Build sessions CRUD routes
+2. Add session status flow
+3. Build cycle/session UI
+4. Add clone workflow foundation
+5. Support bilingual cycle and session naming
