@@ -8,7 +8,7 @@ import type {
   UpdateProctorInput
 } from "./validation";
 
-type IncludeInactiveOptions = {
+export type IncludeInactiveOptions = {
   includeInactive?: boolean;
 };
 
@@ -32,7 +32,7 @@ export class ProctorsServiceError extends Error {
   }
 }
 
-const proctorSelect = {
+export const proctorSelect = {
   id: true,
   name: true,
   nameEn: true,
@@ -127,16 +127,16 @@ function createActiveFilter(includeInactive: boolean) {
   return includeInactive ? {} : { isActive: true };
 }
 
-function normalizeEmail(value?: string | null) {
+export function normalizeEmail(value?: string | null) {
   const normalized = value?.trim().toLowerCase();
   return normalized && normalized.length > 0 ? normalized : undefined;
 }
 
-function normalizePhone(value: string) {
+export function normalizePhone(value: string) {
   return value.replace(/[\s\-()]+/g, "").trim();
 }
 
-function normalizeOptionalText(value?: string | null) {
+export function normalizeOptionalText(value?: string | null) {
   const normalized = value?.trim();
   return normalized && normalized.length > 0 ? normalized : undefined;
 }
@@ -145,7 +145,7 @@ function toRecordJson(value: unknown) {
   return value as Prisma.InputJsonValue;
 }
 
-function createActivityLogEntry(params: {
+export function createActivityLogEntry(params: {
   actorAppUserId: string;
   action: "create" | "update" | "delete";
   entityId: string;
@@ -195,7 +195,7 @@ function normalizeMutationError(error: unknown): never {
   throw error;
 }
 
-async function assertGovernorateExists(
+export async function assertGovernorateExists(
   governorateId: string,
   options: { requireActive?: boolean } = {}
 ) {
@@ -460,6 +460,194 @@ export async function getProctor(
   options: IncludeInactiveOptions = {}
 ) {
   return assertProctorExists(proctorId, options);
+}
+
+export async function getProctorProfile(
+  proctorId: string,
+  options: IncludeInactiveOptions = {}
+) {
+  const proctor = await assertProctorExists(proctorId, options);
+
+  const [assignments, evaluations, blocks, sessionIds, averageScore] =
+    await Promise.all([
+      db.assignment.findMany({
+        where: {
+          userId: proctorId
+        },
+        orderBy: [{ assignedAt: "desc" }],
+        select: {
+          id: true,
+          status: true,
+          assignedMethod: true,
+          isManualOverride: true,
+          overrideNote: true,
+          assignedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          session: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true,
+              examType: true,
+              sessionDate: true,
+              status: true
+            }
+          },
+          building: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true
+            }
+          },
+          floor: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true
+            }
+          },
+          room: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true
+            }
+          },
+          roleDefinition: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              nameEn: true
+            }
+          },
+          attendance: {
+            select: {
+              id: true,
+              status: true,
+              checkedInAt: true,
+              notes: true,
+              createdAt: true,
+              updatedAt: true,
+              updatedByAppUser: {
+                select: {
+                  id: true,
+                  displayName: true
+                }
+              }
+            }
+          }
+        }
+      }),
+      db.evaluation.findMany({
+        where: {
+          subjectUserId: proctorId
+        },
+        orderBy: [{ createdAt: "desc" }],
+        select: {
+          id: true,
+          score: true,
+          notes: true,
+          criteriaPayload: true,
+          createdAt: true,
+          updatedAt: true,
+          session: {
+            select: {
+              id: true,
+              name: true,
+              nameEn: true,
+              examType: true,
+              sessionDate: true,
+              status: true
+            }
+          },
+          evaluatorAppUser: {
+            select: {
+              id: true,
+              displayName: true,
+              role: true
+            }
+          }
+        }
+      }),
+      db.block.findMany({
+        where: {
+          userId: proctorId
+        },
+        orderBy: [{ startsAt: "desc" }],
+        select: {
+          id: true,
+          type: true,
+          status: true,
+          source: true,
+          startsAt: true,
+          endsAt: true,
+          reason: true,
+          notes: true,
+          liftReason: true,
+          liftedAt: true,
+          createdAt: true,
+          updatedAt: true,
+          createdByAppUser: {
+            select: {
+              id: true,
+              displayName: true
+            }
+          },
+          liftedByAppUser: {
+            select: {
+              id: true,
+              displayName: true
+            }
+          }
+        }
+      }),
+      db.assignment.findMany({
+        where: {
+          userId: proctorId
+        },
+        distinct: ["sessionId"],
+        select: {
+          sessionId: true
+        }
+      }),
+      db.evaluation.aggregate({
+        where: {
+          subjectUserId: proctorId
+        },
+        _avg: {
+          score: true
+        }
+      })
+    ]);
+
+  const attendance = assignments
+    .filter((assignment) => assignment.attendance)
+    .map((assignment) => ({
+      assignmentId: assignment.id,
+      session: assignment.session,
+      attendance: assignment.attendance
+    }));
+
+  return {
+    ...proctor,
+    summary: {
+      totalSessions: sessionIds.length,
+      averageRating: averageScore._avg.score?.toString() ?? "0.00",
+      assignments: assignments.length,
+      attendance: attendance.length,
+      evaluations: evaluations.length,
+      blocks: blocks.length
+    },
+    history: {
+      assignments,
+      attendance,
+      evaluations,
+      blocks
+    }
+  };
 }
 
 export async function createProctor(input: CreateProctorInput, actorAppUserId: string) {

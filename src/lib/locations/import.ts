@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { ExamType, Prisma } from "@prisma/client";
 import { z } from "zod";
 
+import { parseCsvRows } from "@/lib/csv";
 import { db } from "@/lib/db";
 
 import { LocationsServiceError, validateRoomIntegrity } from "./service";
@@ -142,58 +143,6 @@ function resolveLocalizedName(
   };
 }
 
-function parseCsv(text: string) {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index];
-    const next = text[index + 1];
-
-    if (character === "\"") {
-      if (inQuotes && next === "\"") {
-        field += "\"";
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-
-      continue;
-    }
-
-    if (character === "," && !inQuotes) {
-      row.push(field);
-      field = "";
-      continue;
-    }
-
-    if ((character === "\n" || character === "\r") && !inQuotes) {
-      if (character === "\r" && next === "\n") {
-        index += 1;
-      }
-
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = "";
-      continue;
-    }
-
-    field += character;
-  }
-
-  if (field.length > 0 || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-
-  return rows
-    .map((currentRow) => currentRow.map((value) => value.replace(/\uFEFF/g, "")))
-    .filter((currentRow) => currentRow.some((value) => value.trim().length > 0));
-}
-
 function parseInteger(value: string, fieldName: string) {
   const normalized = normalizeOptionalText(value);
 
@@ -243,7 +192,7 @@ function parseExamTypes(value: string) {
 }
 
 function parseRows(csvText: string) {
-  const rows = parseCsv(csvText);
+  const rows = parseCsvRows(csvText);
 
   if (rows.length === 0) {
     throw new LocationsServiceError("empty_import_file", 400, "The uploaded CSV file is empty.");
