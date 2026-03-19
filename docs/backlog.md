@@ -65,7 +65,7 @@ Status legend:
 ## Phase 5 - Cycles And Sessions
 
 - `done` Build cycles CRUD routes
-- `todo` Build sessions CRUD routes
+- `done` Build sessions CRUD routes
 - `todo` Add session status flow
 - `todo` Build cycle/session UI
 - `todo` Add clone workflow foundation
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build sessions CRUD routes
-2. Add session status flow
-3. Build cycle/session UI
-4. Add clone workflow foundation
-5. Support bilingual cycle and session naming
+1. Add session status flow
+2. Build cycle/session UI
+3. Add clone workflow foundation
+4. Support bilingual cycle and session naming
+5. Implement assignment service contracts
