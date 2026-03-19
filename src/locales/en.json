@@ -375,12 +375,107 @@
       "title": "Assignments readiness",
       "body": "This session detail is prepared for upcoming assignment, attendance, and evaluation workflows."
     },
+    "openAssignmentsWorkspace": "Open assignment workspace",
     "statusErrors": {
       "invalid_session_status_transition": "This status transition is not allowed from the current session state.",
       "session_status_constraint_failed": "Session timing constraints block this status change.",
       "session_cancellation_not_allowed": "Session cancellation is not allowed in the current state.",
       "session_locked": "This session is locked and protected from this change.",
+      "session_lock_validation_failed": "Session lock validation failed. Resolve assignment coverage and policy issues before locking.",
       "forbidden": "You do not have permission to change session status."
+    }
+  },
+  "assignments": {
+    "title": "Assignment workspace",
+    "subtitle": "Manage manual assignments, run auto distribution, and validate session lock readiness.",
+    "description": "This workspace connects assignment APIs, lock validation, and rerank controls for the selected session.",
+    "backToSession": "Back to session",
+    "refresh": "Refresh assignments",
+    "coverage": {
+      "title": "Pre-lock validation",
+      "ready": "This session is ready to lock.",
+      "notReady": "This session cannot be locked yet.",
+      "loading": "Checking lock validation...",
+      "issuesTitle": "Validation issues",
+      "emptyIssues": "No validation issues were returned."
+    },
+    "automation": {
+      "title": "Automation controls",
+      "description": "Use dry-run first, then execute once the preview is accepted.",
+      "autoDryRun": "Auto dry-run",
+      "autoExecute": "Run auto-assign",
+      "rerankDryRun": "Rerank dry-run",
+      "rerankExecute": "Run rerank",
+      "running": "Running...",
+      "lastAutoTitle": "Last auto-assign result",
+      "lastRerankTitle": "Last rerank result"
+    },
+    "manual": {
+      "title": "Manual assignment",
+      "description": "Create manual placement for one proctor in the current session.",
+      "user": "Proctor",
+      "role": "Role",
+      "building": "Building",
+      "floor": "Floor",
+      "room": "Room",
+      "notes": "Override note",
+      "submit": "Create manual assignment",
+      "submitting": "Creating...",
+      "choose": "Select...",
+      "scopeHint": {
+        "BUILDING": "Building scope: floor and room are optional.",
+        "FLOOR": "Floor scope: choose a floor, room stays empty.",
+        "ROOM": "Room scope: choose floor and room."
+      }
+    },
+    "list": {
+      "title": "Session assignments",
+      "description": "Assignments are grouped by building with floor and room context.",
+      "empty": "No assignments found for this session.",
+      "buildingFilter": "Building view"
+    },
+    "labels": {
+      "status": "Status",
+      "method": "Method",
+      "location": "Location",
+      "assignedAt": "Assigned at",
+      "scope": "Scope",
+      "manualOnly": "Manual-only",
+      "expected": "Expected",
+      "actual": "Actual",
+      "issues": "Issues"
+    },
+    "issueCodes": {
+      "duplicate_assignment_in_session": "Duplicate active assignment for one user in this session.",
+      "room_capacity_min_not_satisfied": "Room capacity minimum is not satisfied.",
+      "missing_floor_senior_coverage": "Floor senior coverage is missing.",
+      "missing_floor_roaming_coverage": "Floor roaming coverage is missing.",
+      "missing_building_head_coverage": "Building head coverage is missing.",
+      "blocked_user_assigned": "Blocked user is still assigned.",
+      "manual_only_role_not_manual": "Manual-only role assignment is not marked manual.",
+      "assn_room_not_manual": "EST ASSN room assignment must be manual."
+    },
+    "scopes": {
+      "BUILDING": "Building",
+      "FLOOR": "Floor",
+      "ROOM": "Room"
+    },
+    "methods": {
+      "AUTO": "Auto",
+      "MANUAL": "Manual"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "CONFIRMED": "Confirmed",
+      "LOCKED": "Locked",
+      "CANCELLED": "Cancelled",
+      "COMPLETED": "Completed"
+    },
+    "errors": {
+      "loadFailed": "Could not load assignment workspace data.",
+      "manualFailed": "Could not create manual assignment.",
+      "autoFailed": "Auto-assignment request failed.",
+      "rerankFailed": "Late-import rerank request failed."
     }
   },
   "proctors": {

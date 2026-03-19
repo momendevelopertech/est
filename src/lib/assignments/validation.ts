@@ -53,7 +53,17 @@ export const autoAssignAssignmentsSchema = z.object({
   dryRun: z.boolean().optional().default(false)
 });
 
+export const lateImportRerankAssignmentsSchema = z.object({
+  sessionId: uuidSchema,
+  roleDefinitionIds: uniqueUuidArraySchema.optional(),
+  candidateUserIds: uniqueUuidArraySchema.optional(),
+  dryRun: z.boolean().optional().default(true)
+});
+
 export type AssignmentRouteParams = z.infer<typeof assignmentRouteParamsSchema>;
 export type AssignmentListQuery = z.infer<typeof assignmentListQuerySchema>;
 export type CreateAssignmentInput = z.infer<typeof createAssignmentSchema>;
 export type AutoAssignAssignmentsInput = z.infer<typeof autoAssignAssignmentsSchema>;
+export type LateImportRerankAssignmentsInput = z.infer<
+  typeof lateImportRerankAssignmentsSchema
+>;

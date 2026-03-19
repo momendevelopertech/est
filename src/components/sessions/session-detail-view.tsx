@@ -220,6 +220,14 @@ export function SessionDetailView({
           <CardTitle>{messages.sessions.assignmentPlaceholder.title}</CardTitle>
           <CardDescription>{messages.sessions.assignmentPlaceholder.body}</CardDescription>
         </CardHeader>
+        <CardContent>
+          <Link
+            href={`/sessions/${data.id}/assignments`}
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover"
+          >
+            {messages.sessions.openAssignmentsWorkspace}
+          </Link>
+        </CardContent>
       </Card>
     </div>
   );

@@ -28,6 +28,9 @@
 - Auto-assignment algorithm v1 is now implemented with dry-run support, overlap exclusion, manual-role skipping, idempotent reruns, activity logging, and Neon-backed verification coverage
 - Manual assignment paths are now live through protected assignment create/list/detail/cancel APIs with placement and scope validation
 - ASSN manual-only behavior is now enforced by role-definition policy (`manualOnly`) and blocked from non-manual assignment methods
+- Session pre-lock validation is now implemented with role/scope coverage checks, blocked-user checks, duplicate/room-capacity checks, and lock enforcement through `session_lock_validation_failed`
+- Late-import re-ranking is now implemented with dry-run/execute modes, transactional reset of AUTO+DRAFT assignments, and manual override preservation
+- A responsive assignment workspace is now live at `/sessions/[sessionId]/assignments` with manual assignment forms, auto/rerank controls, and lock-validation visibility
 
 ## Canonical Working Documents
 
@@ -74,6 +77,10 @@ We will instead:
 | Auto-assignment algorithm v1 | done | `/api/assignments/auto` now supports dry-run, execute, rerun idempotency, overlap blocking, manual-role skip, and audit logging |
 | Manual assignment paths | done | `/api/assignments` create/list/detail/cancel flows are implemented and validated end-to-end |
 | ASSN manual-only logic | done | `manualOnly` role policy is enforced in assignment creation and excluded from auto-assignment |
+| Pre-lock validation | done | `validateSessionPreLock` plus `/api/sessions/[sessionId]/lock-validation` now gate locking and expose actionable validation issues |
+| Assignment UI foundation | done | `/sessions/[sessionId]/assignments` workspace now provides assignment operations and validation visibility |
+| Assignment UI responsiveness | done | Assignment workspace supports responsive layouts for tablet/desktop with mobile fallback patterns |
+| Late-import re-ranking flow | done | `/api/assignments/rerank` now preserves manual assignments while re-running auto planning safely |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
@@ -143,6 +150,9 @@ We will instead:
 - Implemented auto-assignment algorithm v1 with settings-driven rating threshold resolution, role-scope slot generation, overlap-aware candidate filtering, dry-run planning, and transactional creation
 - Hardened candidate de-duplication so users with historical cancelled assignments in the same session are excluded from auto-assignment user pools, preventing unique-key failures
 - Confirmed manual assignment coverage and ASSN manual-only enforcement are implemented in code and synced tracking status accordingly
+- Added session pre-lock validation contracts/service logic plus `GET /api/sessions/[sessionId]/lock-validation` and lock-gating in session status transitions
+- Added late-import re-rank contracts/service/validation plus `POST /api/assignments/rerank` with manual-override-safe reset behavior
+- Added assignment role-definition listing endpoint and a responsive `/sessions/[sessionId]/assignments` workspace for auto/manual/rerank operations
 - Verified Phase 6 end-to-end on real Neon DB in production mode with:
   - assignment contracts checks (create/list/detail/duplicate/orphan/cancel flows)
   - auto-assignment v1 dry-run + execute + rerun idempotency
@@ -150,3 +160,4 @@ We will instead:
   - cancelled-assignment duplicate guard behavior
   - manual-role skip enforcement
   - activity-log increment and payload integrity checks
+  - pre-lock validation failure/success behavior, rerank dry-run/execute behavior, and EST_ASSN room-role auto exclusion

@@ -58,6 +58,7 @@ export const ERROR_CODES = {
   sessionStatusConstraintFailed: "session_status_constraint_failed",
   sessionCancellationNotAllowed: "session_cancellation_not_allowed",
   sessionOutsideCycleRange: "session_outside_cycle_range",
+  sessionLockValidationFailed: "session_lock_validation_failed",
   invalidSessionStatusTransition: "invalid_session_status_transition",
   unauthorized: "unauthorized",
   uniqueConstraintViolation: "unique_constraint_violation",

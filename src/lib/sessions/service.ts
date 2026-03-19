@@ -1,6 +1,7 @@
 import { Prisma, SessionStatus, type PrismaClient } from "@prisma/client";
 
 import { logActivity } from "@/lib/activity/log";
+import { validateSessionPreLock } from "@/lib/assignments/service";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
@@ -1238,6 +1239,19 @@ export async function updateSessionStatus(
   });
   const nextStatus = input.status;
   assertSessionStatusTransition(before, nextStatus);
+
+  if (nextStatus === SessionStatus.LOCKED) {
+    const lockValidation = await validateSessionPreLock(sessionId);
+
+    if (!lockValidation.isReady) {
+      throw new SessionsServiceError(
+        ERROR_CODES.sessionLockValidationFailed,
+        409,
+        "Session cannot be locked until assignment lock validations pass.",
+        lockValidation
+      );
+    }
+  }
 
   try {
     return await db.$transaction(async (tx) => {

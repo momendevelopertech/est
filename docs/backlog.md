@@ -75,12 +75,12 @@ Status legend:
 
 - `done` Implement assignment service contracts
 - `done` Implement auto-assignment algorithm v1
-- `todo` Implement pre-lock validation
+- `done` Implement pre-lock validation
 - `done` Implement manual assignment paths
 - `done` Implement ASSN manual-only logic
-- `todo` Build assignment UI foundation
-- `todo` Make assignment UI responsive across tablet and desktop with acceptable mobile fallback
-- `todo` Add late-import re-ranking flow with manual override preservation
+- `done` Build assignment UI foundation
+- `done` Make assignment UI responsive across tablet and desktop with acceptable mobile fallback
+- `done` Add late-import re-ranking flow with manual override preservation
 
 ## Phase 7 - Operational Workflows
 
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build cycle/session UI
-2. Add clone workflow foundation
-3. Support bilingual cycle and session naming
-4. Implement assignment service contracts
-5. Implement auto-assignment algorithm v1
+1. Build waiting-list logic and screens
+2. Build swap workflow
+3. Build attendance workflow
+4. Build evaluation workflow
+5. Build promotion suggestion logic
