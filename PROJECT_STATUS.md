@@ -32,6 +32,7 @@
 - Late-import re-ranking is now implemented with dry-run/execute modes, transactional reset of AUTO+DRAFT assignments, and manual override preservation
 - A responsive assignment workspace is now live at `/sessions/[sessionId]/assignments` with manual assignment forms, auto/rerank controls, and lock-validation visibility
 - Waiting-list workflow is now implemented with ranked entries, promote/remove lifecycle actions, assignment integration, activity logging, and a responsive `/sessions/[sessionId]/waiting-list` screen
+- Swap workflow is now implemented with direct assignment swaps, waiting-list replacements, manual replacement flow, transactional safety, activity logging, and a responsive `/sessions/[sessionId]/swaps` screen
 
 ## Canonical Working Documents
 
@@ -83,12 +84,13 @@ We will instead:
 | Assignment UI responsiveness | done | Assignment workspace supports responsive layouts for tablet/desktop with mobile fallback patterns |
 | Late-import re-ranking flow | done | `/api/assignments/rerank` now preserves manual assignments while re-running auto planning safely |
 | Waiting-list logic and screens | done | `/api/waiting-list` plus `/sessions/[sessionId]/waiting-list` now support ranked create/list/promote/remove workflows |
+| Swap workflow | done | `/api/swaps` plus `/sessions/[sessionId]/swaps` now support direct swap, waiting-list replacement, manual replacement, and transactional rollback safety |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 7 with swap workflow on top of waiting-list and assignment foundations
+- Continue Phase 7 with attendance workflow on top of assignment, waiting-list, and swap foundations
 
 ## Update Log
 
@@ -173,3 +175,21 @@ We will instead:
   - promote lifecycle creating assignment + status transition
   - remove lifecycle and priority compaction
   - waiting-list activity-log increment validation
+
+### 2026-03-20
+
+- Added swap contracts, validation, HTTP layer, and protected `POST /api/swaps` route with role guards
+- Implemented swap workflow service with three operations:
+  - direct assignment-to-assignment placement swap
+  - assignment replacement from waiting list
+  - manual assignment replacement by proctor search
+- Reused assignment session-assignability and overlap checks through exported assignment service helpers
+- Reused waiting-list ranking flow through exported transactional re-rank helper to keep waiting priorities consistent
+- Added responsive swap workspace UI at `/sessions/[sessionId]/swaps` and linked it from session details
+- Added bilingual locale entries for swap UI and fixed Arabic waiting-list locale block corruption
+- Verified swap Step 2 end-to-end on real Neon DB through authenticated API scenarios:
+  - successful direct swap between two assignments
+  - successful replacement from waiting list with optional demotion to waiting list
+  - invalid swap rejection when manual override is not provided for incompatible roles
+  - duplicate prevention for replacement users already assigned in the same session
+  - rollback safety on failure (no partial assignment/waiting-list mutation persisted)

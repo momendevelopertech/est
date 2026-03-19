@@ -377,6 +377,7 @@
     },
     "openAssignmentsWorkspace": "Open assignment workspace",
     "openWaitingListWorkspace": "Open waiting-list workspace",
+    "openSwapsWorkspace": "Open swaps workspace",
     "statusErrors": {
       "invalid_session_status_transition": "This status transition is not allowed from the current session state.",
       "session_status_constraint_failed": "Session timing constraints block this status change.",
@@ -532,6 +533,52 @@
       "createFailed": "Could not add entry to waiting list.",
       "promoteFailed": "Could not promote waiting-list entry.",
       "removeFailed": "Could not remove waiting-list entry."
+    }
+  },
+  "swaps": {
+    "title": "Swap workspace",
+    "subtitle": "Run direct swaps, waiting-list replacements, and manual replacement actions safely.",
+    "loading": "Loading swap workspace...",
+    "backToSession": "Back to session",
+    "refresh": "Refresh swap data",
+    "direct": {
+      "title": "Direct assignment swap",
+      "description": "Swap assignment placements between two active assignment records.",
+      "primaryAssignment": "Primary assignment",
+      "secondaryAssignment": "Secondary assignment",
+      "submit": "Run direct swap"
+    },
+    "waiting": {
+      "title": "Replace from waiting list",
+      "description": "Replace one assignment using a waiting-list candidate and optionally demote the current assignee.",
+      "assignment": "Assignment to replace",
+      "waitingEntry": "Waiting-list entry",
+      "submit": "Run waiting replacement"
+    },
+    "manual": {
+      "title": "Manual replacement",
+      "description": "Replace one assignment by searching and selecting any eligible proctor.",
+      "assignment": "Assignment to replace",
+      "replacementUser": "Replacement proctor",
+      "submit": "Run manual replacement"
+    },
+    "labels": {
+      "manualOverride": "Manual override",
+      "demoteCurrentAssignee": "Demote current assignee to waiting list",
+      "demotionReason": "Demotion reason",
+      "demotionNotes": "Demotion notes",
+      "overrideNote": "Override note"
+    },
+    "lastResult": {
+      "title": "Last swap result",
+      "description": "Shows the latest swap response returned by the API.",
+      "kind": "Kind",
+      "sessionId": "Session",
+      "changedAssignments": "Changed assignments"
+    },
+    "errors": {
+      "loadFailed": "Could not load swap workspace data.",
+      "swapFailed": "Swap operation failed."
     }
   },
   "proctors": {

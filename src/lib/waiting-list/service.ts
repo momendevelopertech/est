@@ -452,7 +452,10 @@ function toNumber(value: Prisma.Decimal) {
   return Number(value.toString());
 }
 
-async function rerankWaitingEntries(client: ActivityClient, sessionId: string) {
+export async function rerankWaitingEntriesInTransaction(
+  client: Prisma.TransactionClient,
+  sessionId: string
+) {
   const entries = await client.waitingList.findMany({
     where: {
       sessionId,
@@ -635,7 +638,7 @@ export async function createWaitingListEntry(
           select: waitingListSelect
         });
 
-        await rerankWaitingEntries(tx, session.id);
+        await rerankWaitingEntriesInTransaction(tx, session.id);
         const hydrated = await assertWaitingListEntryExists(tx, created.id);
 
         await logActivity({
@@ -743,7 +746,7 @@ export async function promoteWaitingListEntry(
           select: waitingListSelect
         });
 
-        await rerankWaitingEntries(tx, before.sessionId);
+        await rerankWaitingEntriesInTransaction(tx, before.sessionId);
 
         await logActivity({
           client: tx,
@@ -806,7 +809,7 @@ export async function removeWaitingListEntry(
           select: waitingListSelect
         });
 
-        await rerankWaitingEntries(tx, before.sessionId);
+        await rerankWaitingEntriesInTransaction(tx, before.sessionId);
 
         await logActivity({
           client: tx,

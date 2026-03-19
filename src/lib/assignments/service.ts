@@ -425,6 +425,13 @@ function isUserBlocked(
   return now.getTime() < user.blockEndsAt.getTime();
 }
 
+export function isUserBlockedForAssignments(
+  user: Pick<UserRecord, "blockStatus" | "blockEndsAt">,
+  now = new Date()
+) {
+  return isUserBlocked(user, now);
+}
+
 async function assertSessionExists(
   client: ActivityClient,
   sessionId: string,
@@ -455,6 +462,18 @@ async function assertSessionExists(
       }
     );
   }
+
+  return session;
+}
+
+export async function getAssignableSessionInTransaction(
+  client: Prisma.TransactionClient,
+  sessionId: string
+) {
+  const session = await assertSessionExists(client, sessionId, {
+    requireActive: true
+  });
+  assertSessionAssignable(session);
 
   return session;
 }
@@ -694,6 +713,90 @@ type AutoSessionRoomRecord = {
     levelNumber: number | null;
   };
 };
+
+type OverlapAssignmentRecord = {
+  id: string;
+  userId: string;
+  sessionId: string;
+  status: AssignmentStatus;
+  session: {
+    id: string;
+    startsAt: Date | null;
+    endsAt: Date | null;
+  };
+};
+
+type FindOverlappingAssignmentsInput = {
+  userIds: string[];
+  sessionId: string;
+  startsAt?: Date | null;
+  endsAt?: Date | null;
+  ignoredAssignmentIds?: Set<string>;
+};
+
+async function findOverlappingAssignments(
+  client: ActivityClient,
+  input: FindOverlappingAssignmentsInput
+): Promise<OverlapAssignmentRecord[]> {
+  if (
+    input.userIds.length === 0 ||
+    !input.startsAt ||
+    !input.endsAt
+  ) {
+    return [];
+  }
+
+  const overlaps = await client.assignment.findMany({
+    where: {
+      userId: {
+        in: input.userIds
+      },
+      status: {
+        not: AssignmentStatus.CANCELLED
+      },
+      sessionId: {
+        not: input.sessionId
+      },
+      session: {
+        isActive: true,
+        startsAt: {
+          lt: input.endsAt
+        },
+        endsAt: {
+          gt: input.startsAt
+        }
+      }
+    },
+    select: {
+      id: true,
+      userId: true,
+      sessionId: true,
+      status: true,
+      session: {
+        select: {
+          id: true,
+          startsAt: true,
+          endsAt: true
+        }
+      }
+    }
+  });
+
+  if (!input.ignoredAssignmentIds || input.ignoredAssignmentIds.size === 0) {
+    return overlaps;
+  }
+
+  return overlaps.filter(
+    (assignment) => !input.ignoredAssignmentIds?.has(assignment.id)
+  );
+}
+
+export async function findOverlappingAssignmentsInTransaction(
+  client: Prisma.TransactionClient,
+  input: FindOverlappingAssignmentsInput
+) {
+  return findOverlappingAssignments(client, input);
+}
 
 function resolveNumberSetting(value: unknown, fallback: number) {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -935,30 +1038,11 @@ async function resolveAutoAssignmentCandidates(input: {
     input.session.startsAt &&
     input.session.endsAt
   ) {
-    const overlappingAssignments = await input.client.assignment.findMany({
-      where: {
-        userId: {
-          in: baseCandidates.map((candidate) => candidate.id)
-        },
-        status: {
-          not: AssignmentStatus.CANCELLED
-        },
-        sessionId: {
-          not: input.session.id
-        },
-        session: {
-          isActive: true,
-          startsAt: {
-            lt: input.session.endsAt
-          },
-          endsAt: {
-            gt: input.session.startsAt
-          }
-        }
-      },
-      select: {
-        userId: true
-      }
+    const overlappingAssignments = await findOverlappingAssignments(input.client, {
+      userIds: baseCandidates.map((candidate) => candidate.id),
+      sessionId: input.session.id,
+      startsAt: input.session.startsAt,
+      endsAt: input.session.endsAt
     });
     overlappingUserIdSet = new Set(
       overlappingAssignments.map((assignment) => assignment.userId)

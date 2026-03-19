@@ -233,6 +233,12 @@ export function SessionDetailView({
           >
             {messages.sessions.openWaitingListWorkspace}
           </Link>
+          <Link
+            href={`/sessions/${data.id}/swaps`}
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
+          >
+            {messages.sessions.openSwapsWorkspace}
+          </Link>
         </CardContent>
       </Card>
     </div>

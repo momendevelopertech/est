@@ -85,7 +85,7 @@ Status legend:
 ## Phase 7 - Operational Workflows
 
 - `done` Build waiting-list logic and screens
-- `todo` Build swap workflow
+- `done` Build swap workflow
 - `todo` Build attendance workflow
 - `todo` Build evaluation workflow
 - `todo` Build promotion suggestion logic
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build waiting-list logic and screens
-2. Build swap workflow
-3. Build attendance workflow
-4. Build evaluation workflow
-5. Build promotion suggestion logic
+1. Build attendance workflow
+2. Build evaluation workflow
+3. Build promotion suggestion logic
+4. Build block workflow
+5. Build import template handling

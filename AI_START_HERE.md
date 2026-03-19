@@ -4,7 +4,7 @@ Read this file first before continuing any work on ExamOps.
 
 ## Purpose
 
-This repository is in the planning-to-build transition stage.
+This repository is actively in production implementation.
 
 Do not continue from any old generated markdown dump.
 
@@ -37,19 +37,21 @@ Use them only as loose reference if they still exist.
 
 ## Current Project State
 
-- Planning baseline is complete
-- Real application source code has not started yet
-- The next recommended step is Slice 0
+- Production-grade Next.js + Prisma codebase is running on Neon
+- Phases 0 through 6 are completed and verified
+- Phase 7 is in progress
+- Phase 7 Step 1 (Waiting List) is completed and verified
+- Phase 7 Step 2 (Swap Workflow) is completed and verified
+- The current execution target is Phase 7 Step 3 (Attendance Workflow)
 
 ## Next Recommended Task
 
-Start with:
+Continue with:
 
-1. finalizing the canonical Prisma schema
-2. scaffolding the real Next.js app
-3. establishing bilingual and responsive app foundations
-4. establishing theme and UI system foundations
-5. adding auth shell and route protection
+1. Attendance workflow
+2. Evaluation workflow
+3. Promotion suggestion logic
+4. Block workflow
 
 ## Files To Read Next
 
