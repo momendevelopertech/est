@@ -220,12 +220,18 @@ export function SessionDetailView({
           <CardTitle>{messages.sessions.assignmentPlaceholder.title}</CardTitle>
           <CardDescription>{messages.sessions.assignmentPlaceholder.body}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-wrap gap-2">
           <Link
             href={`/sessions/${data.id}/assignments`}
             className="inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover"
           >
             {messages.sessions.openAssignmentsWorkspace}
+          </Link>
+          <Link
+            href={`/sessions/${data.id}/waiting-list`}
+            className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
+          >
+            {messages.sessions.openWaitingListWorkspace}
           </Link>
         </CardContent>
       </Card>

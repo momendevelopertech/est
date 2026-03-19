@@ -31,6 +31,7 @@
 - Session pre-lock validation is now implemented with role/scope coverage checks, blocked-user checks, duplicate/room-capacity checks, and lock enforcement through `session_lock_validation_failed`
 - Late-import re-ranking is now implemented with dry-run/execute modes, transactional reset of AUTO+DRAFT assignments, and manual override preservation
 - A responsive assignment workspace is now live at `/sessions/[sessionId]/assignments` with manual assignment forms, auto/rerank controls, and lock-validation visibility
+- Waiting-list workflow is now implemented with ranked entries, promote/remove lifecycle actions, assignment integration, activity logging, and a responsive `/sessions/[sessionId]/waiting-list` screen
 
 ## Canonical Working Documents
 
@@ -81,12 +82,13 @@ We will instead:
 | Assignment UI foundation | done | `/sessions/[sessionId]/assignments` workspace now provides assignment operations and validation visibility |
 | Assignment UI responsiveness | done | Assignment workspace supports responsive layouts for tablet/desktop with mobile fallback patterns |
 | Late-import re-ranking flow | done | `/api/assignments/rerank` now preserves manual assignments while re-running auto planning safely |
+| Waiting-list logic and screens | done | `/api/waiting-list` plus `/sessions/[sessionId]/waiting-list` now support ranked create/list/promote/remove workflows |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Start Phase 7 with waiting-list logic on top of the now-stable assignment engine foundation
+- Continue Phase 7 with swap workflow on top of waiting-list and assignment foundations
 
 ## Update Log
 
@@ -153,6 +155,9 @@ We will instead:
 - Added session pre-lock validation contracts/service logic plus `GET /api/sessions/[sessionId]/lock-validation` and lock-gating in session status transitions
 - Added late-import re-rank contracts/service/validation plus `POST /api/assignments/rerank` with manual-override-safe reset behavior
 - Added assignment role-definition listing endpoint and a responsive `/sessions/[sessionId]/assignments` workspace for auto/manual/rerank operations
+- Added waiting-list contracts, validation, DTO, HTTP helpers, and service-layer workflows for ranked create/list/detail/promote/remove behavior
+- Added protected waiting-list API routes under `/api/waiting-list` including lifecycle actions for promote and remove
+- Added responsive session waiting-list workspace UI at `/sessions/[sessionId]/waiting-list` and linked it from session details
 - Verified Phase 6 end-to-end on real Neon DB in production mode with:
   - assignment contracts checks (create/list/detail/duplicate/orphan/cancel flows)
   - auto-assignment v1 dry-run + execute + rerun idempotency
@@ -161,3 +166,10 @@ We will instead:
   - manual-role skip enforcement
   - activity-log increment and payload integrity checks
   - pre-lock validation failure/success behavior, rerank dry-run/execute behavior, and EST_ASSN room-role auto exclusion
+- Verified waiting-list Step 1 end-to-end on real Neon DB in production mode with:
+  - ranked waiting-list ordering by rating
+  - duplicate waiting-list guard
+  - assignment conflict guard
+  - promote lifecycle creating assignment + status transition
+  - remove lifecycle and priority compaction
+  - waiting-list activity-log increment validation

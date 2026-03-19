@@ -84,7 +84,7 @@ Status legend:
 
 ## Phase 7 - Operational Workflows
 
-- `todo` Build waiting-list logic and screens
+- `done` Build waiting-list logic and screens
 - `todo` Build swap workflow
 - `todo` Build attendance workflow
 - `todo` Build evaluation workflow

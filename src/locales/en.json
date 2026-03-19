@@ -376,6 +376,7 @@
       "body": "This session detail is prepared for upcoming assignment, attendance, and evaluation workflows."
     },
     "openAssignmentsWorkspace": "Open assignment workspace",
+    "openWaitingListWorkspace": "Open waiting-list workspace",
     "statusErrors": {
       "invalid_session_status_transition": "This status transition is not allowed from the current session state.",
       "session_status_constraint_failed": "Session timing constraints block this status change.",
@@ -476,6 +477,61 @@
       "manualFailed": "Could not create manual assignment.",
       "autoFailed": "Auto-assignment request failed.",
       "rerankFailed": "Late-import rerank request failed."
+    }
+  },
+  "waitingList": {
+    "title": "Waiting-list workspace",
+    "subtitle": "Manage ranked waiting candidates and promote them safely into session assignments.",
+    "loading": "Loading waiting-list workspace...",
+    "backToSession": "Back to session",
+    "refresh": "Refresh waiting list",
+    "create": {
+      "title": "Add waiting candidate",
+      "description": "Insert one candidate with placement metadata to support fast promotion.",
+      "user": "Proctor",
+      "building": "Building",
+      "role": "Role",
+      "entrySource": "Entry source",
+      "reason": "Reason",
+      "notes": "Notes",
+      "submit": "Add to waiting list",
+      "submitting": "Saving..."
+    },
+    "filters": {
+      "title": "Status filters",
+      "description": "Switch between waiting, promoted, and removed entries.",
+      "all": "All"
+    },
+    "list": {
+      "title": "Session waiting list",
+      "description": "Entries are ranked by average rating and updated after each promotion or removal.",
+      "empty": "No waiting-list entries match the selected filter."
+    },
+    "labels": {
+      "priority": "Priority",
+      "rating": "Rating",
+      "totalSessions": "Total sessions",
+      "source": "Source",
+      "createdAt": "Created at",
+      "building": "Building",
+      "promotedAt": "Promoted at",
+      "removedAt": "Removed at",
+      "reason": "Reason"
+    },
+    "actions": {
+      "promote": "Promote to assignment",
+      "remove": "Remove from list"
+    },
+    "statuses": {
+      "WAITING": "Waiting",
+      "PROMOTED": "Promoted",
+      "REMOVED": "Removed"
+    },
+    "errors": {
+      "loadFailed": "Could not load waiting-list workspace data.",
+      "createFailed": "Could not add entry to waiting list.",
+      "promoteFailed": "Could not promote waiting-list entry.",
+      "removeFailed": "Could not remove waiting-list entry."
     }
   },
   "proctors": {
