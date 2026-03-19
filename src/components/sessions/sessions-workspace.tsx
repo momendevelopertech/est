@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
 import {
-  getSessionStatusTransitions,
+  getAllowedSessionStatusTransitions,
   sessionStatuses,
   type SessionStatusValue
 } from "@/lib/sessions/status-ui";
@@ -188,6 +188,15 @@ function replaceTokens(template: string, values: Record<string, string | number>
 
 function getApiError(payload: { message?: string; error?: string }, fallback: string) {
   return payload.message ?? payload.error ?? fallback;
+}
+
+function getStatusErrorMessage(messages: Messages, errorCode?: string | null) {
+  if (!errorCode) {
+    return messages.sessions.errorBody;
+  }
+
+  const knownErrors = messages.sessions.statusErrors as Record<string, string>;
+  return knownErrors[errorCode] ?? errorCode;
 }
 
 function SessionListSkeleton() {
@@ -539,7 +548,7 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
       if (!response.ok || !payload.ok || !payload.data) {
         setStatusErrorById((current) => ({
           ...current,
-          [sessionId]: getApiError(payload, messages.sessions.errorBody)
+          [sessionId]: getStatusErrorMessage(messages, payload.error ?? payload.message)
         }));
         return;
       }
@@ -551,7 +560,9 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
       setStatusErrorById((current) => ({
         ...current,
         [sessionId]:
-          mutationError instanceof Error ? mutationError.message : messages.sessions.errorBody
+          mutationError instanceof Error
+            ? getStatusErrorMessage(messages, mutationError.message)
+            : messages.sessions.errorBody
       }));
     } finally {
       setStatusBusyById((current) => ({ ...current, [sessionId]: false }));
@@ -761,7 +772,15 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
                 {sessions.map((session) => {
                   const localizedName = getLocalizedName(session, locale);
                   const alternateName = getAlternateLocalizedName(session, locale);
-                  const availableTransitions = getSessionStatusTransitions(session.status);
+                  const availableTransitions = getAllowedSessionStatusTransitions({
+                    status: session.status,
+                    isActive: session.isActive,
+                    startDateTime: session.startDateTime,
+                    endDateTime: session.endDateTime,
+                    assignmentsCount: session._count.assignments,
+                    waitingListCount: session._count.waitingList,
+                    evaluationsCount: session._count.evaluations
+                  });
                   const isStatusBusy = statusBusyById[session.id] ?? false;
                   const isDeactivating = deactivatingSessionId === session.id;
                   const activeBuildingNames = session.buildings

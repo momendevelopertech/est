@@ -356,6 +356,13 @@
     "assignmentPlaceholder": {
       "title": "Assignments readiness",
       "body": "This session detail is prepared for upcoming assignment, attendance, and evaluation workflows."
+    },
+    "statusErrors": {
+      "invalid_session_status_transition": "This status transition is not allowed from the current session state.",
+      "session_status_constraint_failed": "Session timing constraints block this status change.",
+      "session_cancellation_not_allowed": "Session cancellation is not allowed in the current state.",
+      "session_locked": "This session is locked and protected from this change.",
+      "forbidden": "You do not have permission to change session status."
     }
   },
   "proctors": {
