@@ -44,6 +44,11 @@ export function getNavigation(messages: Messages): NavigationItem[] {
       roles: ["super_admin", "coordinator", "data_entry"]
     },
     {
+      href: "/sessions",
+      label: messages.nav.sessions,
+      roles: ["super_admin", "coordinator", "data_entry"]
+    },
+    {
       href: "/settings",
       label: messages.nav.settings,
       roles: ["super_admin", "coordinator"]

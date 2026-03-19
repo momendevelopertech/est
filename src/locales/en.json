@@ -17,6 +17,7 @@
     "proctors": "Proctors",
     "locations": "Locations",
     "cycles": "Cycles",
+    "sessions": "Sessions",
     "settings": "Settings"
   },
   "shell": {
@@ -239,6 +240,122 @@
       "previous": "Previous",
       "next": "Next",
       "pageSize": "Rows per page"
+    }
+  },
+  "sessions": {
+    "title": "Sessions management",
+    "subtitle": "Manage operational exam sessions with cycle, location, and lifecycle controls.",
+    "description": "Session records are linked to cycles and buildings, include stored and derived status, and enforce strict transition rules.",
+    "searchLabel": "Search sessions",
+    "searchPlaceholder": "Search by Arabic or English name",
+    "showInactive": "Show inactive records",
+    "showActiveOnly": "Show active only",
+    "reload": "Reload",
+    "create": "Create session",
+    "snapshotTitle": "Session snapshot",
+    "snapshotBody": "Counts are based on the currently loaded page from the live API response.",
+    "listTitle": "Sessions list",
+    "listBody": "Showing {count} sessions on this page.",
+    "emptyTitle": "No sessions found",
+    "emptyBody": "Create a session to start assignment and attendance workflows.",
+    "errorTitle": "Could not load sessions",
+    "errorBody": "The sessions API did not return list data. Check authentication and database connectivity, then try again.",
+    "detailTitle": "Session details",
+    "detailBody": "Inspect full session metadata, status lifecycle, and linked location context.",
+    "detailNotFound": "The requested session could not be found.",
+    "detailBack": "Back to sessions",
+    "loadingCycles": "Loading cycles...",
+    "loadingBuildings": "Loading buildings...",
+    "filters": {
+      "cycle": "Cycle",
+      "status": "Status",
+      "startFrom": "Start from",
+      "endTo": "End to",
+      "allCycles": "All cycles",
+      "allStatuses": "All statuses"
+    },
+    "actions": {
+      "view": "View details",
+      "edit": "Edit",
+      "deactivate": "Deactivate",
+      "deactivating": "Deactivating...",
+      "transitionsTitle": "Status actions",
+      "transitionHelp": "Only valid lifecycle transitions are shown.",
+      "noTransitions": "No transition is currently available.",
+      "changeStatus": "Change status",
+      "changingStatus": "Changing status..."
+    },
+    "form": {
+      "createTitle": "Create session",
+      "editTitle": "Edit session",
+      "subtitle": "Session timing must stay inside the selected cycle range and avoid building overlaps.",
+      "cycle": "Cycle",
+      "examType": "Exam type",
+      "nameAr": "Arabic name",
+      "nameEn": "English name",
+      "startDateTime": "Start date and time",
+      "endDateTime": "End date and time",
+      "buildingIds": "Buildings",
+      "notes": "Notes",
+      "isActive": "Active record",
+      "cancel": "Cancel",
+      "submitCreate": "Create session",
+      "submitEdit": "Save changes",
+      "submitting": "Saving...",
+      "nameRequired": "Provide Arabic or English name.",
+      "dateRangeInvalid": "Start date and time must be earlier than end date and time.",
+      "cycleRequired": "Select a cycle.",
+      "buildingRequired": "Select at least one building."
+    },
+    "labels": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "cycle": "Cycle",
+      "examType": "Exam type",
+      "building": "Building",
+      "location": "Location",
+      "startDateTime": "Start date and time",
+      "endDateTime": "End date and time",
+      "sessionDate": "Session date",
+      "dayIndex": "Cycle day",
+      "status": "Stored status",
+      "derivedStatus": "Derived status",
+      "lockedAt": "Locked at",
+      "assignments": "Assignments",
+      "waitingList": "Waiting list",
+      "evaluations": "Evaluations",
+      "buildings": "Buildings",
+      "updatedAt": "Last updated",
+      "notes": "Notes"
+    },
+    "statuses": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "LOCKED": "Locked",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
+    "examTypes": {
+      "EST1": "EST1",
+      "EST2": "EST2",
+      "EST_ASSN": "EST ASSN"
+    },
+    "pagination": {
+      "summary": "Page {page} of {pageCount}",
+      "total": "Total records: {total}",
+      "previous": "Previous",
+      "next": "Next",
+      "pageSize": "Rows per page"
+    },
+    "lifecycle": {
+      "title": "Lifecycle",
+      "live": "Live lifecycle",
+      "cancelled": "Cancelled"
+    },
+    "assignmentPlaceholder": {
+      "title": "Assignments readiness",
+      "body": "This session detail is prepared for upcoming assignment, attendance, and evaluation workflows."
     }
   },
   "proctors": {
