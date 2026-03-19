@@ -1,4 +1,7 @@
+import { SessionStatus } from "@prisma/client";
+
 import { serializeForApi } from "@/lib/dto/serialize";
+import { getDerivedSessionStatus } from "@/lib/sessions/status";
 
 type SessionBuildingLink = {
   building?: unknown;
@@ -13,6 +16,7 @@ type SessionLike = {
   endsAt?: Date | null;
   sessionDate?: Date | null;
   startsAt?: Date | null;
+  status: SessionStatus;
 } & Record<string, unknown>;
 
 export function toSessionDTO<T extends SessionLike>(session: T) {
@@ -29,6 +33,7 @@ export function toSessionDTO<T extends SessionLike>(session: T) {
   return serializeForApi({
     ...rest,
     sessionDate: session.sessionDate,
+    derivedStatus: getDerivedSessionStatus(session),
     startDateTime: session.startsAt ?? null,
     endDateTime: session.endsAt ?? null,
     buildingIds: activeBuildings.map((buildingLink) => buildingLink.buildingId),

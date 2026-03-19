@@ -5,11 +5,16 @@ import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
 import { createBilingualSearchFilter } from "@/lib/search/bilingual";
+import {
+  canTransitionSessionStatus,
+  getDerivedSessionStatus
+} from "@/lib/sessions/status";
 
 import type {
   CreateSessionInput,
   SessionListQuery,
-  UpdateSessionInput
+  UpdateSessionInput,
+  UpdateSessionStatusInput
 } from "./validation";
 
 type ActivityClient = Prisma.TransactionClient | PrismaClient;
@@ -299,6 +304,178 @@ function assertCanDeactivateSession(session: SessionRecord) {
       evaluations: session._count.evaluations
     }
   );
+}
+
+function getLockedSessionProtectedFields(input: UpdateSessionInput) {
+  return [
+    "cycleId",
+    "examType",
+    "startDateTime",
+    "endDateTime",
+    "buildingIds",
+    "isActive"
+  ].filter((field) => field in input);
+}
+
+function assertLockedSessionSafety(session: SessionRecord, input: UpdateSessionInput) {
+  if (session.status !== SessionStatus.LOCKED) {
+    return;
+  }
+
+  const protectedFields = getLockedSessionProtectedFields(input);
+
+  if (protectedFields.length === 0) {
+    return;
+  }
+
+  throw new SessionsServiceError(
+    ERROR_CODES.sessionLocked,
+    409,
+    "Locked sessions cannot change scheduling or location fields.",
+    {
+      sessionId: session.id,
+      protectedFields
+    }
+  );
+}
+
+function hasStartedSession(session: Pick<SessionRecord, "startsAt">, now = new Date()) {
+  return Boolean(session.startsAt && now.getTime() >= session.startsAt.getTime());
+}
+
+function hasEndedSession(session: Pick<SessionRecord, "endsAt">, now = new Date()) {
+  return Boolean(session.endsAt && now.getTime() >= session.endsAt.getTime());
+}
+
+function assertSessionStatusTransition(
+  session: SessionRecord,
+  nextStatus: SessionStatus,
+  now = new Date()
+) {
+  if (!session.isActive) {
+    throw new SessionsServiceError(
+      ERROR_CODES.sessionStatusConstraintFailed,
+      409,
+      "Inactive sessions cannot change status.",
+      {
+        sessionId: session.id,
+        currentStatus: session.status,
+        nextStatus
+      }
+    );
+  }
+
+  if (session.status === nextStatus) {
+    throw new SessionsServiceError(
+      ERROR_CODES.invalidSessionStatusTransition,
+      409,
+      "Session is already in the requested status.",
+      {
+        sessionId: session.id,
+        currentStatus: session.status,
+        nextStatus
+      }
+    );
+  }
+
+  if (!canTransitionSessionStatus(session.status, nextStatus)) {
+    throw new SessionsServiceError(
+      ERROR_CODES.invalidSessionStatusTransition,
+      409,
+      "The requested session status transition is not allowed.",
+      {
+        sessionId: session.id,
+        currentStatus: session.status,
+        nextStatus
+      }
+    );
+  }
+
+  if (nextStatus === SessionStatus.IN_PROGRESS) {
+    if (!session.startsAt || !session.endsAt) {
+      throw new SessionsServiceError(
+        ERROR_CODES.sessionStatusConstraintFailed,
+        409,
+        "Session timing must be defined before it can move in progress.",
+        {
+          sessionId: session.id,
+          currentStatus: session.status,
+          nextStatus
+        }
+      );
+    }
+
+    if (!hasStartedSession(session, now) || hasEndedSession(session, now)) {
+      throw new SessionsServiceError(
+        ERROR_CODES.sessionStatusConstraintFailed,
+        409,
+        "Session can move to in progress only during its active time window.",
+        {
+          sessionId: session.id,
+          currentStatus: session.status,
+          nextStatus,
+          startsAt: session.startsAt,
+          endsAt: session.endsAt,
+          now
+        }
+      );
+    }
+  }
+
+  if (nextStatus === SessionStatus.COMPLETED && !hasEndedSession(session, now)) {
+    throw new SessionsServiceError(
+      ERROR_CODES.sessionStatusConstraintFailed,
+      409,
+      "Session can complete only after its scheduled end time.",
+      {
+        sessionId: session.id,
+        currentStatus: session.status,
+        nextStatus,
+        endsAt: session.endsAt,
+        now
+      }
+    );
+  }
+
+  if (nextStatus === SessionStatus.CANCELLED) {
+    if (
+      session.status === SessionStatus.LOCKED &&
+      (hasStartedSession(session, now) || hasRelatedRecords(session))
+    ) {
+      throw new SessionsServiceError(
+        ERROR_CODES.sessionCancellationNotAllowed,
+        409,
+        "Locked sessions can be cancelled only before they start and before related records exist.",
+        {
+          sessionId: session.id,
+          currentStatus: session.status,
+          nextStatus,
+          startsAt: session.startsAt,
+          now,
+          assignments: session._count.assignments,
+          waitingList: session._count.waitingList,
+          evaluations: session._count.evaluations
+        }
+      );
+    }
+
+    if (
+      session.status !== SessionStatus.DRAFT &&
+      session.status !== SessionStatus.SCHEDULED &&
+      session.status !== SessionStatus.LOCKED
+    ) {
+      throw new SessionsServiceError(
+        ERROR_CODES.sessionCancellationNotAllowed,
+        409,
+        "Only draft, scheduled, or pre-start locked sessions can be cancelled.",
+        {
+          sessionId: session.id,
+          currentStatus: session.status,
+          nextStatus
+        }
+      );
+    }
+  }
 }
 
 function isKnownPrismaError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
@@ -771,8 +948,7 @@ export async function createSession(input: CreateSessionInput, actorAppUserId: s
     examType: input.examType,
     startDateTime: input.startDateTime,
     endDateTime: input.endDateTime,
-    status: input.status ?? SessionStatus.DRAFT,
-    lockedAt: input.lockedAt,
+    status: SessionStatus.DRAFT,
     notes: input.notes,
     isActive: input.isActive ?? true
   });
@@ -832,6 +1008,7 @@ export async function updateSession(
   const before = await getSessionById(sessionId, {
     includeInactive: true
   });
+  assertLockedSessionSafety(before, input);
   const nextIsActive = input.isActive ?? before.isActive;
   const nextCycle = await assertCycleExists(input.cycleId ?? before.cycleId, {
     includeInactive: true,
@@ -857,8 +1034,7 @@ export async function updateSession(
     examType: input.examType ?? before.examType,
     startDateTime: input.startDateTime ?? before.startsAt ?? new Date(NaN),
     endDateTime: input.endDateTime ?? before.endsAt ?? new Date(NaN),
-    status: input.status ?? before.status,
-    lockedAt: input.lockedAt,
+    status: before.status,
     currentLockedAt: before.lockedAt,
     notes: input.notes ?? before.notes ?? undefined,
     isActive: nextIsActive
@@ -906,6 +1082,65 @@ export async function updateSession(
         metadata: {
           changedFields: Object.keys(input),
           buildingIds: nextBuildingIds
+        },
+        beforePayload: before,
+        afterPayload: hydrated
+      });
+
+      return hydrated;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
+}
+
+export async function updateSessionStatus(
+  sessionId: string,
+  input: UpdateSessionStatusInput,
+  actorAppUserId: string
+) {
+  const before = await getSessionById(sessionId, {
+    includeInactive: true
+  });
+  const nextStatus = input.status;
+  assertSessionStatusTransition(before, nextStatus);
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const updated = await tx.session.update({
+        where: {
+          id: sessionId
+        },
+        data: {
+          status: nextStatus,
+          lockedAt: resolveLockedAt({
+            status: nextStatus,
+            currentLockedAt: before.lockedAt
+          })
+        },
+        select: sessionSelect
+      });
+
+      const hydrated = await tx.session.findUniqueOrThrow({
+        where: {
+          id: updated.id
+        },
+        select: sessionSelect
+      });
+
+      await logActivity({
+        client: tx,
+        userId: actorAppUserId,
+        action: "update_status",
+        entityType: "session",
+        entityId: hydrated.id,
+        description: `Updated session ${hydrated.name} status from ${before.status} to ${hydrated.status}.`,
+        metadata: {
+          previousStatus: before.status,
+          nextStatus: hydrated.status,
+          previousDerivedStatus: getDerivedSessionStatus(before),
+          nextDerivedStatus: getDerivedSessionStatus(hydrated),
+          lockedAt: hydrated.lockedAt
         },
         beforePayload: before,
         afterPayload: hydrated

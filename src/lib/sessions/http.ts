@@ -12,8 +12,17 @@ export const sessionManagementRoles = [
   "data_entry"
 ] as const;
 
+export const sessionStatusManagementRoles = [
+  "super_admin",
+  "coordinator"
+] as const;
+
 export async function requireSessionsApiRole() {
   return requireApiRole([...sessionManagementRoles]);
+}
+
+export async function requireSessionStatusApiRole() {
+  return requireApiRole([...sessionStatusManagementRoles]);
 }
 
 export function getRequestQuery(request: Request) {

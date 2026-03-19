@@ -317,6 +317,14 @@
         "liftedBy": "Lifted by"
       }
     },
+    "sessionStatuses": {
+      "DRAFT": "Draft",
+      "SCHEDULED": "Scheduled",
+      "LOCKED": "Locked",
+      "IN_PROGRESS": "In progress",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled"
+    },
     "assignmentStatuses": {
       "DRAFT": "Draft",
       "CONFIRMED": "Confirmed",

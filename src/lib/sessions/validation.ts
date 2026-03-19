@@ -29,8 +29,6 @@ const dateTimeInputSchema = z
   .union([z.date(), zonedDateTimeStringSchema])
   .transform((value) => new Date(value));
 
-const nullableDateTimeInputSchema = z.union([dateTimeInputSchema, z.null()]);
-
 const buildingIdsSchema = z
   .array(uuidSchema)
   .min(1, "At least one building is required.")
@@ -52,8 +50,7 @@ const sessionMutationFields = {
   startDateTime: dateTimeInputSchema,
   endDateTime: dateTimeInputSchema,
   buildingIds: buildingIdsSchema,
-  status: z.nativeEnum(SessionStatus).optional().default(SessionStatus.DRAFT),
-  lockedAt: nullableDateTimeInputSchema.optional(),
+  status: z.literal(SessionStatus.DRAFT).optional().default(SessionStatus.DRAFT),
   notes: trimmedOptionalString(4000),
   isActive: z.boolean().optional().default(true)
 };
@@ -121,8 +118,6 @@ export const updateSessionSchema = createUpdateSchema({
   startDateTime: dateTimeInputSchema.optional(),
   endDateTime: dateTimeInputSchema.optional(),
   buildingIds: buildingIdsSchema.optional(),
-  status: z.nativeEnum(SessionStatus),
-  lockedAt: nullableDateTimeInputSchema,
   notes: trimmedOptionalString(4000),
   isActive: z.boolean()
 }).refine(
@@ -136,6 +131,11 @@ export const updateSessionSchema = createUpdateSchema({
   }
 );
 
+export const updateSessionStatusSchema = z.object({
+  status: z.nativeEnum(SessionStatus)
+});
+
 export type SessionListQuery = z.infer<typeof sessionListQuerySchema>;
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
+export type UpdateSessionStatusInput = z.infer<typeof updateSessionStatusSchema>;

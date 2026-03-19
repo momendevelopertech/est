@@ -53,10 +53,10 @@ enum ExamType {
 
 enum SessionStatus {
   DRAFT
-  OPEN
+  SCHEDULED
   LOCKED
+  IN_PROGRESS
   COMPLETED
-  ARCHIVED
   CANCELLED
 }
 

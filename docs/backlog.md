@@ -66,7 +66,7 @@ Status legend:
 
 - `done` Build cycles CRUD routes
 - `done` Build sessions CRUD routes
-- `todo` Add session status flow
+- `done` Add session status flow
 - `todo` Build cycle/session UI
 - `todo` Add clone workflow foundation
 - `todo` Support bilingual cycle and session naming
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Add session status flow
-2. Build cycle/session UI
-3. Add clone workflow foundation
-4. Support bilingual cycle and session naming
-5. Implement assignment service contracts
+1. Build cycle/session UI
+2. Add clone workflow foundation
+3. Support bilingual cycle and session naming
+4. Implement assignment service contracts
+5. Implement auto-assignment algorithm v1
