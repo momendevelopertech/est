@@ -39,6 +39,8 @@
 - Block workflow is now implemented with protected `POST /api/blocks` and `POST /api/blocks/unblock` routes, transactional block lifecycle updates, and activity logging
 - Import template handling is now implemented with protected `GET /api/import/templates` and `GET /api/import/templates/[templateKey]/download`, activity-log-backed template downloads, and a responsive bilingual `/settings/import-templates` screen
 - Export generators v1 are now implemented with protected `GET /api/export/assignments` and `GET /api/export/attendance`, CSV downloads, duplicate-row prevention, and export activity logging
+- Dashboard metrics endpoints are now implemented with protected `GET /api/metrics/sessions`, `GET /api/metrics/assignments`, and `GET /api/metrics/attendance`, filter validation, and metrics access logging
+- Reports hub and report pages are now implemented with protected report summary APIs, responsive bilingual `/reports` pages for assignments/attendance/evaluations, and report view logging
 
 ## Canonical Working Documents
 
@@ -97,12 +99,14 @@ We will instead:
 | Block workflow | done | `/api/blocks` and `/api/blocks/unblock` now manage temporary/permanent blocks, prevent duplicate active blocks, and integrate blocking across assignment, waiting-list, swap, and promotion flows |
 | Import template handling | done | `/api/import/templates` plus `/settings/import-templates` now provide downloadable CSV templates/sample files with bilingual metadata and download activity logging |
 | Export generators (Step 2) | done | `/api/export/assignments` and `/api/export/attendance` now generate bilingual CSV exports with session validation, dedupe safety, and audit logging |
+| Dashboard metrics endpoints (Step 3) | done | `/api/metrics/sessions`, `/api/metrics/assignments`, and `/api/metrics/attendance` now provide validated filtered aggregates and activity logging |
+| Reports hub and report pages (Step 4) | done | `/reports` plus report detail pages now consume report APIs with responsive bilingual UI and integrated export/report logging |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 8 with dashboard metrics endpoint implementation
+- Continue Phase 8 with PDF export implementation
 
 ## Update Log
 
@@ -276,3 +280,34 @@ We will instead:
   - bilingual CSV structure validation
   - duplicate-row prevention checks
   - export activity-log persistence checks
+- Added Phase 8 Step 3 metrics module (`src/lib/metrics`) with contracts, validation, DTO, HTTP helpers, and service logic for sessions, assignments, and attendance aggregates
+- Added protected metrics APIs:
+  - `GET /api/metrics/sessions`
+  - `GET /api/metrics/assignments`
+  - `GET /api/metrics/attendance`
+- Added metrics access logging (`action: metrics_view`, `entityType: metrics`) with filter and totals metadata
+- Added Phase 8 Step 4 reports module (`src/lib/reports`) with contracts, validation, DTO, HTTP helpers, and report-summary services
+- Added protected report summary APIs:
+  - `GET /api/reports/assignments`
+  - `GET /api/reports/attendance`
+  - `GET /api/reports/evaluations`
+- Added responsive bilingual reports UI:
+  - `/reports`
+  - `/reports/assignments`
+  - `/reports/attendance`
+  - `/reports/evaluations`
+- Added report view logging (`action: report_view`, `entityType: report`) and wired report export actions through existing export APIs
+- Added locale coverage for reports navigation and report-page copy in both English and Arabic locale files
+- Hardened evaluation report aggregation to run against current Neon schema using session-scoped raw aggregation queries (avoids dependency on a missing `evaluations.assignment_id` column while preserving filter behavior)
+- Verified Phase 8 Step 3 end-to-end on real Neon DB through authenticated API scenarios in `tmp/verify-phase8-step3.mjs`:
+  - valid metrics queries
+  - invalid-query rejection
+  - empty-data handling
+  - aggregation correctness
+  - metrics activity-log persistence
+- Verified Phase 8 Step 4 end-to-end on real Neon DB through authenticated API scenarios in `tmp/verify-phase8-step4.mjs`:
+  - assignments/attendance/evaluations report correctness
+  - invalid-query rejection
+  - empty-data handling
+  - report/export activity-log persistence
+  - report UI rendering checks for English and Arabic routes

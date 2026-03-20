@@ -95,8 +95,8 @@ Status legend:
 
 - `done` Build import template handling
 - `done` Build export generators
-- `todo` Build dashboard metrics endpoints
-- `todo` Build reports hub and report pages
+- `done` Build dashboard metrics endpoints
+- `done` Build reports hub and report pages
 - `todo` Add PDF export where needed
 - `todo` Add bilingual Excel export headers
 - `todo` Build premium dashboard layout and localized report views
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build dashboard metrics endpoints
-2. Build reports hub and report pages
-3. Add PDF export where needed
-4. Add bilingual Excel export headers
-5. Build premium dashboard layout and localized report views
+1. Add PDF export where needed
+2. Add bilingual Excel export headers
+3. Build premium dashboard layout and localized report views
+4. Add email template layer
+5. Add notification triggers

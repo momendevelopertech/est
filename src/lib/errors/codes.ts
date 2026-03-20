@@ -45,6 +45,7 @@ export const ERROR_CODES = {
   invalidSource: "invalid_source",
   invalidStatus: "invalid_status",
   invalidTheme: "invalid_theme",
+  metricsFilterMismatch: "metrics_filter_mismatch",
   importFileTooLarge: "import_file_too_large",
   importRowLimitExceeded: "import_row_limit_exceeded",
   locationNotFound: "location_not_found",

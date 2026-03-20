@@ -18,7 +18,8 @@
     "locations": "Locations",
     "cycles": "Cycles",
     "sessions": "Sessions",
-    "settings": "Settings"
+    "settings": "Settings",
+    "reports": "Reports"
   },
   "shell": {
     "status": "Foundation slice",
@@ -908,5 +909,48 @@
     "data_entry": "Data entry",
     "senior": "Senior",
     "viewer": "Viewer"
+  },
+  "reports": {
+    "hub": {
+      "title": "Reports hub",
+      "subtitle": "Open report summaries for assignments, attendance, and evaluations.",
+      "openReport": "Open report"
+    },
+    "pages": {
+      "assignments": {
+        "title": "Assignments report",
+        "subtitle": "Review assignment totals and distribution by status and assignment method."
+      },
+      "attendance": {
+        "title": "Attendance report",
+        "subtitle": "Track attendance totals, attendance ratio, and attendance status distribution."
+      },
+      "evaluations": {
+        "title": "Evaluations report",
+        "subtitle": "Review evaluation totals, average scores, and score-bucket distribution."
+      }
+    },
+    "filters": {
+      "title": "Report filters",
+      "subtitle": "Apply optional filters to scope report metrics.",
+      "sessionId": "Session ID",
+      "sessionIdPlaceholder": "Enter session UUID",
+      "cycleId": "Cycle ID",
+      "cycleIdPlaceholder": "Enter cycle UUID",
+      "locationId": "Location ID",
+      "locationIdPlaceholder": "Enter building UUID",
+      "apply": "Apply filters",
+      "clear": "Clear filters"
+    },
+    "summary": {
+      "reload": "Reload summary",
+      "export": "Download export",
+      "exporting": "Preparing export...",
+      "errorTitle": "Could not load report summary",
+      "errorBody": "The report summary endpoint did not return data. Check filters and try again.",
+      "cardsTitle": "Summary metrics",
+      "cardsSubtitle": "Live totals generated from the selected filters.",
+      "emptyBreakdown": "No breakdown rows are available for the current filters."
+    }
   }
 }
