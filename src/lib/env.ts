@@ -8,6 +8,16 @@ const nodeEnvSchema = z
 
 const authSessionTtlHoursSchema = z.coerce.number().int().positive().default(12);
 
+const envKeyAliases = {
+  DATABASE_URL: ["DATABASE_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL"],
+  DIRECT_DATABASE_URL: [
+    "DIRECT_DATABASE_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "POSTGRES_URL"
+  ],
+  AUTH_SECRET: ["AUTH_SECRET"]
+} as const;
+
 type ServerEnv = {
   NODE_ENV: z.infer<typeof nodeEnvSchema>;
   DATABASE_URL: string;
@@ -29,11 +39,23 @@ function readRequiredStringEnv(key: "DATABASE_URL" | "AUTH_SECRET") {
       ? z.string().min(32, "AUTH_SECRET must be at least 32 characters")
       : z.string().min(1, `${key} is required`);
 
-  return schema.parse(normalizeEnvValue(process.env[key]));
+  return schema.parse(resolveEnvValue(key));
 }
 
 function readOptionalStringEnv(key: "DIRECT_DATABASE_URL") {
-  return z.string().min(1).optional().parse(normalizeEnvValue(process.env[key]));
+  return z.string().min(1).optional().parse(resolveEnvValue(key));
+}
+
+function resolveEnvValue(key: keyof typeof envKeyAliases) {
+  for (const envKey of envKeyAliases[key]) {
+    const value = normalizeEnvValue(process.env[envKey]);
+
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 function getCachedEnvValue<K extends keyof ServerEnv>(

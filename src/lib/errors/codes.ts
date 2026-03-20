@@ -34,6 +34,7 @@ export const ERROR_CODES = {
   internalServerError: "internal_server_error",
   invalidCapacityRange: "invalid_capacity_range",
   invalidCredentials: "invalid_credentials",
+  authServiceUnavailable: "auth_service_unavailable",
   invalidDateRange: "invalid_date_range",
   invalidExamType: "invalid_exam_type",
   invalidHierarchyOrder: "invalid_hierarchy_order",

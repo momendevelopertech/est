@@ -6,7 +6,7 @@ Use this checklist before every production release.
 
 - [ ] Working branch is up to date with mainline and review is complete
 - [ ] Database migrations are reviewed and reversible
-- [ ] Required environment variables are defined for target environment
+- [ ] Required environment variables are defined for target environment (`DATABASE_URL`/Vercel Postgres runtime alias, `AUTH_SECRET`, optional `DIRECT_DATABASE_URL`)
 - [ ] Notification provider settings are present in DB (`email`, `whatsapp`, `sms`)
 - [ ] Locale files are synchronized (`src/locales/en.json`, `src/locales/ar.json`)
 - [ ] PWA assets are present (`manifest`, `sw.js`, icons, offline page)

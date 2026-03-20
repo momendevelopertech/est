@@ -45,57 +45,69 @@ export async function POST(request: Request) {
   const password = String(formData.get("password") ?? "");
   const locale = String(formData.get("locale") ?? "");
   const redirectTo = sanitizeRedirectPath(String(formData.get("redirectTo") ?? ""));
+  const requestOrigin = getRequestOrigin(request);
 
-  const appUser = await authenticateAppUser(email, password);
+  try {
+    const appUser = await authenticateAppUser(email, password);
 
-  if (!appUser) {
-    const loginUrl = new URL("/login", getRequestOrigin(request));
-    loginUrl.searchParams.set("error", ERROR_CODES.invalidCredentials);
+    if (!appUser) {
+      const loginUrl = new URL("/login", requestOrigin);
+      loginUrl.searchParams.set("error", ERROR_CODES.invalidCredentials);
 
-    return NextResponse.redirect(loginUrl, {
+      return NextResponse.redirect(loginUrl, {
+        status: 303
+      });
+    }
+
+    const session = await createPersistedSession({
+      appUserId: appUser.id,
+      locale: isLocale(locale) ? locale : null,
+      ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+      userAgent: request.headers.get("user-agent")
+    });
+    const response = NextResponse.redirect(new URL(redirectTo, requestOrigin), {
       status: 303
     });
-  }
 
-  const session = await createPersistedSession({
-    appUserId: appUser.id,
-    locale: isLocale(locale) ? locale : null,
-    ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
-    userAgent: request.headers.get("user-agent")
-  });
-  const response = NextResponse.redirect(new URL(redirectTo, getRequestOrigin(request)), {
-    status: 303
-  });
-
-  response.cookies.set({
-    name: authCookieName,
-    value: session.token,
-    ...getSessionCookieOptions(new Date(session.session.expiresAt))
-  });
-
-  const resolvedLocale = isLocale(locale)
-    ? locale
-    : session.session.user.preferredLanguage;
-
-  if (resolvedLocale) {
     response.cookies.set({
-      name: localeCookieName,
-      value: resolvedLocale,
+      name: authCookieName,
+      value: session.token,
+      ...getSessionCookieOptions(new Date(session.session.expiresAt))
+    });
+
+    const resolvedLocale = isLocale(locale)
+      ? locale
+      : session.session.user.preferredLanguage;
+
+    if (resolvedLocale) {
+      response.cookies.set({
+        name: localeCookieName,
+        value: resolvedLocale,
+        path: "/",
+        sameSite: "lax",
+        secure: env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 365
+      });
+    }
+
+    response.cookies.set({
+      name: themeCookieName,
+      value: session.session.user.preferredTheme,
       path: "/",
       sameSite: "lax",
       secure: env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 365
     });
+
+    return response;
+  } catch (error) {
+    console.error("auth_login_request_failed", error);
+
+    const loginUrl = new URL("/login", requestOrigin);
+    loginUrl.searchParams.set("error", ERROR_CODES.authServiceUnavailable);
+
+    return NextResponse.redirect(loginUrl, {
+      status: 303
+    });
   }
-
-  response.cookies.set({
-    name: themeCookieName,
-    value: session.session.user.preferredTheme,
-    path: "/",
-    sameSite: "lax",
-    secure: env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 365
-  });
-
-  return response;
 }

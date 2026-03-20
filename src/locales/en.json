@@ -46,6 +46,7 @@
     "password": "Password",
     "submit": "Sign in",
     "error": "The email or password was incorrect.",
+    "serviceUnavailable": "Authentication is temporarily unavailable. Check database connectivity and deployment environment settings.",
     "credentialsTitle": "Seeded database accounts",
     "credentialsBody": "Run the Prisma seed, then sign in with one of the app users below. The shared seed password comes from SEED_APP_USERS_PASSWORD.",
     "arabicPanelBody": "Arabic and English authentication flows now share the same database-backed session layer.",

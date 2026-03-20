@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getSession } from "@/lib/auth/session";
+import { ERROR_CODES } from "@/lib/errors/codes";
 import { getMessages, resolveRequestLocale } from "@/lib/i18n";
 
 type LoginPageProps = {
@@ -33,7 +34,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const locale = await resolveRequestLocale();
   const messages = getMessages(locale);
-  const hasError = searchParams?.error === "invalid_credentials";
+  const authError =
+    searchParams?.error === ERROR_CODES.invalidCredentials
+      ? messages.auth.error
+      : searchParams?.error === ERROR_CODES.authServiceUnavailable
+        ? messages.auth.serviceUnavailable
+        : null;
   const seededAccounts = Object.entries(messages.auth.accounts);
 
   return (
@@ -84,9 +90,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               />
             </div>
 
-            {hasError ? (
+            {authError ? (
               <p className="rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-danger">
-                {messages.auth.error}
+                {authError}
               </p>
             ) : null}
 
