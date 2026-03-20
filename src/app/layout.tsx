@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cairo, Inter } from "next/font/google";
 
 import { AppThemeProvider } from "@/components/providers/app-theme-provider";
+import { PwaRegistration } from "@/components/providers/pwa-registration";
 import { getSession } from "@/lib/auth/session";
 import { getDirection, resolveRequestLocale } from "@/lib/i18n";
 import { siteConfig } from "@/lib/site";
@@ -23,7 +24,26 @@ const cairo = Cairo({
 
 export const metadata: Metadata = {
   title: siteConfig.name,
-  description: siteConfig.description
+  description: siteConfig.description,
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: siteConfig.name
+  }
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    {
+      media: "(prefers-color-scheme: light)",
+      color: "#f4f7fb"
+    },
+    {
+      media: "(prefers-color-scheme: dark)",
+      color: "#07111f"
+    }
+  ]
 };
 
 export default async function RootLayout({
@@ -45,7 +65,10 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="bg-background text-text-primary">
-        <AppThemeProvider defaultTheme={theme}>{children}</AppThemeProvider>
+        <AppThemeProvider defaultTheme={theme}>
+          <PwaRegistration />
+          {children}
+        </AppThemeProvider>
       </body>
     </html>
   );

@@ -58,7 +58,7 @@ The system must replace manual Excel-heavy workflows with a dynamic platform tha
 - Internationalization: bilingual Arabic/English content architecture from the beginning
 - Theme architecture: dark, light, and system preference support from the foundation
 - Motion architecture: accessible micro-interactions with reduced-motion support
-- Notification architecture: WhatsApp-first with email, in-app, and SMS fallback support
+- Notification architecture: Email-first with WhatsApp, in-app, and SMS fallback support
 
 ## Cross-Cutting Product Requirements
 
@@ -359,14 +359,11 @@ A slice is only "done" when:
 
 ## Current Execution Decision
 
-The next real implementation step should be Slice 0:
+Core product implementation is complete through Phase 9.
 
-- app bootstrap
-- project structure
-- prisma schema draft
-- auth shell
-- shared layout shell
-- i18n-ready shell
-- responsive layout baseline
+Current focus is Phase 10 release operations:
 
-That will give us a stable base before moving into business-heavy modules.
+- staging dry-run and deployment checklist execution
+- CI quality gates for typecheck/lint/build/integration/audit
+- monitoring and alert-threshold readiness
+- production release sign-off and post-release follow-up discipline

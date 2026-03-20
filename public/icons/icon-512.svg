@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>ExamOps</title>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0f5ec9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+  <g fill="#ffffff">
+    <path d="M116 138h280v44H116z"/>
+    <path d="M116 236h280v44H116z"/>
+    <path d="M116 334h188v44H116z"/>
+    <circle cx="358" cy="355" r="52" fill="#0f9f6e"/>
+    <path d="M336 356l17 17 29-29" fill="none" stroke="#ffffff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

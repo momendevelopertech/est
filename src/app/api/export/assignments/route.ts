@@ -1,4 +1,3 @@
-import { toSessionExportFileDTO } from "@/lib/export/dto";
 import {
   getRequestQuery,
   handleExportRouteError,
@@ -22,20 +21,25 @@ export async function GET(request: Request) {
       locale: query.locale ?? "en",
       actorAppUserId: auth.session.user.id
     });
-    const dto = toSessionExportFileDTO(result);
+    const body =
+      typeof result.content === "string"
+        ? result.content
+        : new Blob([Uint8Array.from(result.content)], {
+            type: result.contentType
+          });
 
-    return new Response(dto.content, {
+    return new Response(body, {
       status: 200,
       headers: {
         "Content-Type": result.contentType,
         "Content-Disposition": `attachment; filename=\"${result.fileName}\"`,
         "Cache-Control": "no-store",
-        "X-Export-Type": String(dto.exportType),
-        "X-Export-Format": String(dto.format),
-        "X-Export-Session-Id": String(dto.sessionId),
-        "X-Export-Row-Count": String(dto.rowCount),
-        "X-Export-Duplicates-Removed": String(dto.duplicateRowsRemoved),
-        "X-Export-Generated-At": String(dto.generatedAt)
+        "X-Export-Type": String(result.exportType),
+        "X-Export-Format": String(result.format),
+        "X-Export-Session-Id": String(result.sessionId),
+        "X-Export-Row-Count": String(result.rowCount),
+        "X-Export-Duplicates-Removed": String(result.duplicateRowsRemoved),
+        "X-Export-Generated-At": result.generatedAt.toISOString()
       }
     });
   } catch (error) {

@@ -14,6 +14,7 @@ import {
 } from "@/lib/assignments/service";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { executeNotificationTrigger } from "@/lib/notifications/triggers/service";
 import { rerankWaitingEntriesInTransaction } from "@/lib/waiting-list/service";
 
 import type {
@@ -842,6 +843,21 @@ export async function executeSwap(
           },
           afterPayload: result
         });
+
+        await executeNotificationTrigger(
+          {
+            eventType: "assignment_swapped",
+            payload: {
+              sessionId: result.sessionId,
+              changedAssignmentIds: result.changedAssignmentIds,
+              swapKind: result.kind
+            }
+          },
+          {
+            actorAppUserId,
+            client: tx
+          }
+        );
 
         return result;
       },

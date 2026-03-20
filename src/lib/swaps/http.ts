@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { reportApiError } from "@/lib/monitoring/service";
 
 import { SwapServiceError } from "./service";
 
@@ -57,7 +58,10 @@ export function handleSwapRouteError(error: unknown) {
     );
   }
 
-  console.error(error);
+  void reportApiError({
+    scope: "swaps",
+    error
+  });
 
   return NextResponse.json(
     {

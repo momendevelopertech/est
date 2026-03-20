@@ -111,28 +111,34 @@ function toBreakdownItems<T extends { key: string; count: number; labelEn: strin
   }));
 }
 
-function buildAssignmentsExportUrl(filters: ReturnType<typeof normalizeFilters>) {
-  if (!filters.sessionId) {
-    return null;
+function buildSessionExportOptions(
+  exportType: "assignments" | "attendance" | "evaluations",
+  filters: ReturnType<typeof normalizeFilters>
+) {
+  const sessionId = filters.sessionId;
+
+  if (!sessionId) {
+    return {
+      csv: null,
+      excel: null,
+      pdf: null
+    };
   }
 
-  const params = new URLSearchParams();
-  params.set("sessionId", filters.sessionId);
-  params.set("locale", filters.locale);
+  const buildFormatUrl = (format: "csv" | "excel" | "pdf") => {
+    const params = new URLSearchParams();
+    params.set("sessionId", sessionId);
+    params.set("locale", filters.locale);
+    params.set("format", format);
 
-  return `/api/export/assignments?${params.toString()}`;
-}
+    return `/api/export/${exportType}?${params.toString()}`;
+  };
 
-function buildAttendanceExportUrl(filters: ReturnType<typeof normalizeFilters>) {
-  if (!filters.sessionId) {
-    return null;
-  }
-
-  const params = new URLSearchParams();
-  params.set("sessionId", filters.sessionId);
-  params.set("locale", filters.locale);
-
-  return `/api/export/attendance?${params.toString()}`;
+  return {
+    csv: buildFormatUrl("csv"),
+    excel: buildFormatUrl("excel"),
+    pdf: buildFormatUrl("pdf")
+  };
 }
 
 async function logReportView(input: {
@@ -140,7 +146,11 @@ async function logReportView(input: {
   reportType: "assignments" | "attendance" | "evaluations";
   filters: ReturnType<typeof normalizeFilters>;
   cards: ReportMetricCardContract[];
-  exportUrl: string | null;
+  exportOptions: {
+    csv: string | null;
+    excel: string | null;
+    pdf: string | null;
+  };
 }) {
   await db.$transaction(
     async (tx) => {
@@ -154,7 +164,7 @@ async function logReportView(input: {
         metadata: {
           reportType: input.reportType,
           filters: input.filters,
-          exportUrl: input.exportUrl,
+          exportOptions: input.exportOptions,
           cards: input.cards
         }
       });
@@ -247,7 +257,7 @@ export async function getAssignmentsReportSummary(
         "التكليفات الملغاة"
       )
     ];
-    const exportUrl = buildAssignmentsExportUrl(filters);
+    const exportOptions = buildSessionExportOptions("assignments", filters);
     const result: ReportSummaryContract = {
       reportType: "assignments",
       generatedAt: new Date(),
@@ -267,7 +277,8 @@ export async function getAssignmentsReportSummary(
           items: toBreakdownItems(assignmentsMetrics.methodBreakdown)
         }
       ],
-      exportUrl
+      exportUrl: exportOptions.csv,
+      exportOptions
     };
 
     await logReportView({
@@ -275,7 +286,7 @@ export async function getAssignmentsReportSummary(
       reportType: "assignments",
       filters,
       cards,
-      exportUrl
+      exportOptions
     });
 
     return result;
@@ -351,7 +362,7 @@ export async function getAttendanceReportSummary(
         "percent"
       )
     ];
-    const exportUrl = buildAttendanceExportUrl(filters);
+    const exportOptions = buildSessionExportOptions("attendance", filters);
     const result: ReportSummaryContract = {
       reportType: "attendance",
       generatedAt: new Date(),
@@ -365,7 +376,8 @@ export async function getAttendanceReportSummary(
           items: toBreakdownItems(attendanceMetrics.statusBreakdown)
         }
       ],
-      exportUrl
+      exportUrl: exportOptions.csv,
+      exportOptions
     };
 
     await logReportView({
@@ -373,7 +385,7 @@ export async function getAttendanceReportSummary(
       reportType: "attendance",
       filters,
       cards,
-      exportUrl
+      exportOptions
     });
 
     return result;
@@ -482,6 +494,7 @@ export async function getEvaluationsReportSummary(
         "الجلسات المقيمة"
       )
     ];
+    const exportOptions = buildSessionExportOptions("evaluations", filters);
     const result: ReportSummaryContract = {
       reportType: "evaluations",
       generatedAt: new Date(),
@@ -495,7 +508,8 @@ export async function getEvaluationsReportSummary(
           items: scoreBucketCounts
         }
       ],
-      exportUrl: null
+      exportUrl: exportOptions.csv,
+      exportOptions
     };
 
     await logReportView({
@@ -503,7 +517,7 @@ export async function getEvaluationsReportSummary(
       reportType: "evaluations",
       filters,
       cards,
-      exportUrl: null
+      exportOptions
     });
 
     return result;

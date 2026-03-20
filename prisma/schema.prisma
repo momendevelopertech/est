@@ -252,6 +252,8 @@ model User {
   waitingListEntries  WaitingList[]
   evaluationsReceived Evaluation[]  @relation("EvaluationSubject")
   blocks              Block[]
+  inAppNotifications  InAppNotification[]
+  notificationPreference NotificationPreference?
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
@@ -259,6 +261,21 @@ model User {
   @@index([governorateId, isActive])
   @@index([blockStatus, isActive])
   @@map("users")
+}
+
+model NotificationPreference {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String     @unique @map("user_id") @db.Uuid
+  emailEnabled      Boolean    @default(true) @map("email_enabled")
+  whatsappEnabled   Boolean    @default(true) @map("whatsapp_enabled")
+  smsEnabled        Boolean    @default(false) @map("sms_enabled")
+  inAppEnabled      Boolean    @default(true) @map("in_app_enabled")
+  preferredLanguage LocaleCode? @map("preferred_language")
+  user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  @@map("notification_preferences")
 }
 
 model AppUser {
@@ -414,6 +431,7 @@ model Assignment {
   room             Room?                    @relation(fields: [roomId], references: [id])
   roleDefinition   AssignmentRoleDefinition @relation(fields: [roleDefinitionId], references: [id])
   attendance       Attendance?
+  evaluations      Evaluation[]
   createdAt        DateTime                 @default(now()) @map("created_at")
   updatedAt        DateTime                 @updatedAt @map("updated_at")
 
@@ -456,12 +474,14 @@ model WaitingList {
 
 model Evaluation {
   id                 String   @id @default(uuid()) @db.Uuid
+  assignmentId       String?  @unique @map("assignment_id") @db.Uuid
   sessionId          String   @map("session_id") @db.Uuid
   subjectUserId      String   @map("subject_user_id") @db.Uuid
   evaluatorAppUserId String   @map("evaluator_app_user_id") @db.Uuid
   score              Decimal  @db.Decimal(4, 2)
   criteriaPayload    Json?    @map("criteria_payload")
   notes              String?  @db.Text
+  assignment         Assignment? @relation(fields: [assignmentId], references: [id])
   session            Session  @relation(fields: [sessionId], references: [id])
   subjectUser        User     @relation("EvaluationSubject", fields: [subjectUserId], references: [id])
   evaluatorAppUser   AppUser  @relation("EvaluationAuthor", fields: [evaluatorAppUserId], references: [id])
@@ -553,4 +573,40 @@ model Setting {
 
   @@index([group, isActive])
   @@map("settings")
+}
+
+model EmailTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique @db.VarChar(150)
+  type        String   @db.VarChar(100)
+  subjectAr   String   @map("subject_ar") @db.VarChar(500)
+  subjectEn   String   @map("subject_en") @db.VarChar(500)
+  bodyAr      String   @map("body_ar") @db.Text
+  bodyEn      String   @map("body_en") @db.Text
+  variables   Json
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([type, isActive])
+  @@index([isActive, updatedAt])
+  @@map("email_templates")
+}
+
+model InAppNotification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  type      String   @db.VarChar(100)
+  titleAr   String   @map("title_ar") @db.VarChar(500)
+  titleEn   String   @map("title_en") @db.VarChar(500)
+  bodyAr    String   @map("body_ar") @db.Text
+  bodyEn    String   @map("body_en") @db.Text
+  readAt    DateTime? @map("read_at")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@map("in_app_notifications")
 }

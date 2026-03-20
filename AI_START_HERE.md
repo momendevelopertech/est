@@ -27,7 +27,7 @@ If you need the reusable Codex continuation prompt, see:
 - Auditability matters for sensitive operations
 - Excel import/export is a core feature
 - Dark, light, and system theme support is required
-- Notification design must account for WhatsApp, email, in-app, and SMS fallback
+- Notification design must account for Email, WhatsApp, in-app, and SMS fallback
 
 ## Important Execution Rule
 
@@ -38,24 +38,22 @@ Use them only as loose reference if they still exist.
 ## Current Project State
 
 - Production-grade Next.js + Prisma codebase is running on Neon
-- Phases 0 through 6 are completed and verified
-- Phase 7 is in progress
-- Phase 7 Step 1 (Waiting List) is completed and verified
-- Phase 7 Step 2 (Swap Workflow) is completed and verified
-- Phase 7 Step 3 (Attendance Workflow) is completed and verified
-- The current execution target is Phase 7 Step 4 (Evaluation Workflow)
+- Phases 0 through 8 are fully complete and verified
+- Phase 9 (notifications, preferences, PWA, and production-readiness verification) is fully complete and verified
+- Phase 10 (release operations) is in finalization with dry-run, CI gating, monitoring, and release-signoff simulation completed
+- Deployment checklist is documented under `docs/deployment-checklist.md`
 
 ## Next Recommended Task
 
 Continue with:
 
-1. Evaluation workflow
-2. Promotion suggestion logic
-3. Block workflow
+1. Perform live release-window provider credential validation in staging/production smoke flow
+2. Execute production deployment from `main` using `docs/deployment-checklist.md`
+3. Run post-release retrospective and capture follow-up fixes
 
 ## Files To Read Next
 
-- `docs/examops-master-plan.md`
 - `docs/examops-spec-v3.md`
+- `docs/examops-master-plan.md`
 - `docs/backlog.md`
 - `PROJECT_STATUS.md`

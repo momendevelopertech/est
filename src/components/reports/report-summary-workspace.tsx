@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,11 @@ type ReportSummaryResponse = {
     cards: ReportCard[];
     breakdowns: ReportBreakdownSection[];
     exportUrl: string | null;
+    exportOptions?: {
+      csv: string | null;
+      excel: string | null;
+      pdf: string | null;
+    };
   };
   error?: string;
   message?: string;
@@ -81,6 +87,30 @@ function formatCardValue(card: ReportCard, locale: Locale) {
   }
 
   return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-US").format(card.value);
+}
+
+function getLocalizedLabel(locale: Locale, item: { labelEn: string; labelAr: string }) {
+  return locale === "ar" ? item.labelAr : item.labelEn;
+}
+
+function getExportOptions(summary: ReportSummaryResponse["data"] | null) {
+  if (!summary) {
+    return {
+      csv: null,
+      excel: null,
+      pdf: null
+    };
+  }
+
+  if (summary.exportOptions) {
+    return summary.exportOptions;
+  }
+
+  return {
+    csv: summary.exportUrl,
+    excel: null,
+    pdf: null
+  };
 }
 
 export function ReportSummaryWorkspace({
@@ -172,13 +202,52 @@ export function ReportSummaryWorkspace({
   ]);
 
   const pageCopy = messages.reports.pages[reportType];
-  const hasExport = Boolean(summary?.exportUrl);
   const totalCards = useMemo(() => summary?.cards ?? [], [summary]);
+  const exportOptions = getExportOptions(summary);
+  const exportActions = [
+    {
+      key: "csv",
+      label: "CSV",
+      href: exportOptions.csv
+    },
+    {
+      key: "excel",
+      label: "Excel",
+      href: exportOptions.excel
+    },
+    {
+      key: "pdf",
+      label: "PDF",
+      href: exportOptions.pdf
+    }
+  ] as const;
+  const hasExport = exportActions.some((item) => Boolean(item.href));
+  const activeFilters = [
+    {
+      key: "sessionId",
+      label: messages.reports.filters.sessionId,
+      value: appliedFilters.sessionId
+    },
+    {
+      key: "cycleId",
+      label: messages.reports.filters.cycleId,
+      value: appliedFilters.cycleId
+    },
+    {
+      key: "locationId",
+      label: messages.reports.filters.locationId,
+      value: appliedFilters.locationId
+    }
+  ].filter((item) => item.value.trim().length > 0);
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
+      <Card className="panel relative overflow-hidden border-transparent px-6 py-6 sm:px-8">
+        <div className="pointer-events-none absolute inset-0 opacity-80">
+          <div className="absolute -top-20 right-0 h-56 w-56 rounded-full bg-accent/20 blur-3xl" />
+          <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-info/20 blur-3xl" />
+        </div>
+        <CardHeader className="relative">
           <div className="flex flex-wrap gap-2">
             <Badge variant="accent">{messages.common.protected}</Badge>
             <Badge>{messages.nav.reports}</Badge>
@@ -186,121 +255,185 @@ export function ReportSummaryWorkspace({
           <CardTitle className="text-3xl">{pageCopy.title}</CardTitle>
           <CardDescription className="text-base">{pageCopy.subtitle}</CardDescription>
         </CardHeader>
+        <CardContent className="relative flex flex-wrap gap-3">
+          <Link href="/reports">
+            <Button size="sm" variant="secondary">
+              {messages.reports.hub.title}
+            </Button>
+          </Link>
+          <Link href="/dashboard">
+            <Button size="sm" variant="secondary">
+              {messages.nav.dashboard}
+            </Button>
+          </Link>
+        </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{messages.reports.filters.title}</CardTitle>
-          <CardDescription>{messages.reports.filters.subtitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="reports-session-id">
-                {messages.reports.filters.sessionId}
-              </label>
-              <Input
-                id="reports-session-id"
-                value={draftFilters.sessionId}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    sessionId: event.target.value
-                  }))
-                }
-                placeholder={messages.reports.filters.sessionIdPlaceholder}
-              />
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
+          <CardHeader>
+            <CardTitle>{messages.reports.filters.title}</CardTitle>
+            <CardDescription>{messages.reports.filters.subtitle}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="reports-session-id"
+                >
+                  {messages.reports.filters.sessionId}
+                </label>
+                <Input
+                  id="reports-session-id"
+                  value={draftFilters.sessionId}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      sessionId: event.target.value
+                    }))
+                  }
+                  placeholder={messages.reports.filters.sessionIdPlaceholder}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="reports-cycle-id"
+                >
+                  {messages.reports.filters.cycleId}
+                </label>
+                <Input
+                  id="reports-cycle-id"
+                  value={draftFilters.cycleId}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      cycleId: event.target.value
+                    }))
+                  }
+                  placeholder={messages.reports.filters.cycleIdPlaceholder}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="reports-location-id"
+                >
+                  {messages.reports.filters.locationId}
+                </label>
+                <Input
+                  id="reports-location-id"
+                  value={draftFilters.locationId}
+                  onChange={(event) =>
+                    setDraftFilters((current) => ({
+                      ...current,
+                      locationId: event.target.value
+                    }))
+                  }
+                  placeholder={messages.reports.filters.locationIdPlaceholder}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="reports-cycle-id">
-                {messages.reports.filters.cycleId}
-              </label>
-              <Input
-                id="reports-cycle-id"
-                value={draftFilters.cycleId}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    cycleId: event.target.value
-                  }))
+            <div className="flex flex-wrap gap-3">
+              <Button
+                size="sm"
+                onClick={() =>
+                  setAppliedFilters({
+                    sessionId: draftFilters.sessionId.trim(),
+                    cycleId: draftFilters.cycleId.trim(),
+                    locationId: draftFilters.locationId.trim()
+                  })
                 }
-                placeholder={messages.reports.filters.cycleIdPlaceholder}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="reports-location-id">
-                {messages.reports.filters.locationId}
-              </label>
-              <Input
-                id="reports-location-id"
-                value={draftFilters.locationId}
-                onChange={(event) =>
-                  setDraftFilters((current) => ({
-                    ...current,
-                    locationId: event.target.value
-                  }))
-                }
-                placeholder={messages.reports.filters.locationIdPlaceholder}
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Button
-              size="sm"
-              onClick={() =>
-                setAppliedFilters({
-                  sessionId: draftFilters.sessionId.trim(),
-                  cycleId: draftFilters.cycleId.trim(),
-                  locationId: draftFilters.locationId.trim()
-                })
-              }
-            >
-              {messages.reports.filters.apply}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                const reset = getInitialFiltersState();
-                setDraftFilters(reset);
-                setAppliedFilters(reset);
-              }}
-            >
-              {messages.reports.filters.clear}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setRefreshKey((current) => current + 1)}
-            >
-              {messages.reports.summary.reload}
-            </Button>
-            {hasExport ? (
+              >
+                {messages.reports.filters.apply}
+              </Button>
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={isExporting}
                 onClick={() => {
-                  if (!summary?.exportUrl) {
-                    return;
-                  }
-
-                  setIsExporting(true);
-                  window.location.assign(summary.exportUrl);
-                  window.setTimeout(() => setIsExporting(false), 900);
+                  const reset = getInitialFiltersState();
+                  setDraftFilters(reset);
+                  setAppliedFilters(reset);
                 }}
               >
-                {isExporting
-                  ? messages.reports.summary.exporting
-                  : messages.reports.summary.export}
+                {messages.reports.filters.clear}
               </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setRefreshKey((current) => current + 1)}
+              >
+                {messages.reports.summary.reload}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{messages.reports.workspace.exportTitle}</CardTitle>
+            <CardDescription>{messages.reports.workspace.exportBody}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {hasExport ? (
+              exportActions.map((action) => (
+                <Button
+                  key={action.key}
+                  variant={action.key === "pdf" ? "primary" : "secondary"}
+                  size="sm"
+                  className="w-full"
+                  disabled={isExporting || !action.href}
+                  onClick={() => {
+                    if (!action.href) {
+                      return;
+                    }
+
+                    setIsExporting(true);
+                    window.location.assign(action.href);
+                    window.setTimeout(() => setIsExporting(false), 900);
+                  }}
+                >
+                  {isExporting
+                    ? messages.reports.summary.exporting
+                    : `${messages.reports.summary.export} ${action.label}`}
+                </Button>
+              ))
+            ) : (
+              <p className="text-sm text-text-secondary">
+                {messages.reports.workspace.noExport}
+              </p>
+            )}
+            {summary ? (
+              <p className="text-xs text-text-secondary">
+                {messages.reports.workspace.generatedAt}:{" "}
+                {new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-US", {
+                  dateStyle: "medium",
+                  timeStyle: "short"
+                }).format(new Date(summary.generatedAt))}
+              </p>
             ) : null}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+      {activeFilters.length > 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{messages.reports.workspace.activeFilters}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
+            {activeFilters.map((filter) => (
+              <Badge key={filter.key}>
+                {filter.label}: {filter.value}
+              </Badge>
+            ))}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {isLoading ? (
         <div className="space-y-3">
@@ -331,11 +464,9 @@ export function ReportSummaryWorkspace({
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {totalCards.map((card) => (
-                <Card key={card.key}>
+                <Card key={card.key} className="panel border-transparent">
                   <CardHeader>
-                    <CardDescription>
-                      {locale === "ar" ? card.labelAr : card.labelEn}
-                    </CardDescription>
+                    <CardDescription>{getLocalizedLabel(locale, card)}</CardDescription>
                     <CardTitle className="text-3xl">
                       {formatCardValue(card, locale)}
                     </CardTitle>
@@ -346,34 +477,59 @@ export function ReportSummaryWorkspace({
           </Card>
 
           <div className="grid gap-4 xl:grid-cols-2">
-            {summary.breakdowns.map((section) => (
-              <Card key={section.key}>
-                <CardHeader>
-                  <CardTitle>
-                    {locale === "ar" ? section.titleAr : section.titleEn}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {section.items.length === 0 ? (
-                    <p className="text-sm text-text-secondary">
-                      {messages.reports.summary.emptyBreakdown}
-                    </p>
-                  ) : (
-                    section.items.map((item) => (
-                      <div
-                        key={item.key}
-                        className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-3 py-2 text-sm"
-                      >
-                        <span className="text-text-secondary">
-                          {locale === "ar" ? item.labelAr : item.labelEn}
-                        </span>
-                        <span className="font-semibold text-text-primary">{item.count}</span>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            {summary.breakdowns.map((section) => {
+              const maxCount = Math.max(
+                ...(section.items.map((item) => item.count) ?? [0]),
+                1
+              );
+
+              return (
+                <Card key={section.key}>
+                  <CardHeader>
+                    <CardTitle>
+                      {locale === "ar" ? section.titleAr : section.titleEn}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {section.items.length === 0 ? (
+                      <p className="text-sm text-text-secondary">
+                        {messages.reports.summary.emptyBreakdown}
+                      </p>
+                    ) : (
+                      section.items.map((item) => {
+                        const ratio = Math.round((item.count / maxCount) * 100);
+
+                        return (
+                          <div
+                            key={item.key}
+                            className="space-y-2 rounded-2xl border border-border bg-surface-elevated px-3 py-3 text-sm"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-text-secondary">
+                                {getLocalizedLabel(locale, item)}
+                              </span>
+                              <span className="font-semibold text-text-primary">
+                                {new Intl.NumberFormat(
+                                  locale === "ar" ? "ar-EG" : "en-US"
+                                ).format(item.count)}
+                              </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-surface">
+                              <div
+                                className="h-2 rounded-full bg-accent transition-[width] duration-300"
+                                style={{
+                                  width: `${ratio}%`
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </>
       ) : null}

@@ -9,15 +9,27 @@ function escapeXml(value: string) {
 
 export function createSpreadsheetXml(params: {
   sheetName: string;
-  headers: string[];
+  headers?: string[];
+  headerRows?: string[][];
   rows: string[][];
 }) {
-  const headerRow = `<Row>${params.headers
+  const headerRows =
+    params.headerRows && params.headerRows.length > 0
+      ? params.headerRows
+      : params.headers
+        ? [params.headers]
+        : [];
+  const headerXml = headerRows
     .map(
-      (header) =>
-        `<Cell><Data ss:Type="String">${escapeXml(header)}</Data></Cell>`
+      (row) =>
+        `<Row>${row
+          .map(
+            (cell) =>
+              `<Cell><Data ss:Type="String">${escapeXml(cell)}</Data></Cell>`
+          )
+          .join("")}</Row>`
     )
-    .join("")}</Row>`;
+    .join("");
 
   const bodyRows = params.rows
     .map(
@@ -42,7 +54,7 @@ export function createSpreadsheetXml(params: {
     ">",
     `<Worksheet ss:Name="${escapeXml(params.sheetName)}">`,
     "<Table>",
-    headerRow,
+    headerXml,
     bodyRows,
     "</Table>",
     "</Worksheet>",

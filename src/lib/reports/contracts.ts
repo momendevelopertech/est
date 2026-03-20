@@ -32,4 +32,9 @@ export type ReportSummaryContract = {
   cards: ReportMetricCardContract[];
   breakdowns: ReportBreakdownSectionContract[];
   exportUrl: string | null;
+  exportOptions: {
+    csv: string | null;
+    excel: string | null;
+    pdf: string | null;
+  };
 };

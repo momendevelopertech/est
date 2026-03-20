@@ -11,6 +11,7 @@ import { logActivity } from "@/lib/activity/log";
 import { AssignmentsServiceError } from "@/lib/assignments/service";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { executeNotificationTrigger } from "@/lib/notifications/triggers/service";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
 import { createBilingualSearchFilter } from "@/lib/search/bilingual";
 import { getDerivedSessionStatus } from "@/lib/sessions/status";
@@ -615,6 +616,26 @@ export async function updateAttendance(
             updatedByAppUserId: attendanceRecord.updatedByAppUserId
           }
         });
+
+        if (
+          contractInput.status === AttendanceStatus.CONFIRMED ||
+          contractInput.status === AttendanceStatus.ABSENT ||
+          contractInput.status === AttendanceStatus.DECLINED
+        ) {
+          await executeNotificationTrigger(
+            {
+              eventType: "attendance_marked",
+              payload: {
+                assignmentId: assignment.id,
+                attendanceStatus: contractInput.status
+              }
+            },
+            {
+              actorAppUserId,
+              client: tx
+            }
+          );
+        }
 
         return {
           assignment: hydratedAssignment,

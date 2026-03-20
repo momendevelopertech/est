@@ -12,6 +12,7 @@ import { createAssignmentInTransaction } from "@/lib/assignments/service";
 import { isUserBlockedState } from "@/lib/blocks/state";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { executeNotificationTrigger } from "@/lib/notifications/triggers/service";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
 import { createBilingualSearchFilter } from "@/lib/search/bilingual";
 import { getDerivedSessionStatus } from "@/lib/sessions/status";
@@ -747,6 +748,20 @@ export async function promoteWaitingListEntryInTransaction(
       afterPayload: promoted
     });
   }
+
+  await executeNotificationTrigger(
+    {
+      eventType: "waiting_list_promoted",
+      payload: {
+        waitingListId: promoted.id,
+        assignmentId: promotedAssignment.id
+      }
+    },
+    {
+      actorAppUserId: options.actorAppUserId,
+      client: tx
+    }
+  );
 
   return {
     entry: promoted,

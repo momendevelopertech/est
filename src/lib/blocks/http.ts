@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { reportApiError } from "@/lib/monitoring/service";
 
 import { BlockServiceError } from "./service";
 
@@ -56,7 +57,10 @@ export function handleBlockRouteError(error: unknown) {
     );
   }
 
-  console.error(error);
+  void reportApiError({
+    scope: "blocks",
+    error
+  });
 
   return NextResponse.json(
     {

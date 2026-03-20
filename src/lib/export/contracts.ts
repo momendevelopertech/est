@@ -1,7 +1,11 @@
-export const sessionExportTypes = ["assignments", "attendance"] as const;
+export const sessionExportTypes = [
+  "assignments",
+  "attendance",
+  "evaluations"
+] as const;
 export type SessionExportType = (typeof sessionExportTypes)[number];
 
-export const sessionExportFormats = ["csv"] as const;
+export const sessionExportFormats = ["csv", "excel", "pdf"] as const;
 export type SessionExportFormat = (typeof sessionExportFormats)[number];
 
 export type SessionExportLocale = "en" | "ar";
@@ -19,7 +23,7 @@ export type SessionExportFileContract = {
   locale: SessionExportLocale;
   fileName: string;
   contentType: string;
-  content: string;
+  content: string | Uint8Array;
   generatedAt: Date;
   rowCount: number;
   duplicateRowsRemoved: number;

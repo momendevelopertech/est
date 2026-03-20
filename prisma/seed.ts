@@ -132,7 +132,7 @@ const settings = [
     description: "القناة الأولى لمحاولات إرسال الإشعارات.",
     descriptionEn: "First channel used when delivering notifications.",
     type: SettingValueType.STRING,
-    value: "whatsapp",
+    value: "email",
     sortOrder: 50
   },
   {
@@ -143,8 +143,244 @@ const settings = [
     description: "ترتيب القنوات البديلة عند تعذر القناة الأساسية.",
     descriptionEn: "Fallback channel order when the primary channel fails.",
     type: SettingValueType.JSON,
-    value: ["email", "in_app", "sms"],
+    value: ["whatsapp", "in_app", "sms"],
     sortOrder: 60
+  },
+  {
+    key: "email_enabled",
+    group: "notifications",
+    label: "Email Enabled",
+    labelEn: "Email Enabled",
+    description: "Enable or disable email notification preparation.",
+    descriptionEn: "Enable or disable email notification preparation.",
+    type: SettingValueType.BOOLEAN,
+    value: true,
+    sortOrder: 65
+  },
+  {
+    key: "whatsapp_enabled",
+    group: "notifications",
+    label: "WhatsApp Enabled",
+    labelEn: "WhatsApp Enabled",
+    description: "Enable or disable WhatsApp delivery attempts.",
+    descriptionEn: "Enable or disable WhatsApp delivery attempts.",
+    type: SettingValueType.BOOLEAN,
+    value: false,
+    sortOrder: 70
+  },
+  {
+    key: "whatsapp_provider",
+    group: "notifications",
+    label: "WhatsApp Provider",
+    labelEn: "WhatsApp Provider",
+    description: "Provider key used for WhatsApp delivery.",
+    descriptionEn: "Provider key used for WhatsApp delivery.",
+    type: SettingValueType.STRING,
+    value: "twilio",
+    sortOrder: 80
+  },
+  {
+    key: "whatsapp_api_key",
+    group: "notifications",
+    label: "WhatsApp API Key",
+    labelEn: "WhatsApp API Key",
+    description: "Provider token or API key for WhatsApp delivery.",
+    descriptionEn: "Provider token or API key for WhatsApp delivery.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 90
+  },
+  {
+    key: "whatsapp_sender_id",
+    group: "notifications",
+    label: "WhatsApp Sender ID",
+    labelEn: "WhatsApp Sender ID",
+    description: "Sender ID or from number for WhatsApp messages.",
+    descriptionEn: "Sender ID or from number for WhatsApp messages.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 100
+  },
+  {
+    key: "whatsapp_account_sid",
+    group: "notifications",
+    label: "WhatsApp Account SID",
+    labelEn: "WhatsApp Account SID",
+    description: "Optional account SID used by Twilio provider.",
+    descriptionEn: "Optional account SID used by Twilio provider.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 110
+  },
+  {
+    key: "sms_enabled",
+    group: "notifications",
+    label: "SMS Enabled",
+    labelEn: "SMS Enabled",
+    description: "Enable or disable SMS fallback delivery attempts.",
+    descriptionEn: "Enable or disable SMS fallback delivery attempts.",
+    type: SettingValueType.BOOLEAN,
+    value: false,
+    sortOrder: 120
+  },
+  {
+    key: "sms_provider",
+    group: "notifications",
+    label: "SMS Provider",
+    labelEn: "SMS Provider",
+    description: "Provider key used for SMS fallback delivery.",
+    descriptionEn: "Provider key used for SMS fallback delivery.",
+    type: SettingValueType.STRING,
+    value: "twilio",
+    sortOrder: 130
+  },
+  {
+    key: "sms_api_key",
+    group: "notifications",
+    label: "SMS API Key",
+    labelEn: "SMS API Key",
+    description: "Provider token or API key for SMS fallback delivery.",
+    descriptionEn: "Provider token or API key for SMS fallback delivery.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 140
+  },
+  {
+    key: "sms_sender_id",
+    group: "notifications",
+    label: "SMS Sender ID",
+    labelEn: "SMS Sender ID",
+    description: "Sender ID or from number for SMS fallback messages.",
+    descriptionEn: "Sender ID or from number for SMS fallback messages.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 150
+  },
+  {
+    key: "sms_account_sid",
+    group: "notifications",
+    label: "SMS Account SID",
+    labelEn: "SMS Account SID",
+    description: "Optional account SID used by Twilio SMS provider.",
+    descriptionEn: "Optional account SID used by Twilio SMS provider.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 160
+  },
+  {
+    key: "notification_preferences.default_email_enabled",
+    group: "notifications",
+    label: "Notification Preferences Default Email",
+    labelEn: "Notification Preferences Default Email",
+    description: "Default email channel toggle for new user notification preferences.",
+    descriptionEn:
+      "Default email channel toggle for new user notification preferences.",
+    type: SettingValueType.BOOLEAN,
+    value: true,
+    sortOrder: 170
+  },
+  {
+    key: "notification_preferences.default_whatsapp_enabled",
+    group: "notifications",
+    label: "Notification Preferences Default WhatsApp",
+    labelEn: "Notification Preferences Default WhatsApp",
+    description:
+      "Default WhatsApp channel toggle for new user notification preferences.",
+    descriptionEn:
+      "Default WhatsApp channel toggle for new user notification preferences.",
+    type: SettingValueType.BOOLEAN,
+    value: true,
+    sortOrder: 180
+  },
+  {
+    key: "notification_preferences.default_sms_enabled",
+    group: "notifications",
+    label: "Notification Preferences Default SMS",
+    labelEn: "Notification Preferences Default SMS",
+    description: "Default SMS channel toggle for new user notification preferences.",
+    descriptionEn:
+      "Default SMS channel toggle for new user notification preferences.",
+    type: SettingValueType.BOOLEAN,
+    value: false,
+    sortOrder: 190
+  },
+  {
+    key: "notification_preferences.default_in_app_enabled",
+    group: "notifications",
+    label: "Notification Preferences Default In-App",
+    labelEn: "Notification Preferences Default In-App",
+    description:
+      "Default in-app channel toggle for new user notification preferences.",
+    descriptionEn:
+      "Default in-app channel toggle for new user notification preferences.",
+    type: SettingValueType.BOOLEAN,
+    value: true,
+    sortOrder: 200
+  },
+  {
+    key: "notification_preferences.default_preferred_language",
+    group: "notifications",
+    label: "Notification Preferences Default Language",
+    labelEn: "Notification Preferences Default Language",
+    description:
+      "Default language override for new user notification preferences. Empty means use profile preference.",
+    descriptionEn:
+      "Default language override for new user notification preferences. Empty means use profile preference.",
+    type: SettingValueType.STRING,
+    value: "",
+    sortOrder: 210
+  },
+  {
+    key: "monitoring.api_error_alert_threshold",
+    group: "monitoring",
+    label: "API Error Alert Threshold",
+    labelEn: "API Error Alert Threshold",
+    description:
+      "Number of API server errors within the alert window required to raise a monitoring alert.",
+    descriptionEn:
+      "Number of API server errors within the alert window required to raise a monitoring alert.",
+    type: SettingValueType.NUMBER,
+    value: 5,
+    sortOrder: 220
+  },
+  {
+    key: "monitoring.api_error_alert_window_minutes",
+    group: "monitoring",
+    label: "API Error Alert Window Minutes",
+    labelEn: "API Error Alert Window Minutes",
+    description:
+      "Time window in minutes used when evaluating API error alert thresholds.",
+    descriptionEn:
+      "Time window in minutes used when evaluating API error alert thresholds.",
+    type: SettingValueType.NUMBER,
+    value: 5,
+    sortOrder: 230
+  },
+  {
+    key: "monitoring.notification_failure_alert_threshold",
+    group: "monitoring",
+    label: "Notification Failure Alert Threshold",
+    labelEn: "Notification Failure Alert Threshold",
+    description:
+      "Number of notification delivery failures within the alert window required to raise a monitoring alert.",
+    descriptionEn:
+      "Number of notification delivery failures within the alert window required to raise a monitoring alert.",
+    type: SettingValueType.NUMBER,
+    value: 5,
+    sortOrder: 240
+  },
+  {
+    key: "monitoring.notification_failure_alert_window_minutes",
+    group: "monitoring",
+    label: "Notification Failure Alert Window Minutes",
+    labelEn: "Notification Failure Alert Window Minutes",
+    description:
+      "Time window in minutes used when evaluating notification failure alert thresholds.",
+    descriptionEn:
+      "Time window in minutes used when evaluating notification failure alert thresholds.",
+    type: SettingValueType.NUMBER,
+    value: 10,
+    sortOrder: 250
   }
 ] as const;
 
@@ -291,3 +527,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

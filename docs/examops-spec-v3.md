@@ -669,14 +669,14 @@ Attendance flow must support:
 
 Priority order:
 
-1. WhatsApp
-2. Email
+1. Email
+2. WhatsApp
 3. In-app notifications
 4. SMS fallback
 
 Channel rationale:
 
-- WhatsApp is primary because it is more realistic for proctor communication than email in this operating context
+- Email is the primary auditable channel; WhatsApp extends reach, in-app remains internal, and SMS is the final fallback path
 
 ### Message Localization
 

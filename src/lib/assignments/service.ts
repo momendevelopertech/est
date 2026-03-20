@@ -12,6 +12,7 @@ import { logActivity } from "@/lib/activity/log";
 import { buildUnblockedUserWhere, isUserBlockedState } from "@/lib/blocks/state";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { executeNotificationTrigger } from "@/lib/notifications/triggers/service";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
 import { createBilingualSearchFilter } from "@/lib/search/bilingual";
 import { getDerivedSessionStatus } from "@/lib/sessions/status";
@@ -1213,20 +1214,41 @@ export async function createAssignmentInTransaction(
 
 export async function createAssignment(input: CreateAssignmentInput, actorAppUserId: string) {
   try {
-    return await db.$transaction(async (tx) =>
-      createAssignmentWithValidation(
-        tx,
-        {
-          ...input,
-          assignedMethod: AssignmentMethod.MANUAL,
-          status: AssignmentStatus.DRAFT,
-          isManualOverride: false
-        },
-        {
-          actorAppUserId,
-          shouldLogActivity: true
-        }
-      )
+    return await db.$transaction(
+      async (tx) => {
+        const created = await createAssignmentWithValidation(
+          tx,
+          {
+            ...input,
+            assignedMethod: AssignmentMethod.MANUAL,
+            status: AssignmentStatus.DRAFT,
+            isManualOverride: false
+          },
+          {
+            actorAppUserId,
+            shouldLogActivity: true
+          }
+        );
+
+        await executeNotificationTrigger(
+          {
+            eventType: "assignment_created",
+            payload: {
+              assignmentId: created.id
+            }
+          },
+          {
+            actorAppUserId,
+            client: tx
+          }
+        );
+
+        return created;
+      },
+      {
+        maxWait: 10000,
+        timeout: 30000
+      }
     );
   } catch (error) {
     normalizeMutationError(error);

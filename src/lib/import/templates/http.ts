@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { reportApiError } from "@/lib/monitoring/service";
 
 import { ImportTemplatesServiceError } from "./service";
 
@@ -48,7 +49,10 @@ export function handleImportTemplateRouteError(error: unknown) {
     );
   }
 
-  console.error(error);
+  void reportApiError({
+    scope: "import_templates",
+    error
+  });
 
   return NextResponse.json(
     {

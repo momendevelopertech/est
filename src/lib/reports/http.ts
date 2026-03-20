@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { reportApiError } from "@/lib/monitoring/service";
 import { MetricsServiceError } from "@/lib/metrics/service";
 
 import { ReportsServiceError } from "./service";
@@ -51,7 +52,10 @@ export function handleReportsRouteError(error: unknown) {
     );
   }
 
-  console.error(error);
+  void reportApiError({
+    scope: "reports",
+    error
+  });
 
   return NextResponse.json(
     {

@@ -83,6 +83,8 @@ export async function exportProctors(
   });
 
   const messages = getMessages(query.locale);
+  const messagesEn = getMessages("en");
+  const messagesAr = getMessages("ar");
   const headers = [
     messages.proctors.exportFlow.headers.name,
     messages.proctors.exportFlow.headers.nameEn,
@@ -95,6 +97,34 @@ export async function exportProctors(
     messages.proctors.exportFlow.headers.governorate,
     messages.proctors.exportFlow.headers.preferredLanguage,
     messages.proctors.exportFlow.headers.status
+  ];
+  const bilingualHeaderRows = [
+    [
+      messagesAr.proctors.exportFlow.headers.name,
+      messagesAr.proctors.exportFlow.headers.nameEn,
+      messagesAr.proctors.exportFlow.headers.phone,
+      messagesAr.proctors.exportFlow.headers.email,
+      messagesAr.proctors.exportFlow.headers.nationalId,
+      messagesAr.proctors.exportFlow.headers.source,
+      messagesAr.proctors.exportFlow.headers.organization,
+      messagesAr.proctors.exportFlow.headers.branch,
+      messagesAr.proctors.exportFlow.headers.governorate,
+      messagesAr.proctors.exportFlow.headers.preferredLanguage,
+      messagesAr.proctors.exportFlow.headers.status
+    ],
+    [
+      messagesEn.proctors.exportFlow.headers.name,
+      messagesEn.proctors.exportFlow.headers.nameEn,
+      messagesEn.proctors.exportFlow.headers.phone,
+      messagesEn.proctors.exportFlow.headers.email,
+      messagesEn.proctors.exportFlow.headers.nationalId,
+      messagesEn.proctors.exportFlow.headers.source,
+      messagesEn.proctors.exportFlow.headers.organization,
+      messagesEn.proctors.exportFlow.headers.branch,
+      messagesEn.proctors.exportFlow.headers.governorate,
+      messagesEn.proctors.exportFlow.headers.preferredLanguage,
+      messagesEn.proctors.exportFlow.headers.status
+    ]
   ];
 
   const rows = records.map((record) => [
@@ -117,7 +147,7 @@ export async function exportProctors(
     return {
       body: createSpreadsheetXml({
         sheetName: messages.nav.proctors,
-        headers,
+        headerRows: bilingualHeaderRows,
         rows
       }),
       contentType: "application/vnd.ms-excel; charset=utf-8",

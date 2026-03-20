@@ -3,6 +3,7 @@ export const ERROR_CODES = {
   ambiguousGovernorateMatch: "ambiguous_governorate_match",
   conflictingDuplicateMatch: "conflicting_duplicate_match",
   duplicateEmail: "duplicate_email",
+  duplicateEmailTemplateKey: "duplicate_email_template_key",
   duplicateLocationCode: "duplicate_location_code",
   duplicateLocationName: "duplicate_location_name",
   duplicateNationalId: "duplicate_national_id",
@@ -13,6 +14,7 @@ export const ERROR_CODES = {
   duplicateWaitingListEntry: "duplicate_waiting_list_entry",
   duplicateActiveBlock: "duplicate_active_block",
   emptyImportFile: "empty_import_file",
+  emailTemplateNotFound: "email_template_not_found",
   forbidden: "forbidden",
   governorateNotFound: "governorate_not_found",
   buildingNotFound: "building_not_found",
@@ -41,6 +43,8 @@ export const ERROR_CODES = {
   invalidJson: "invalid_json",
   invalidLocale: "invalid_locale",
   invalidPhone: "invalid_phone",
+  invalidTemplatePlaceholder: "invalid_template_placeholder",
+  invalidTemplateVariables: "invalid_template_variables",
   invalidPreferredLanguage: "invalid_preferred_language",
   invalidSource: "invalid_source",
   invalidStatus: "invalid_status",
@@ -58,6 +62,7 @@ export const ERROR_CODES = {
   phoneReuseNationalIdMismatch: "phone_reuse_national_id_mismatch",
   proctorNotFound: "proctor_not_found",
   roomNotFound: "room_not_found",
+  notificationNotFound: "notification_not_found",
   sessionNotFound: "session_not_found",
   waitingListEntryNotFound: "waiting_list_entry_not_found",
   waitingListEntryNotWaiting: "waiting_list_entry_not_waiting",
@@ -93,6 +98,9 @@ export const ERROR_CODES = {
   uniqueConstraintViolation: "unique_constraint_violation",
   universityNotFound: "university_not_found",
   unsupportedImportFile: "unsupported_import_file",
+  whatsappNotConfigured: "whatsapp_not_configured",
+  whatsappProviderNotSupported: "whatsapp_provider_not_supported",
+  whatsappSendFailed: "whatsapp_send_failed",
   validationError: "validation_error"
 } as const;
 

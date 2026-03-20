@@ -12,6 +12,10 @@ coverage/
 build/
 *.tsbuildinfo
 dev-server.log
+tmp/*.log
+tmp/*.out.log
+tmp/*.err.log
+tmp/*.pid
 
 .env
 .env.local

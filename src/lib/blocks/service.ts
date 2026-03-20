@@ -9,6 +9,7 @@ import {
 import { logActivity } from "@/lib/activity/log";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { executeNotificationTrigger } from "@/lib/notifications/triggers/service";
 
 import { resolveUserBlockStatusFromType } from "./state";
 import type {
@@ -261,6 +262,21 @@ export async function createBlock(input: CreateBlockInput, actorAppUserId: strin
           }
         });
 
+        await executeNotificationTrigger(
+          {
+            eventType: "user_block_status_changed",
+            payload: {
+              userId: updatedUser.id,
+              mode: "blocked",
+              blockId: createdBlock.id
+            }
+          },
+          {
+            actorAppUserId,
+            client: tx
+          }
+        );
+
         return {
           mode: "blocked",
           user: updatedUser,
@@ -355,6 +371,21 @@ export async function unblockUser(input: UnblockUserInput, actorAppUserId: strin
           },
           afterPayload: updatedUser
         });
+
+        await executeNotificationTrigger(
+          {
+            eventType: "user_block_status_changed",
+            payload: {
+              userId: updatedUser.id,
+              mode: "unblocked",
+              blockId: activeBlockIds[0] ?? null
+            }
+          },
+          {
+            actorAppUserId,
+            client: tx
+          }
+        );
 
         return {
           mode: "unblocked",

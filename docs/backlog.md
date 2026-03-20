@@ -97,31 +97,36 @@ Status legend:
 - `done` Build export generators
 - `done` Build dashboard metrics endpoints
 - `done` Build reports hub and report pages
-- `todo` Add PDF export where needed
-- `todo` Add bilingual Excel export headers
-- `todo` Build premium dashboard layout and localized report views
+- `done` Add PDF export where needed
+- `done` Add bilingual Excel export headers
+- `done` Build premium dashboard layout and localized report views
 
 ## Phase 9 - Notification And Delivery
 
-- `todo` Add email template layer
-- `todo` Add notification triggers
-- `todo` Add WhatsApp integration layer
-- `todo` Add SMS fallback support
-- `todo` Add in-app notifications
-- `todo` Localize notifications by user preferred language
-- `todo` Add PWA support
-- `todo` Add test coverage
-- `todo` Add deployment checklist
-- `todo` Validate bilingual and responsive quality before production release
-- `todo` Validate dark/light/system theme quality before production release
-- `todo` Validate accessibility contrast and reduced-motion support before production release
+- `done` Add email template layer
+- `done` Add notification triggers
+- `done` Add in-app notifications
+- `done` Localize notifications by user preferred language
+- `done` Add WhatsApp integration layer
+- `done` Add SMS fallback support
+- `done` Add PWA support
+- `done` Add test coverage
+- `done` Add deployment checklist
+- `done` Validate bilingual and responsive quality before production release
+- `done` Validate dark/light/system theme quality before production release
+- `done` Validate accessibility contrast and reduced-motion support before production release
+
+## Phase 10 - Release Operations
+
+- `done` Dry-run deployment checklist in staging simulation with production build/start flow and provider-compatible config structure (real external credential validation remains a release-window check)
+- `done` Add CI gating for `typecheck`, `lint`, `build`, integration suites, and production audit script
+- `done` Configure production monitoring and alert thresholds for API errors and notification delivery failures
+- `done` Execute production release sign-off simulation using `docs/deployment-checklist.md`
+- `todo` Run post-release retrospective and capture follow-up fixes
 
 ## Recommended Next Tasks
 
-These are the next five tasks to execute in order:
+These are the next tasks to execute in order:
 
-1. Add PDF export where needed
-2. Add bilingual Excel export headers
-3. Build premium dashboard layout and localized report views
-4. Add email template layer
-5. Add notification triggers
+1. Perform live release-window provider credential validation in staging/production smoke flow
+2. Run post-release retrospective and capture follow-up fixes

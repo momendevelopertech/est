@@ -41,6 +41,20 @@
 - Export generators v1 are now implemented with protected `GET /api/export/assignments` and `GET /api/export/attendance`, CSV downloads, duplicate-row prevention, and export activity logging
 - Dashboard metrics endpoints are now implemented with protected `GET /api/metrics/sessions`, `GET /api/metrics/assignments`, and `GET /api/metrics/attendance`, filter validation, and metrics access logging
 - Reports hub and report pages are now implemented with protected report summary APIs, responsive bilingual `/reports` pages for assignments/attendance/evaluations, and report view logging
+- PDF export support is now implemented for assignments, attendance, and evaluations through `/api/export/*?format=pdf`, with locale-aware rendering, transactional export logging, and audit metadata
+- Bilingual Excel export headers are now implemented across session exports and proctors export with row 1 Arabic headers, row 2 English headers, and data rows from row 3 onward
+- Premium dashboard and localized report views are now live with responsive layouts, report export format options (CSV/Excel/PDF), and direct metrics/report navigation wiring
+- Notification email template layer is now implemented with DB-backed bilingual templates, safe placeholder preview rendering, duplicate-key protection, and activity logging for create/update/preview actions
+- Notification trigger system is now implemented with centralized event resolution, template-based payload preparation, cross-workflow service integration, and trigger execution logging
+- In-app notification system is now implemented with trigger-driven creation, user-scoped read APIs, top-bar bell + notifications page UI, bilingual content support, and notification activity logging
+- WhatsApp integration layer is now implemented with provider adapters, DB-driven runtime settings, trigger-side non-blocking failure handling, protected test API, and delivery activity logging
+- SMS fallback support is now implemented with provider abstraction, DB settings integration, safe fallback-only trigger behavior, protected test API, and `sms_sent` / `sms_failed` activity logging
+- User notification preferences and channel control are now implemented with user-scoped APIs, responsive settings UI, default auto-creation, and preference-aware trigger enforcement across email/WhatsApp/SMS/in-app
+- PWA support is now implemented with manifest, service worker, install prompt UX, offline fallback page, and safe network-first handling for critical app navigation/API traffic
+- Integration coverage is now organized under `tmp/tests/` and validates assignment workflows, notification trigger/channel behavior, and reporting APIs end-to-end
+- Production audit verification is now automated via `tmp/verify-production-audit.mjs` for locale parity, responsive/theme/accessibility guardrails, PWA availability, and non-leaky error responses
+- Deployment checklist guidance is now documented in `docs/deployment-checklist.md`
+- Phase 10 release-operations hardening is now implemented: staging simulation dry-run, CI gating, monitoring hooks/thresholds, and release sign-off simulation are complete
 
 ## Canonical Working Documents
 
@@ -101,12 +115,25 @@ We will instead:
 | Export generators (Step 2) | done | `/api/export/assignments` and `/api/export/attendance` now generate bilingual CSV exports with session validation, dedupe safety, and audit logging |
 | Dashboard metrics endpoints (Step 3) | done | `/api/metrics/sessions`, `/api/metrics/assignments`, and `/api/metrics/attendance` now provide validated filtered aggregates and activity logging |
 | Reports hub and report pages (Step 4) | done | `/reports` plus report detail pages now consume report APIs with responsive bilingual UI and integrated export/report logging |
-| Proctors import/export/profile history | todo | Depends on CRUD slice |
+| PDF export (Step 5) | done | `/api/export/assignments`, `/api/export/attendance`, and `/api/export/evaluations` now support `format=pdf` with locale-aware generation and export audit logging |
+| Bilingual Excel headers (Step 6) | done | Session exports and proctors export now emit Arabic header row + English header row in Excel outputs before data rows |
+| Premium dashboard and localized report views (Step 7) | done | `/dashboard` and `/reports/*` now provide upgraded responsive UI, locale-aware copy, theme-safe styling, and multi-format report exports |
+| Notification email template layer (Phase 9 Step 1) | done | Added `src/lib/notifications/email` plus `/api/notifications/email/templates` and `/api/notifications/email/preview` with template persistence, placeholder-safe rendering, and activity logs |
+| Notification trigger system (Phase 9 Step 2) | done | Added `src/lib/notifications/triggers`, integrated assignment/swap/attendance/waiting-list/block events, and prepared-render payload logging without sending |
+| In-app notifications (Phase 9 Step 3) | done | Added Prisma in-app notification persistence, `src/lib/notifications/in-app`, trigger-side in-app creation, `/api/notifications/in-app*` routes, and responsive localized `/notifications` + header bell UX |
+| WhatsApp integration layer (Phase 9 Step 4) | done | Added `src/lib/notifications/whatsapp` with adapter abstraction + Twilio adapter, settings-driven enable/provider/token/sender resolution, trigger integration, `/api/notifications/whatsapp/test`, and `whatsapp_sent`/`whatsapp_failed` audit logs |
+| SMS fallback support (Phase 9 Step 5) | done | Added `src/lib/notifications/sms`, fallback-only trigger integration, `/api/notifications/sms/test`, and delivery logging with provider metadata |
+| Notification preferences + channel control (Phase 9 Step 6) | done | Added `NotificationPreference` persistence, `/api/notifications/preferences`, responsive `/settings/notifications`, and per-user channel enforcement |
+| PWA support | done | Added manifest, service worker, install prompt, offline fallback, and app-shell registration for installability |
+| Integration test coverage hardening | done | Added `tmp/tests/run-all.mjs` plus assignment/notifications/reporting integration suites and fixed legacy verifiers for shared base URL execution |
+| Production readiness audit + checklist | done | Added `tmp/verify-production-audit.mjs`, resolved metadata warnings, and documented release runbook in `docs/deployment-checklist.md` |
+| Proctors import/export/profile history | done | Implemented in Phase 4 via `/api/proctors/import`, `/api/proctors/export`, and `/proctors/[proctorId]` profile history views |
 
 ## Immediate Next Focus
 
-- Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 8 with PDF export implementation
+- Publish verified Phase 10 changes to `origin/main`
+- Execute live release-window staging/production provider credential validation
+- Run post-release retrospective and capture follow-up fixes
 
 ## Update Log
 
@@ -311,3 +338,234 @@ We will instead:
   - empty-data handling
   - report/export activity-log persistence
   - report UI rendering checks for English and Arabic routes
+- Extended the export module to support `format=csv|excel|pdf` and added a new evaluations export endpoint:
+  - `GET /api/export/assignments`
+  - `GET /api/export/attendance`
+  - `GET /api/export/evaluations`
+- Added PDF generation for assignments, attendance, and evaluations exports using `pdf-lib` with an embedded Cairo font for AR/EN coverage, plus transactional `export_generate` activity logging metadata for PDF/Excel/CSV formats
+- Added bilingual Excel header rows (Arabic row 1 + English row 2) for:
+  - session export endpoints (`assignments`, `attendance`, `evaluations`)
+  - proctors Excel export endpoint (`GET /api/proctors/export?format=excel`)
+- Updated reports service output to include structured export options (`csv`, `excel`, `pdf`) and propagated export-format metadata into `report_view` activity logs
+- Replaced the basic dashboard with a premium metrics-driven workspace at `/dashboard`:
+  - live metrics cards and status distributions from `/api/metrics/*`
+  - localized quick actions linking dashboard/report flows
+  - responsive, theme-token-based layout for mobile/tablet/desktop
+- Upgraded localized report views at `/reports/*` with:
+  - premium filter/export workspace layout
+  - multi-format export actions (CSV/Excel/PDF)
+  - localized active-filter and generated-at display
+  - visual breakdown bars and improved responsive composition
+- Added locale coverage updates in `src/locales/en.json` and `src/locales/ar.json` for new dashboard/report workspace copy
+- Added and executed new Neon-backed verification scripts:
+  - `tmp/verify-phase8-step5.mjs` (PDF export + report PDF links + export logs)
+  - `tmp/verify-phase8-step6.mjs` (bilingual Excel headers + Excel export logs)
+  - `tmp/verify-phase8-step7.mjs` (premium dashboard/report localization, theme render, metrics/report wiring)
+- Verified quality gates successfully after Step 5-7 implementation:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Added Prisma `EmailTemplate` model and migration (`20260320130000_phase9_email_templates`) and applied it to Neon with `npm run db:deploy`
+- Added Phase 9 Step 1 module at `src/lib/notifications/email` with:
+  - contracts, validation, DTO, HTTP helpers, and service-layer implementation
+  - DB-backed bilingual template persistence (AR/EN subject + body)
+  - placeholder validation and declared-variable enforcement
+  - safe preview rendering with missing-variable capture (no crashes)
+  - template key duplicate prevention and update path in the same POST contract
+- Added protected notification template APIs:
+  - `GET /api/notifications/email/templates`
+  - `POST /api/notifications/email/templates`
+  - `POST /api/notifications/email/preview`
+- Added email-template activity logging:
+  - `create_template` / `update_template` for template mutations
+  - `preview_template` for preview usage with missing/unexpected variable metadata
+- Added and executed Neon-backed verification script `tmp/verify-phase9-step1.mjs` covering:
+  - template creation
+  - duplicate prevention
+  - update behavior + logging
+  - rendering correctness
+  - missing-variable handling
+  - bilingual preview rendering
+  - activity-log persistence
+- Re-ran quality gates after Phase 9 Step 1:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Added Phase 9 Step 2 module at `src/lib/notifications/triggers` with:
+  - contracts, validation, DTO, HTTP helpers, and service-layer trigger orchestration
+  - event-driven trigger inputs for:
+    - assignment created
+    - assignment swapped
+    - attendance marked (`CONFIRMED` / `ABSENT` / `DECLINED`)
+    - waiting-list promotion
+    - user blocked/unblocked
+  - template-key resolution, recipient resolution, locale-aware variable preparation, and DB-template rendering through the email template service
+  - safe fallback behavior when templates are missing (no mutation crash; trigger logs capture `template_missing`)
+  - recipient eligibility checks (active user, valid email, blocked-state filtering where required)
+- Integrated trigger execution at mutation points in:
+  - `src/lib/assignments/service.ts` (assignment created)
+  - `src/lib/swaps/service.ts` (assignment swapped)
+  - `src/lib/attendance/service.ts` (attendance marked)
+  - `src/lib/waiting-list/service.ts` (waiting-list promotion)
+  - `src/lib/blocks/service.ts` (blocked/unblocked)
+- Added trigger execution activity logging (`action: notification_trigger_execute`, `entityType: notification_trigger`) with event type, template key, target count, prepared count, and skipped count metadata
+- Extended email template service with reusable render helper for non-sending payload preparation:
+  - `renderNotificationEmailTemplate(...)`
+- Added and executed Neon-backed verification script `tmp/verify-phase9-step2.mjs` covering:
+  - assignment trigger
+  - attendance trigger
+  - swap trigger
+  - template resolution correctness
+  - rendered payload correctness
+  - trigger logging correctness
+- Fixed a transaction-timeout regression discovered during verification by aligning `createAssignment` transaction options with the 30s timeout convention used across operational workflows
+- Re-ran quality gates after Phase 9 Step 2:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Added Prisma `InAppNotification` model and migration (`20260320183000_phase9_in_app_notifications`) with user-scoped indexing and Neon deployment via `npm run db:deploy`
+- Added Phase 9 Step 3 module at `src/lib/notifications/in-app` with:
+  - contracts, validation, DTO, HTTP helpers, and service-layer implementation
+  - create/list/mark-read/mark-all-read workflows
+  - user-linked app-session resolution for API scoping
+  - activity logging for `notification_created` and `notification_read`
+- Added protected in-app notification APIs:
+  - `GET /api/notifications/in-app`
+  - `POST /api/notifications/in-app/read`
+  - `POST /api/notifications/in-app/read-all`
+- Integrated trigger execution with in-app notification persistence after email rendering, including safe fallback behavior so in-app failures do not break assignment/swap/attendance/waiting-list/block mutations
+- Added responsive in-app notification UX:
+  - top-bar notification bell dropdown with unread indicator and read actions
+  - full notifications workspace at `/notifications` with filters, pagination, and bulk read action
+  - navigation wiring for all roles
+- Added localization coverage for notifications in `src/locales/en.json` and `src/locales/ar.json`
+- Added and executed Neon-backed verification script `tmp/verify-phase9-step3.mjs` covering:
+  - trigger-created notifications
+  - notifications list API access
+  - mark-as-read and mark-all-as-read flows
+  - bilingual content rendering
+  - non-crashing trigger behavior when in-app creation fails for one recipient
+  - notification activity-log persistence
+- Re-ran quality gates after Phase 9 Step 3:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+- Added Phase 9 Step 4 module at `src/lib/notifications/whatsapp` with:
+  - contracts, validation, DTO, HTTP helpers, and service-layer implementation
+  - adapter pattern provider abstraction (`whatsappProvider.ts`) with Twilio provider implementation (`twilioProvider.ts`) and Meta Cloud design-ready adapter stub
+  - DB settings integration for `whatsapp_enabled`, `whatsapp_provider`, `whatsapp_api_key/token`, `whatsapp_sender_id`, and optional `whatsapp_account_sid`
+  - safe AR/EN message formatting with shared template variable substitution support
+  - delivery activity logging for `whatsapp_sent` and `whatsapp_failed` including provider/status/error metadata
+- Extended notification trigger execution to attempt WhatsApp delivery after template rendering/in-app creation, while preserving non-crashing behavior when provider calls fail
+- Added protected WhatsApp test endpoint:
+  - `POST /api/notifications/whatsapp/test`
+- Added and executed Neon-backed verification script `tmp/verify-phase9-step4.mjs` covering:
+  - trigger-driven WhatsApp send attempts
+  - disabled-config safe skip behavior
+  - invalid-config safe handling
+  - no-crash behavior on provider failure
+  - WhatsApp logging correctness
+- Re-ran quality gates after Phase 9 Step 4:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+
+### 2026-03-20 (continued)
+
+- Added Phase 9 Step 5 module at `src/lib/notifications/sms` with:
+  - contracts, validation, DTO, HTTP helpers, provider abstraction, and Twilio-ready provider implementation
+  - DB settings integration for `sms_enabled`, `sms_provider`, `sms_api_key/token`, `sms_sender_id`, and optional account SID
+  - fallback-only trigger integration with safe non-breaking behavior and structured `sms_sent` / `sms_failed` activity logging
+- Added protected SMS test endpoint:
+  - `POST /api/notifications/sms/test`
+- Added and executed Neon-backed verification script `tmp/verify-phase9-step5.mjs` covering fallback-only behavior, disabled/invalid-config handling, logging correctness, and non-crashing failures
+- Added Phase 9 Step 6 notification preferences with:
+  - Prisma `NotificationPreference` persistence and migration (`20260320220000_phase9_notification_preferences`)
+  - `src/lib/notifications/preferences` module (contracts, validation, DTO, HTTP, service)
+  - protected `GET/POST /api/notifications/preferences`
+  - responsive localized `/settings/notifications` channel-control UI
+  - trigger-path enforcement for user-level email/WhatsApp/SMS/in-app toggles and preference update logging
+- Added and executed Neon-backed verification script `tmp/verify-phase9-step6.mjs` covering channel toggles, fallback preference behavior, missing-preference auto-create defaults, API correctness, and UI render checks
+- Added production-readiness integration suites under `tmp/tests/`:
+  - assignment coverage (`auto-assign`, `swap`, `waiting-list promotion`)
+  - notifications coverage (`trigger execution`, `channel selection`, `preference enforcement`, `fallback behavior`)
+  - reporting coverage (`metrics`, `export` endpoints)
+  - orchestrated by `npm run test:integration`
+- Added PWA support artifacts and wiring:
+  - `public/manifest.webmanifest`, `public/sw.js`, `public/offline.html`, icon set
+  - install prompt UI (`src/components/pwa/install-prompt.tsx`)
+  - service worker registration (`src/components/providers/pwa-registration.tsx`)
+  - app-shell integration and metadata/viewport updates in `src/app/layout.tsx`
+- Added automated production audit verification script `tmp/verify-production-audit.mjs` covering:
+  - locale parity (`en`/`ar`)
+  - PWA asset and endpoint availability
+  - RTL/LTR render checks on core protected routes
+  - responsive/theme/reduced-motion guardrails
+  - non-leaky client-error response checks
+- Added release runbook documentation at `docs/deployment-checklist.md`
+- Re-ran final quality and readiness gates:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:integration`
+  - `node tmp/verify-production-audit.mjs`
+
+### 2026-03-20 (release preflight)
+
+- Reconciled documentation drift so source-of-truth files reflect current implementation phase:
+  - updated `AI_START_HERE.md` to Phase 10 status
+  - aligned notification channel priority wording in `docs/examops-spec-v3.md` and `docs/examops-master-plan.md` with implemented Email → WhatsApp → In-app → SMS fallback behavior
+- Verified branch/upstream context:
+  - current branch: `main`
+  - upstream: `origin/main`
+  - local worktree still contains uncommitted/unpublished production changes
+- Executed release safety checks:
+  - `npm run db:validate`
+  - `prisma migrate status` (database schema up to date)
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:integration`
+  - `node tmp/verify-production-audit.mjs`
+- Verified deploy/runtime constraints:
+  - no `export const runtime = "edge"` declarations in app routes
+  - no local filesystem writes in export/report/notification runtime paths
+  - export APIs return in-memory response bodies (CSV/Excel/PDF) with no disk writes
+- Marked Phase 10 first task as `in_progress` in `docs/backlog.md` because staging dry-run with real provider credentials remains pending
+
+### 2026-03-20 (phase 10 release operations)
+
+- Completed staging dry-run simulation with production build/start mode, integration coverage, WhatsApp validation script, and production audit checks
+- Added CI gating workflow at `.github/workflows/main-quality-gate.yml` for:
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:integration`
+  - `node tmp/verify-production-audit.mjs`
+- Added monitoring readiness implementation:
+  - shared monitoring service (`src/lib/monitoring/service.ts`)
+  - API error capture hooks across route error handlers
+  - notification failure monitoring hooks for email/whatsapp/sms paths
+  - DB-driven alert threshold settings via seed data
+- Added release-operations documentation:
+  - `docs/staging-dry-run-report-2026-03-20.md`
+  - `docs/monitoring-readiness.md`
+  - `docs/release-signoff-2026-03-20.md`
+
+## Post-release Notes
+
+- Phase 10 release operations now include deterministic local/staging simulation scripts and a CI gate that blocks non-compliant pushes to `main`.
+- Monitoring events are now structured for direct forwarding into external observability stacks without changing runtime business logic.
+- Release sign-off evidence is now captured as dated artifacts to support audits and operational handoff.
+
+## Known Limitations
+
+- Provider-level external delivery confirmation still depends on real staging/production credentials and cannot be guaranteed by local simulation tokens alone.
+- `monitoring_alert` suppression currently deduplicates alerts within a time window by alert type; high-volume incidents may still emit repeated alerts across rolling windows by design.
+- Full production deployment smoke checks must still run during the live deploy window after rollout.
+
+## Future Improvements
+
+- Add dashboard surfaces for monitoring events and alert trend visualization.
+- Add channel-specific threshold settings and escalation tiers (warning/critical) for notification failures.
+- Add automated release-note generation from CI artifacts and deployment metadata.

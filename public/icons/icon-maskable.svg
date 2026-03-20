@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>ExamOps</title>
+  <rect width="512" height="512" rx="128" fill="#0f172a"/>
+  <rect x="72" y="72" width="368" height="368" rx="92" fill="#1d4ed8"/>
+  <g fill="#ffffff">
+    <path d="M144 176h224v36H144z"/>
+    <path d="M144 252h224v36H144z"/>
+    <path d="M144 328h150v36H144z"/>
+    <circle cx="336" cy="346" r="44" fill="#0f9f6e"/>
+    <path d="M318 346l14 14 24-24" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

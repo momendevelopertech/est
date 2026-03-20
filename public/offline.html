@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ExamOps Offline</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, Cairo, system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f4f7fb;
+        color: #10213a;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background: #07111f;
+          color: #f8fafc;
+        }
+      }
+      .card {
+        max-width: 640px;
+        border: 1px solid #94a3b83d;
+        border-radius: 20px;
+        padding: 24px;
+        background: #ffffffd1;
+      }
+      @media (prefers-color-scheme: dark) {
+        .card {
+          background: #0f172ae0;
+          border-color: #64748b66;
+        }
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.5rem;
+      }
+      p {
+        margin: 0;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>You're offline</h1>
+      <p>ExamOps could not load this page without a network connection.</p>
+      <p>أنت غير متصل بالإنترنت. تعذر تحميل الصفحة بدون اتصال بالشبكة.</p>
+    </main>
+  </body>
+</html>

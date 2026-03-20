@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { reportApiError } from "@/lib/monitoring/service";
 
 import { ExportServiceError } from "./service";
 
@@ -10,7 +11,8 @@ export const exportManagementRoles = [
   "super_admin",
   "coordinator",
   "data_entry",
-  "senior"
+  "senior",
+  "viewer"
 ] as const;
 
 export async function requireExportApiRole() {
@@ -49,7 +51,10 @@ export function handleExportRouteError(error: unknown) {
     );
   }
 
-  console.error(error);
+  void reportApiError({
+    scope: "export",
+    error
+  });
 
   return NextResponse.json(
     {

@@ -4,6 +4,8 @@ import type { SessionUser } from "@/lib/auth/types";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { InAppNotificationBell } from "@/components/notifications/in-app-notification-bell";
+import { PwaInstallPrompt } from "@/components/pwa/install-prompt";
 
 import { LocaleToggle } from "./locale-toggle";
 import { NavLink } from "./nav-link";
@@ -49,6 +51,8 @@ export function Header({ locale, messages, navigation, user }: HeaderProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <InAppNotificationBell locale={locale} messages={messages} />
+          <PwaInstallPrompt messages={messages} />
           <LocaleToggle locale={locale} messages={messages} />
           <ThemeToggle initialTheme={user.preferredTheme} messages={messages} />
           <form action="/api/auth/logout" method="post">

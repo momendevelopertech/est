@@ -3,6 +3,7 @@ import { ZodError } from "zod";
 
 import { requireApiRole } from "@/lib/auth/api";
 import { ERROR_CODES } from "@/lib/errors/codes";
+import { reportApiError } from "@/lib/monitoring/service";
 
 import { ProctorsServiceError } from "./service";
 
@@ -60,7 +61,10 @@ export function handleProctorRouteError(error: unknown) {
     );
   }
 
-  console.error(error);
+  void reportApiError({
+    scope: "proctors",
+    error
+  });
 
   return NextResponse.json(
       {
