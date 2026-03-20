@@ -12,6 +12,7 @@
 - TypeScript, Tailwind, ESLint, Prisma runtime wiring, and environment scaffolding are in place
 - Protected public and dashboard route groups now exist with a shared app shell
 - Seed data now exists for assignment roles, runtime settings, and initial app users
+- Seed data now includes a release-validation fixture with active multi-building locations, linked app users, multi-building sessions, active/cancelled assignments, waiting-list states, attendance states, evaluations, blocks, notification preferences, and notification templates
 - Database-backed authentication is live with hashed passwords, persisted sessions, login/logout, and role guards
 - Locale-aware shell copy, Arabic/English switching, and RTL/LTR rendering are now working
 - Dark/light/system theme resolution is now live through database-backed preferences, cookies, and system fallback
@@ -55,6 +56,8 @@
 - Production audit verification is now automated via `tmp/verify-production-audit.mjs` for locale parity, responsive/theme/accessibility guardrails, PWA availability, and non-leaky error responses
 - Deployment checklist guidance is now documented in `docs/deployment-checklist.md`
 - Phase 10 release-operations hardening is now implemented: staging simulation dry-run, CI gating, monitoring hooks/thresholds, and release sign-off simulation are complete
+- Prisma/database alignment now includes the missing `evaluations.assignment_id` migration so the deployed schema matches the current application contracts and seed logic
+- Final release-validation gates now pass after CI stabilization: `db:validate`, `typecheck`, `lint`, `build`, `test:integration`, and `tmp/verify-production-audit.mjs`
 
 ## Canonical Working Documents
 
@@ -128,6 +131,7 @@ We will instead:
 | Integration test coverage hardening | done | Added `tmp/tests/run-all.mjs` plus assignment/notifications/reporting integration suites and fixed legacy verifiers for shared base URL execution |
 | Production readiness audit + checklist | done | Added `tmp/verify-production-audit.mjs`, resolved metadata warnings, and documented release runbook in `docs/deployment-checklist.md` |
 | Proctors import/export/profile history | done | Implemented in Phase 4 via `/api/proctors/import`, `/api/proctors/export`, and `/proctors/[proctorId]` profile history views |
+| Release validation + CI stabilization | done | Added a stronger multi-building seed baseline, fixed the evaluation assignment-link migration gap, and re-verified the full main quality gate on 2026-03-20 |
 
 ## Immediate Next Focus
 
@@ -552,6 +556,25 @@ We will instead:
   - `docs/monitoring-readiness.md`
   - `docs/release-signoff-2026-03-20.md`
 - Published release-operations changes to `origin/main` at commit `5a8986f`
+
+### 2026-03-20 (CI stabilization)
+
+- Identified the failing CI root cause in `tmp/verify-auto-assignment-v1.mjs`: clean CI databases only had roles/settings/app users, so overlap verification could not find two active buildings
+- Expanded `prisma/seed.ts` into an idempotent release-validation dataset that now seeds:
+  - active governorates, universities, buildings, floors, and rooms
+  - varied proctor users plus linked app users
+  - multi-building sessions
+  - active, manual, ASSN, and cancelled assignments
+  - waiting-list, attendance, evaluation, block, notification-preference, and email-template fixtures
+- Added migration `20260320233000_add_evaluation_assignment_link` so the live database now includes `evaluations.assignment_id` as expected by the Prisma schema
+- Applied `npm run db:deploy` and `npm run db:seed` successfully against the configured Neon database
+- Re-ran and passed the release gates:
+  - `npm run db:validate`
+  - `npm run typecheck`
+  - `npm run lint`
+  - `npm run build`
+  - `npm run test:integration`
+  - `node tmp/verify-production-audit.mjs`
 
 ## Post-release Notes
 

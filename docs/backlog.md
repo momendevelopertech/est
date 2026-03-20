@@ -122,6 +122,7 @@ Status legend:
 - `done` Add CI gating for `typecheck`, `lint`, `build`, integration suites, and production audit script
 - `done` Configure production monitoring and alert thresholds for API errors and notification delivery failures
 - `done` Execute production release sign-off simulation using `docs/deployment-checklist.md`
+- `done` Fix CI seed coverage for auto-assignment overlap verification and align the evaluation assignment-link migration with the live schema
 - `todo` Run post-release retrospective and capture follow-up fixes
 
 ## Recommended Next Tasks

@@ -1,521 +1,593 @@
 import {
   AppUserRole,
+  AssignmentMethod,
+  AssignmentStatus,
+  AttendanceStatus,
+  BlockRecordStatus,
+  BlockSource,
+  BlockStatus,
+  BlockType,
+  CycleStatus,
+  ExamType,
   LocaleCode,
   OperationalRoleScope,
   PrismaClient,
+  SessionStatus,
   SettingValueType,
-  ThemePreference
+  ThemePreference,
+  UserSource,
+  WaitingListStatus
 } from "@prisma/client";
 import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
-
 const seedPassword = process.env.SEED_APP_USERS_PASSWORD ?? "ChangeMe123!";
+const seedTag = "release-validation-fixture-2026";
 
 if (seedPassword.length < 8) {
   throw new Error("SEED_APP_USERS_PASSWORD must be at least 8 characters");
 }
 
+const d = (value: string) => new Date(value);
+const day = (value: string) => new Date(`${value}T00:00:00.000Z`);
+const setting = (
+  key: string,
+  group: string,
+  type: SettingValueType,
+  value: string | number | boolean | string[],
+  sortOrder: number
+) => ({
+  key,
+  group,
+  label: key,
+  labelEn: key,
+  description: key,
+  descriptionEn: key,
+  type,
+  value,
+  sortOrder
+});
+
 const assignmentRoles = [
-  {
-    key: "building_head",
-    name: "رئيس المبنى",
-    nameEn: "Building head",
-    scope: OperationalRoleScope.BUILDING,
-    manualOnly: false,
-    sortOrder: 10,
-    description: "الدور القيادي الأساسي على مستوى المبنى.",
-    descriptionEn: "Primary building-level leadership role."
-  },
-  {
-    key: "control_room",
-    name: "كنترول",
-    nameEn: "Control",
-    scope: OperationalRoleScope.BUILDING,
-    manualOnly: true,
-    sortOrder: 20,
-    description: "دور الكنترول يظل يدار يدويا.",
-    descriptionEn: "Control assignments stay manual."
-  },
-  {
-    key: "floor_senior",
-    name: "مشرف دور",
-    nameEn: "Floor senior",
-    scope: OperationalRoleScope.FLOOR,
-    manualOnly: false,
-    sortOrder: 30,
-    description: "مشرف مسؤول عن المتابعة على مستوى الدور.",
-    descriptionEn: "Supervisor responsible for one floor."
-  },
-  {
-    key: "roaming_monitor",
-    name: "مراقب متحرك",
-    nameEn: "Roaming monitor",
-    scope: OperationalRoleScope.FLOOR,
-    manualOnly: false,
-    sortOrder: 40,
-    description: "دور دعم متحرك بين الغرف.",
-    descriptionEn: "Floating support role across rooms."
-  },
-  {
-    key: "room_proctor",
-    name: "مراقب لجنة",
-    nameEn: "Room proctor",
-    scope: OperationalRoleScope.ROOM,
-    manualOnly: false,
-    sortOrder: 50,
-    description: "الدور الأساسي داخل اللجان.",
-    descriptionEn: "Primary room-level proctor role."
-  },
-  {
-    key: "assn_manual",
-    name: "مراقب ASSN",
-    nameEn: "ASSN proctor",
-    scope: OperationalRoleScope.ROOM,
-    manualOnly: true,
-    sortOrder: 60,
-    description: "توزيع ASSN يتم يدويا فقط.",
-    descriptionEn: "ASSN distribution stays manual only."
-  }
+  ["building_head", "\u0631\u0626\u064a\u0633 \u0627\u0644\u0645\u0628\u0646\u0649", "Building head", OperationalRoleScope.BUILDING, false, 10],
+  ["control_room", "\u0643\u0646\u062a\u0631\u0648\u0644", "Control", OperationalRoleScope.BUILDING, true, 20],
+  ["floor_senior", "\u0645\u0634\u0631\u0641 \u062f\u0648\u0631", "Floor senior", OperationalRoleScope.FLOOR, false, 30],
+  ["roaming_monitor", "\u0645\u0631\u0627\u0642\u0628 \u0645\u062a\u062d\u0631\u0643", "Roaming monitor", OperationalRoleScope.FLOOR, false, 40],
+  ["room_proctor", "\u0645\u0631\u0627\u0642\u0628 \u0644\u062c\u0646\u0629", "Room proctor", OperationalRoleScope.ROOM, false, 50],
+  ["assn_manual", "\u0645\u0631\u0627\u0642\u0628 ASSN", "ASSN proctor", OperationalRoleScope.ROOM, true, 60]
 ] as const;
 
 const settings = [
-  {
-    key: "system.default_language",
-    group: "system",
-    label: "اللغة الافتراضية",
-    labelEn: "Default language",
-    description: "اللغة المستخدمة عند غياب تفضيل محفوظ للمستخدم.",
-    descriptionEn: "Language used when the user has no saved preference.",
-    type: SettingValueType.STRING,
-    value: "AR",
-    sortOrder: 10
-  },
-  {
-    key: "system.default_theme",
-    group: "system",
-    label: "السمة الافتراضية",
-    labelEn: "Default theme",
-    description: "السمة الأساسية قبل تفعيل تفضيل المستخدم.",
-    descriptionEn: "Base theme before a user preference is applied.",
-    type: SettingValueType.STRING,
-    value: "SYSTEM",
-    sortOrder: 20
-  },
-  {
-    key: "distribution.min_rating_threshold",
-    group: "distribution",
-    label: "الحد الأدنى للتقييم",
-    labelEn: "Minimum rating threshold",
-    description: "أقل تقييم مسموح به لدخول التوزيع الآلي.",
-    descriptionEn: "Minimum rating required for auto-assignment eligibility.",
-    type: SettingValueType.NUMBER,
-    value: 0,
-    sortOrder: 30
-  },
-  {
-    key: "distribution.bad_sessions_for_block",
-    group: "distribution",
-    label: "عدد الجلسات الضعيفة قبل الحظر",
-    labelEn: "Poor sessions before block",
-    description: "عدد الجلسات منخفضة الأداء قبل اقتراح الحظر.",
-    descriptionEn: "Poor-performance threshold before suggesting a block.",
-    type: SettingValueType.NUMBER,
-    value: 3,
-    sortOrder: 40
-  },
-  {
-    key: "notifications.primary_channel",
-    group: "notifications",
-    label: "قناة الإرسال الأساسية",
-    labelEn: "Primary notification channel",
-    description: "القناة الأولى لمحاولات إرسال الإشعارات.",
-    descriptionEn: "First channel used when delivering notifications.",
-    type: SettingValueType.STRING,
-    value: "email",
-    sortOrder: 50
-  },
-  {
-    key: "notifications.fallback_channels",
-    group: "notifications",
-    label: "قنوات الإرسال الاحتياطية",
-    labelEn: "Fallback notification channels",
-    description: "ترتيب القنوات البديلة عند تعذر القناة الأساسية.",
-    descriptionEn: "Fallback channel order when the primary channel fails.",
-    type: SettingValueType.JSON,
-    value: ["whatsapp", "in_app", "sms"],
-    sortOrder: 60
-  },
-  {
-    key: "email_enabled",
-    group: "notifications",
-    label: "Email Enabled",
-    labelEn: "Email Enabled",
-    description: "Enable or disable email notification preparation.",
-    descriptionEn: "Enable or disable email notification preparation.",
-    type: SettingValueType.BOOLEAN,
-    value: true,
-    sortOrder: 65
-  },
-  {
-    key: "whatsapp_enabled",
-    group: "notifications",
-    label: "WhatsApp Enabled",
-    labelEn: "WhatsApp Enabled",
-    description: "Enable or disable WhatsApp delivery attempts.",
-    descriptionEn: "Enable or disable WhatsApp delivery attempts.",
-    type: SettingValueType.BOOLEAN,
-    value: false,
-    sortOrder: 70
-  },
-  {
-    key: "whatsapp_provider",
-    group: "notifications",
-    label: "WhatsApp Provider",
-    labelEn: "WhatsApp Provider",
-    description: "Provider key used for WhatsApp delivery.",
-    descriptionEn: "Provider key used for WhatsApp delivery.",
-    type: SettingValueType.STRING,
-    value: "twilio",
-    sortOrder: 80
-  },
-  {
-    key: "whatsapp_api_key",
-    group: "notifications",
-    label: "WhatsApp API Key",
-    labelEn: "WhatsApp API Key",
-    description: "Provider token or API key for WhatsApp delivery.",
-    descriptionEn: "Provider token or API key for WhatsApp delivery.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 90
-  },
-  {
-    key: "whatsapp_sender_id",
-    group: "notifications",
-    label: "WhatsApp Sender ID",
-    labelEn: "WhatsApp Sender ID",
-    description: "Sender ID or from number for WhatsApp messages.",
-    descriptionEn: "Sender ID or from number for WhatsApp messages.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 100
-  },
-  {
-    key: "whatsapp_account_sid",
-    group: "notifications",
-    label: "WhatsApp Account SID",
-    labelEn: "WhatsApp Account SID",
-    description: "Optional account SID used by Twilio provider.",
-    descriptionEn: "Optional account SID used by Twilio provider.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 110
-  },
-  {
-    key: "sms_enabled",
-    group: "notifications",
-    label: "SMS Enabled",
-    labelEn: "SMS Enabled",
-    description: "Enable or disable SMS fallback delivery attempts.",
-    descriptionEn: "Enable or disable SMS fallback delivery attempts.",
-    type: SettingValueType.BOOLEAN,
-    value: false,
-    sortOrder: 120
-  },
-  {
-    key: "sms_provider",
-    group: "notifications",
-    label: "SMS Provider",
-    labelEn: "SMS Provider",
-    description: "Provider key used for SMS fallback delivery.",
-    descriptionEn: "Provider key used for SMS fallback delivery.",
-    type: SettingValueType.STRING,
-    value: "twilio",
-    sortOrder: 130
-  },
-  {
-    key: "sms_api_key",
-    group: "notifications",
-    label: "SMS API Key",
-    labelEn: "SMS API Key",
-    description: "Provider token or API key for SMS fallback delivery.",
-    descriptionEn: "Provider token or API key for SMS fallback delivery.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 140
-  },
-  {
-    key: "sms_sender_id",
-    group: "notifications",
-    label: "SMS Sender ID",
-    labelEn: "SMS Sender ID",
-    description: "Sender ID or from number for SMS fallback messages.",
-    descriptionEn: "Sender ID or from number for SMS fallback messages.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 150
-  },
-  {
-    key: "sms_account_sid",
-    group: "notifications",
-    label: "SMS Account SID",
-    labelEn: "SMS Account SID",
-    description: "Optional account SID used by Twilio SMS provider.",
-    descriptionEn: "Optional account SID used by Twilio SMS provider.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 160
-  },
-  {
-    key: "notification_preferences.default_email_enabled",
-    group: "notifications",
-    label: "Notification Preferences Default Email",
-    labelEn: "Notification Preferences Default Email",
-    description: "Default email channel toggle for new user notification preferences.",
-    descriptionEn:
-      "Default email channel toggle for new user notification preferences.",
-    type: SettingValueType.BOOLEAN,
-    value: true,
-    sortOrder: 170
-  },
-  {
-    key: "notification_preferences.default_whatsapp_enabled",
-    group: "notifications",
-    label: "Notification Preferences Default WhatsApp",
-    labelEn: "Notification Preferences Default WhatsApp",
-    description:
-      "Default WhatsApp channel toggle for new user notification preferences.",
-    descriptionEn:
-      "Default WhatsApp channel toggle for new user notification preferences.",
-    type: SettingValueType.BOOLEAN,
-    value: true,
-    sortOrder: 180
-  },
-  {
-    key: "notification_preferences.default_sms_enabled",
-    group: "notifications",
-    label: "Notification Preferences Default SMS",
-    labelEn: "Notification Preferences Default SMS",
-    description: "Default SMS channel toggle for new user notification preferences.",
-    descriptionEn:
-      "Default SMS channel toggle for new user notification preferences.",
-    type: SettingValueType.BOOLEAN,
-    value: false,
-    sortOrder: 190
-  },
-  {
-    key: "notification_preferences.default_in_app_enabled",
-    group: "notifications",
-    label: "Notification Preferences Default In-App",
-    labelEn: "Notification Preferences Default In-App",
-    description:
-      "Default in-app channel toggle for new user notification preferences.",
-    descriptionEn:
-      "Default in-app channel toggle for new user notification preferences.",
-    type: SettingValueType.BOOLEAN,
-    value: true,
-    sortOrder: 200
-  },
-  {
-    key: "notification_preferences.default_preferred_language",
-    group: "notifications",
-    label: "Notification Preferences Default Language",
-    labelEn: "Notification Preferences Default Language",
-    description:
-      "Default language override for new user notification preferences. Empty means use profile preference.",
-    descriptionEn:
-      "Default language override for new user notification preferences. Empty means use profile preference.",
-    type: SettingValueType.STRING,
-    value: "",
-    sortOrder: 210
-  },
-  {
-    key: "monitoring.api_error_alert_threshold",
-    group: "monitoring",
-    label: "API Error Alert Threshold",
-    labelEn: "API Error Alert Threshold",
-    description:
-      "Number of API server errors within the alert window required to raise a monitoring alert.",
-    descriptionEn:
-      "Number of API server errors within the alert window required to raise a monitoring alert.",
-    type: SettingValueType.NUMBER,
-    value: 5,
-    sortOrder: 220
-  },
-  {
-    key: "monitoring.api_error_alert_window_minutes",
-    group: "monitoring",
-    label: "API Error Alert Window Minutes",
-    labelEn: "API Error Alert Window Minutes",
-    description:
-      "Time window in minutes used when evaluating API error alert thresholds.",
-    descriptionEn:
-      "Time window in minutes used when evaluating API error alert thresholds.",
-    type: SettingValueType.NUMBER,
-    value: 5,
-    sortOrder: 230
-  },
-  {
-    key: "monitoring.notification_failure_alert_threshold",
-    group: "monitoring",
-    label: "Notification Failure Alert Threshold",
-    labelEn: "Notification Failure Alert Threshold",
-    description:
-      "Number of notification delivery failures within the alert window required to raise a monitoring alert.",
-    descriptionEn:
-      "Number of notification delivery failures within the alert window required to raise a monitoring alert.",
-    type: SettingValueType.NUMBER,
-    value: 5,
-    sortOrder: 240
-  },
-  {
-    key: "monitoring.notification_failure_alert_window_minutes",
-    group: "monitoring",
-    label: "Notification Failure Alert Window Minutes",
-    labelEn: "Notification Failure Alert Window Minutes",
-    description:
-      "Time window in minutes used when evaluating notification failure alert thresholds.",
-    descriptionEn:
-      "Time window in minutes used when evaluating notification failure alert thresholds.",
-    type: SettingValueType.NUMBER,
-    value: 10,
-    sortOrder: 250
-  }
+  setting("system.default_language", "system", SettingValueType.STRING, "AR", 10),
+  setting("system.default_theme", "system", SettingValueType.STRING, "SYSTEM", 20),
+  setting("distribution.min_rating_threshold", "distribution", SettingValueType.NUMBER, 0, 30),
+  setting("distribution.min_sessions_required", "distribution", SettingValueType.NUMBER, 3, 35),
+  setting("distribution.min_attendance_ratio", "distribution", SettingValueType.NUMBER, 0.7, 38),
+  setting("distribution.bad_sessions_for_block", "distribution", SettingValueType.NUMBER, 3, 40),
+  setting("notifications.primary_channel", "notifications", SettingValueType.STRING, "email", 50),
+  setting(
+    "notifications.fallback_channels",
+    "notifications",
+    SettingValueType.JSON,
+    ["whatsapp", "in_app", "sms"],
+    60
+  ),
+  setting("email_enabled", "notifications", SettingValueType.BOOLEAN, true, 70),
+  setting("whatsapp_enabled", "notifications", SettingValueType.BOOLEAN, false, 80),
+  setting("whatsapp_provider", "notifications", SettingValueType.STRING, "twilio", 90),
+  setting("whatsapp_api_key", "notifications", SettingValueType.STRING, "", 100),
+  setting("whatsapp_sender_id", "notifications", SettingValueType.STRING, "", 110),
+  setting("whatsapp_account_sid", "notifications", SettingValueType.STRING, "", 120),
+  setting("sms_enabled", "notifications", SettingValueType.BOOLEAN, false, 130),
+  setting("sms_provider", "notifications", SettingValueType.STRING, "twilio", 140),
+  setting("sms_api_key", "notifications", SettingValueType.STRING, "", 150),
+  setting("sms_sender_id", "notifications", SettingValueType.STRING, "", 160),
+  setting("sms_account_sid", "notifications", SettingValueType.STRING, "", 170),
+  setting("notification_preferences.default_email_enabled", "notifications", SettingValueType.BOOLEAN, true, 180),
+  setting("notification_preferences.default_whatsapp_enabled", "notifications", SettingValueType.BOOLEAN, true, 190),
+  setting("notification_preferences.default_sms_enabled", "notifications", SettingValueType.BOOLEAN, false, 200),
+  setting("notification_preferences.default_in_app_enabled", "notifications", SettingValueType.BOOLEAN, true, 210),
+  setting("notification_preferences.default_preferred_language", "notifications", SettingValueType.STRING, "", 220),
+  setting("monitoring.api_error_alert_threshold", "monitoring", SettingValueType.NUMBER, 5, 230),
+  setting("monitoring.api_error_alert_window_minutes", "monitoring", SettingValueType.NUMBER, 5, 240),
+  setting("monitoring.notification_failure_alert_threshold", "monitoring", SettingValueType.NUMBER, 5, 250),
+  setting("monitoring.notification_failure_alert_window_minutes", "monitoring", SettingValueType.NUMBER, 10, 260)
 ] as const;
 
-const appUsers = [
-  {
-    email: "admin@examops.local",
-    displayName: "ExamOps Admin",
-    role: AppUserRole.SUPER_ADMIN,
-    preferredLanguage: LocaleCode.AR,
-    preferredTheme: ThemePreference.SYSTEM
+const governorates = {
+  CAI: { name: "\u0627\u0644\u0642\u0627\u0647\u0631\u0629", nameEn: "Cairo", sortOrder: 10 },
+  GIZ: { name: "\u0627\u0644\u062c\u064a\u0632\u0629", nameEn: "Giza", sortOrder: 20 }
+} as const;
+
+const universities = {
+  ASU: { governorate: "CAI", name: "\u062c\u0627\u0645\u0639\u0629 \u0639\u064a\u0646 \u0634\u0645\u0633", nameEn: "Ain Shams University", sortOrder: 10 },
+  CU: { governorate: "GIZ", name: "\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u0642\u0627\u0647\u0631\u0629", nameEn: "Cairo University", sortOrder: 20 }
+} as const;
+
+const buildings = {
+  NASR_HQ: {
+    university: "ASU",
+    code: "NASR-HQ",
+    name: "\u0645\u0628\u0646\u0649 \u0645\u062f\u064a\u0646\u0629 \u0646\u0635\u0631 \u0627\u0644\u0631\u0626\u064a\u0633\u064a",
+    nameEn: "Nasr City Main Center",
+    address: "Nasr City, Cairo",
+    sortOrder: 10
   },
-  {
-    email: "coordinator@examops.local",
-    displayName: "ExamOps Coordinator",
-    role: AppUserRole.COORDINATOR,
-    preferredLanguage: LocaleCode.AR,
-    preferredTheme: ThemePreference.SYSTEM
+  ABBAS_ANNEX: {
+    university: "ASU",
+    code: "ABBAS-ANNEX",
+    name: "\u0645\u0644\u062d\u0642 \u0627\u0644\u0639\u0628\u0627\u0633\u064a\u0629",
+    nameEn: "Abbassia Annex",
+    address: "Abbassia, Cairo",
+    sortOrder: 20
   },
-  {
-    email: "dataentry@examops.local",
-    displayName: "ExamOps Data Entry",
-    role: AppUserRole.DATA_ENTRY,
-    preferredLanguage: LocaleCode.EN,
-    preferredTheme: ThemePreference.SYSTEM
-  },
-  {
-    email: "senior@examops.local",
-    displayName: "ExamOps Senior",
-    role: AppUserRole.SENIOR,
-    preferredLanguage: LocaleCode.AR,
-    preferredTheme: ThemePreference.SYSTEM
-  },
-  {
-    email: "viewer@examops.local",
-    displayName: "ExamOps Viewer",
-    role: AppUserRole.VIEWER,
-    preferredLanguage: LocaleCode.EN,
-    preferredTheme: ThemePreference.SYSTEM
+  GIZA_ENG: {
+    university: "CU",
+    code: "GIZA-ENG",
+    name: "\u0642\u0627\u0639\u0629 \u0647\u0646\u062f\u0633\u0629 \u0627\u0644\u062c\u064a\u0632\u0629",
+    nameEn: "Giza Engineering Hall",
+    address: "Giza",
+    sortOrder: 30
   }
+} as const;
+
+const floors = {
+  NASR_HQ_F1: { building: "NASR_HQ", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
+  NASR_HQ_F2: { building: "NASR_HQ", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 },
+  ABBAS_ANNEX_F1: { building: "ABBAS_ANNEX", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
+  ABBAS_ANNEX_F2: { building: "ABBAS_ANNEX", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 },
+  GIZA_ENG_F1: { building: "GIZA_ENG", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
+  GIZA_ENG_F2: { building: "GIZA_ENG", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 }
+} as const;
+
+const rooms = {
+  NASR_HQ_N101: { floor: "NASR_HQ_F1", code: "N101", name: "\u0644\u062c\u0646\u0629 N101", nameEn: "Room N101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 15, max: 32 },
+  NASR_HQ_N201: { floor: "NASR_HQ_F2", code: "N201", name: "\u0644\u062c\u0646\u0629 N201", nameEn: "Room N201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 12, max: 28 },
+  ABBAS_ANNEX_A101: { floor: "ABBAS_ANNEX_F1", code: "A101", name: "\u0644\u062c\u0646\u0629 A101", nameEn: "Room A101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 14, max: 30 },
+  ABBAS_ANNEX_A201: { floor: "ABBAS_ANNEX_F2", code: "A201", name: "\u0644\u062c\u0646\u0629 A201", nameEn: "Room A201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 12, max: 26 },
+  ABBAS_ANNEX_AS1: { floor: "ABBAS_ANNEX_F2", code: "AS1", name: "\u0644\u062c\u0646\u0629 ASSN 1", nameEn: "ASSN Room 1", roomType: "ASSN", exams: [ExamType.EST_ASSN], min: 8, max: 18 },
+  GIZA_ENG_G101: { floor: "GIZA_ENG_F1", code: "G101", name: "\u0644\u062c\u0646\u0629 G101", nameEn: "Room G101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 16, max: 36 },
+  GIZA_ENG_G201: { floor: "GIZA_ENG_F2", code: "G201", name: "\u0644\u062c\u0646\u0629 G201", nameEn: "Room G201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 12, max: 24 }
+} as const;
+
+const users = {
+  coordination_hub: { name: "\u0645\u0643\u062a\u0628 \u0627\u0644\u062a\u0646\u0633\u064a\u0642", nameEn: "Coordination Hub", phone: "+201099110001", email: "seed.coordination.user@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "ExamOps Coordination", branch: "Cairo Central", rating: "4.90", sessions: 22, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  senior_supervisor: { name: "\u0645\u0634\u0631\u0641 \u0623\u0648\u0644", nameEn: "Senior Supervisor", phone: "+201099110002", email: "seed.senior.user@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "ExamOps Operations", branch: "Nasr City", rating: "4.70", sessions: 18, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  viewer_observer: { name: "\u0645\u062a\u0627\u0628\u0639 \u062a\u0634\u063a\u064a\u0644\u064a", nameEn: "Operations Viewer", phone: "+201099110003", email: "seed.viewer.user@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "ExamOps QA", branch: "Giza", rating: "4.10", sessions: 9, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  proctor_head: { name: "\u0645\u062d\u0645\u0648\u062f \u0635\u0644\u0627\u062d", nameEn: "Mahmoud Salah", phone: "+201099110101", email: "seed.mahmoud.salah@example.com", source: UserSource.SPHINX, governorate: "CAI", organization: "Sphinx Staff", branch: "Nasr City", rating: "4.85", sessions: 24, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  floor_senior: { name: "\u0633\u0644\u0645\u0649 \u0647\u0627\u0646\u064a", nameEn: "Salma Hany", phone: "+201099110102", email: "seed.salma.hany@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Ain Shams University", branch: "Abbassia", rating: "4.68", sessions: 16, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  roaming_monitor: { name: "\u064a\u0648\u0633\u0641 \u0639\u0627\u062f\u0644", nameEn: "Youssef Adel", phone: "+201099110103", email: "seed.youssef.adel@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Giza", rating: "4.55", sessions: 14, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  room_proctor_a: { name: "\u0645\u0631\u064a\u0645 \u0646\u0628\u064a\u0644", nameEn: "Mariam Nabil", phone: "+201099110104", email: "seed.mariam.nabil@example.com", source: UserSource.UNIVERSITY, governorate: "GIZ", organization: "Cairo University", branch: "Giza", rating: "4.20", sessions: 11, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  room_proctor_b: { name: "\u062e\u0627\u0644\u062f \u0639\u0627\u0637\u0641", nameEn: "Khaled Atef", phone: "+201099110105", email: "seed.khaled.atef@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "6th of October", rating: "3.92", sessions: 7, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  waiting_candidate: { name: "\u0647\u0628\u0629 \u0633\u0627\u0645\u0631", nameEn: "Heba Samir", phone: "+201099110106", email: "seed.heba.samir@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Ain Shams University", branch: "Nasr City", rating: "4.35", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  promoted_candidate: { name: "\u0646\u0648\u0631\u0627 \u062c\u0645\u0627\u0644", nameEn: "Nora Gamal", phone: "+201099110107", email: "seed.nora.gamal@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Dokki", rating: "4.45", sessions: 10, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  removed_candidate: { name: "\u0637\u0627\u0631\u0642 \u062d\u0633\u0646", nameEn: "Tarek Hassan", phone: "+201099110108", email: "seed.tarek.hassan@example.com", source: UserSource.EXTERNAL, governorate: "CAI", organization: "Independent Pool", branch: "Maadi", rating: "3.10", sessions: 4, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  manual_assn_candidate: { name: "\u0631\u0627\u0646\u064a\u0627 \u0645\u062d\u0645\u062f", nameEn: "Rania Mohamed", phone: "+201099110109", email: "seed.rania.mohamed@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Ain Shams University", branch: "Abbassia", rating: "4.00", sessions: 6, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  temp_blocked: { name: "\u0623\u0645\u0644 \u0639\u0644\u064a", nameEn: "Amal Ali", phone: "+201099110110", email: "seed.amal.ali@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Giza", rating: "4.05", sessions: 9, blockStatus: BlockStatus.TEMPORARY, blockEndsAt: d("2026-04-01T00:00:00.000Z"), locale: LocaleCode.AR, isActive: true },
+  expired_block: { name: "\u0639\u0645\u0631 \u0641\u062a\u062d\u064a", nameEn: "Omar Fathy", phone: "+201099110111", email: "seed.omar.fathy@example.com", source: UserSource.SPHINX, governorate: "CAI", organization: "Sphinx Staff", branch: "Cairo", rating: "3.80", sessions: 5, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  inactive_user: { name: "\u0644\u064a\u0644\u0649 \u0633\u064a\u062f", nameEn: "Laila Sayed", phone: "+201099110112", email: "seed.laila.sayed@example.com", source: UserSource.UNIVERSITY, governorate: "GIZ", organization: "Cairo University", branch: "Giza", rating: "4.00", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: false }
+} as const;
+
+const appUsers = [
+  { email: "admin@examops.local", displayName: "ExamOps Admin", role: AppUserRole.SUPER_ADMIN, locale: LocaleCode.AR },
+  { email: "coordinator@examops.local", displayName: "ExamOps Coordinator", role: AppUserRole.COORDINATOR, locale: LocaleCode.AR },
+  { email: "dataentry@examops.local", displayName: "ExamOps Data Entry", role: AppUserRole.DATA_ENTRY, locale: LocaleCode.EN },
+  { email: "senior@examops.local", displayName: "ExamOps Senior", role: AppUserRole.SENIOR, locale: LocaleCode.AR },
+  { email: "viewer@examops.local", displayName: "ExamOps Viewer", role: AppUserRole.VIEWER, locale: LocaleCode.EN },
+  { email: "seed.coordinator@examops.local", displayName: "Seed Coordinator", role: AppUserRole.COORDINATOR, locale: LocaleCode.EN, linkedUserKey: "coordination_hub" },
+  { email: "seed.senior@examops.local", displayName: "Seed Senior", role: AppUserRole.SENIOR, locale: LocaleCode.AR, linkedUserKey: "senior_supervisor" },
+  { email: "seed.viewer@examops.local", displayName: "Seed Viewer", role: AppUserRole.VIEWER, locale: LocaleCode.EN, linkedUserKey: "viewer_observer" }
 ] as const;
+
+const cycleFixture = {
+  code: "FINAL-VALIDATION-2026",
+  name: "\u062f\u0648\u0631\u0629 \u0627\u0644\u062a\u062d\u0642\u0642 \u0627\u0644\u0646\u0647\u0627\u0626\u064a 2026",
+  nameEn: "Final Validation Cycle 2026",
+  startDate: day("2026-03-16"),
+  endDate: day("2026-03-29")
+} as const;
+
+const sessions = {
+  completed_est1: { name: "\u062c\u0644\u0633\u0629 EST1 \u0645\u0643\u062a\u0645\u0644\u0629", nameEn: "Completed EST1 Session", examType: ExamType.EST1, date: day("2026-03-18"), startsAt: d("2026-03-18T07:00:00.000Z"), endsAt: d("2026-03-18T09:30:00.000Z"), status: SessionStatus.COMPLETED, dayIndex: 1, buildings: ["NASR_HQ", "GIZA_ENG"] },
+  scheduled_est2: { name: "\u062c\u0644\u0633\u0629 EST2 \u0645\u062c\u062f\u0648\u0644\u0629", nameEn: "Scheduled EST2 Session", examType: ExamType.EST2, date: day("2026-03-24"), startsAt: d("2026-03-24T07:00:00.000Z"), endsAt: d("2026-03-24T10:00:00.000Z"), status: SessionStatus.SCHEDULED, dayIndex: 2, buildings: ["NASR_HQ", "ABBAS_ANNEX"] },
+  locked_assn: { name: "\u062c\u0644\u0633\u0629 ASSN \u0645\u0642\u0641\u0644\u0629", nameEn: "Locked ASSN Session", examType: ExamType.EST_ASSN, date: day("2026-03-26"), startsAt: d("2026-03-26T08:00:00.000Z"), endsAt: d("2026-03-26T11:00:00.000Z"), status: SessionStatus.LOCKED, dayIndex: 3, buildings: ["ABBAS_ANNEX", "GIZA_ENG"] }
+} as const;
+
+const assignments = [
+  ["completed_est1", "proctor_head", "NASR_HQ", null, null, "building_head", AssignmentStatus.COMPLETED, AssignmentMethod.AUTO, false, null],
+  ["completed_est1", "floor_senior", "NASR_HQ", "NASR_HQ_F1", null, "floor_senior", AssignmentStatus.COMPLETED, AssignmentMethod.AUTO, false, null],
+  ["completed_est1", "room_proctor_a", "NASR_HQ", "NASR_HQ_F1", "NASR_HQ_N101", "room_proctor", AssignmentStatus.COMPLETED, AssignmentMethod.AUTO, false, null],
+  ["completed_est1", "room_proctor_b", "GIZA_ENG", "GIZA_ENG_F1", "GIZA_ENG_G101", "room_proctor", AssignmentStatus.COMPLETED, AssignmentMethod.AUTO, false, null],
+  ["completed_est1", "roaming_monitor", "GIZA_ENG", "GIZA_ENG_F1", null, "roaming_monitor", AssignmentStatus.COMPLETED, AssignmentMethod.AUTO, false, null],
+  ["scheduled_est2", "proctor_head", "ABBAS_ANNEX", null, null, "building_head", AssignmentStatus.CONFIRMED, AssignmentMethod.AUTO, false, null],
+  ["scheduled_est2", "room_proctor_a", "ABBAS_ANNEX", "ABBAS_ANNEX_F1", "ABBAS_ANNEX_A101", "room_proctor", AssignmentStatus.CONFIRMED, AssignmentMethod.AUTO, false, null],
+  ["scheduled_est2", "promoted_candidate", "NASR_HQ", "NASR_HQ_F2", "NASR_HQ_N201", "room_proctor", AssignmentStatus.CONFIRMED, AssignmentMethod.MANUAL, true, "promoted_from_waiting_list_seed"],
+  ["scheduled_est2", "removed_candidate", "ABBAS_ANNEX", "ABBAS_ANNEX_F2", "ABBAS_ANNEX_A201", "room_proctor", AssignmentStatus.CANCELLED, AssignmentMethod.MANUAL, true, "cancelled_seed_assignment"],
+  ["locked_assn", "manual_assn_candidate", "ABBAS_ANNEX", "ABBAS_ANNEX_F2", "ABBAS_ANNEX_AS1", "assn_manual", AssignmentStatus.DRAFT, AssignmentMethod.MANUAL, true, "manual_assn_seed"],
+  ["locked_assn", "floor_senior", "GIZA_ENG", "GIZA_ENG_F2", null, "floor_senior", AssignmentStatus.CONFIRMED, AssignmentMethod.MANUAL, true, "locked_session_floor_coverage_seed"]
+] as const;
+
+const waitingList = [
+  ["scheduled_est2", "waiting_candidate", "ABBAS_ANNEX", "room_proctor", 1, WaitingListStatus.WAITING, "AUTO_RERANK", "Top backup", null, null],
+  ["scheduled_est2", "promoted_candidate", "NASR_HQ", "room_proctor", 2, WaitingListStatus.PROMOTED, "AUTO_RERANK", "Promoted into assignment", d("2026-03-23T12:00:00.000Z"), null],
+  ["scheduled_est2", "removed_candidate", "ABBAS_ANNEX", "room_proctor", 3, WaitingListStatus.REMOVED, "MANUAL", "Removed after review", null, d("2026-03-23T15:00:00.000Z")]
+] as const;
+
+const attendance = [
+  ["completed_est1", "proctor_head", AttendanceStatus.CONFIRMED, d("2026-03-18T06:45:00.000Z"), "Arrived early", "admin@examops.local"],
+  ["completed_est1", "floor_senior", AttendanceStatus.CONFIRMED, d("2026-03-18T06:50:00.000Z"), "Confirmed on site", "coordinator@examops.local"],
+  ["completed_est1", "room_proctor_a", AttendanceStatus.CONFIRMED, d("2026-03-18T06:55:00.000Z"), "Checked in on time", "coordinator@examops.local"],
+  ["completed_est1", "room_proctor_b", AttendanceStatus.ABSENT, null, "Did not arrive", "coordinator@examops.local"],
+  ["completed_est1", "roaming_monitor", AttendanceStatus.DECLINED, null, "Declined before session", "senior@examops.local"]
+] as const;
+
+const evaluations = [
+  ["completed_est1", "room_proctor_a", "seed.coordinator@examops.local", "4.80", { punctuality: 5, discipline: 5, communication: 4 }, "Strong performance"],
+  ["completed_est1", "room_proctor_b", "coordinator@examops.local", "2.90", { punctuality: 1, discipline: 3, communication: 4 }, "Low score after absence"],
+  ["completed_est1", "roaming_monitor", "seed.senior@examops.local", "3.70", { punctuality: 3, discipline: 4, communication: 4 }, "Adequate performance"],
+  ["completed_est1", "floor_senior", "admin@examops.local", "4.20", { punctuality: 4, discipline: 4, communication: 4 }, "Consistent supervision"]
+] as const;
+
+const blocks = [
+  ["temp_blocked", BlockType.TEMPORARY, BlockRecordStatus.ACTIVE, d("2026-03-10T00:00:00.000Z"), d("2026-04-01T00:00:00.000Z"), "Seed active temporary block", "admin@examops.local", null, null],
+  ["expired_block", BlockType.TEMPORARY, BlockRecordStatus.EXPIRED, d("2026-02-10T00:00:00.000Z"), d("2026-02-24T00:00:00.000Z"), "Seed expired temporary block", "admin@examops.local", "admin@examops.local", d("2026-02-24T00:00:00.000Z")]
+] as const;
+
+const preferences = {
+  coordination_hub: [true, true, false, true, LocaleCode.EN],
+  senior_supervisor: [true, true, false, true, LocaleCode.AR],
+  viewer_observer: [true, false, false, true, LocaleCode.EN],
+  proctor_head: [true, true, false, true, LocaleCode.AR],
+  floor_senior: [true, true, false, true, LocaleCode.AR],
+  room_proctor_a: [true, false, true, true, LocaleCode.EN],
+  room_proctor_b: [false, true, true, true, LocaleCode.AR],
+  waiting_candidate: [true, true, false, true, LocaleCode.AR],
+  promoted_candidate: [false, true, true, true, LocaleCode.EN],
+  removed_candidate: [true, false, false, true, LocaleCode.EN],
+  manual_assn_candidate: [true, true, false, true, LocaleCode.AR],
+  temp_blocked: [true, false, false, true, LocaleCode.AR]
+} as const;
+
+const emailTemplates = [
+  ["assignment_created", "assignment", "\u062a\u0643\u0644\u064a\u0641 \u062c\u062f\u064a\u062f \u0644\u062c\u0644\u0633\u0629 {{session}}", "New assignment for {{session}}", "\u0645\u0631\u062d\u0628\u0627 {{name}}. \u062a\u0645 \u062a\u0643\u0644\u064a\u0641\u0643 \u0643{{role}} \u0641\u064a {{building}} \u064a\u0648\u0645 {{sessionDate}}.", "Hello {{name}}. You have been assigned as {{role}} in {{building}} on {{sessionDate}}.", ["name", "session", "role", "building", "examType", "sessionDate", "assignmentId", "assignmentStatus", "assignedMethod"]],
+  ["attendance_marked", "attendance", "\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0636\u0648\u0631", "Attendance updated", "\u062d\u0627\u0644\u0629 \u062d\u0636\u0648\u0631\u0643 \u0623\u0635\u0628\u062d\u062a {{attendanceState}} \u0641\u064a {{session}}.", "Your attendance for {{session}} is now {{attendanceState}}.", ["name", "session", "role", "building", "examType", "sessionDate", "assignmentId", "assignmentStatus", "assignedMethod", "attendanceStatus", "attendanceState"]],
+  ["waiting_list_promoted", "waiting_list", "\u062a\u0631\u0642\u064a\u0629 \u0645\u0646 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631", "Promoted from waiting list", "\u062a\u0645 \u062a\u0631\u0642\u064a\u062a\u0643 \u0625\u0644\u0649 \u062a\u0643\u0644\u064a\u0641 {{role}} \u0641\u064a {{building}}.", "You were promoted into the {{role}} assignment in {{building}}.", ["name", "session", "role", "building", "examType", "sessionDate", "assignmentId", "assignmentStatus", "assignedMethod", "waitingListId"]],
+  ["assignment_swapped", "assignment", "\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062a\u0643\u0644\u064a\u0641", "Assignment updated", "\u062a\u0645 \u062a\u062d\u062f\u064a\u062b \u062a\u0643\u0644\u064a\u0641\u0643. \u0646\u0648\u0639 \u0627\u0644\u062a\u0639\u062f\u064a\u0644 {{swapKind}}.", "Your assignment was updated. Swap kind: {{swapKind}}.", ["name", "session", "role", "building", "examType", "sessionDate", "assignmentId", "assignmentStatus", "assignedMethod", "swapKind"]],
+  ["user_blocked", "block", "\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062d\u0638\u0631", "Block activated", "\u062d\u0627\u0644\u0629 \u0627\u0644\u062d\u0638\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629 {{blockStatus}}.", "Your current block status is {{blockStatus}}.", ["name", "blockAction", "blockStatus", "blockEndsAt"]],
+  ["user_unblocked", "block", "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u062d\u0638\u0631", "Block lifted", "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u062d\u0638\u0631 \u0648\u0623\u0635\u0628\u062d\u062a \u062d\u0627\u0644\u062a\u0643 {{blockStatus}}.", "Your block has been lifted and the current status is {{blockStatus}}.", ["name", "blockAction", "blockStatus", "blockEndsAt"]]
+] as const;
+
+async function upsertBlock(input: {
+  userId: string;
+  type: BlockType;
+  status: BlockRecordStatus;
+  startsAt: Date;
+  endsAt: Date | null;
+  reason: string;
+  createdByAppUserId: string;
+  liftedByAppUserId: string | null;
+  liftedAt: Date | null;
+}) {
+  const existing = await prisma.block.findFirst({
+    where: { userId: input.userId, reason: input.reason },
+    select: { id: true }
+  });
+
+  const data = {
+    type: input.type,
+    status: input.status,
+    source: BlockSource.MANUAL,
+    startsAt: input.startsAt,
+    endsAt: input.endsAt,
+    reason: input.reason,
+    notes: seedTag,
+    suggestionContext: { seedTag },
+    liftReason: input.liftedAt ? "Automatically expired" : null,
+    liftedAt: input.liftedAt,
+    createdByAppUserId: input.createdByAppUserId,
+    liftedByAppUserId: input.liftedByAppUserId
+  };
+
+  if (existing) {
+    return prisma.block.update({ where: { id: existing.id }, data });
+  }
+
+  return prisma.block.create({ data: { userId: input.userId, ...data } });
+}
 
 async function main() {
   const passwordHash = await hash(seedPassword, 12);
 
-  for (const role of assignmentRoles) {
+  for (const [key, name, nameEn, scope, manualOnly, sortOrder] of assignmentRoles) {
     await prisma.assignmentRoleDefinition.upsert({
-      where: {
-        key: role.key
-      },
-      update: {
-        name: role.name,
-        nameEn: role.nameEn,
-        scope: role.scope,
-        manualOnly: role.manualOnly,
-        sortOrder: role.sortOrder,
-        isSystem: true,
-        isActive: true,
-        description: role.description,
-        descriptionEn: role.descriptionEn
-      },
-      create: {
-        key: role.key,
-        name: role.name,
-        nameEn: role.nameEn,
-        scope: role.scope,
-        manualOnly: role.manualOnly,
-        sortOrder: role.sortOrder,
-        isSystem: true,
-        isActive: true,
-        description: role.description,
-        descriptionEn: role.descriptionEn
-      }
+      where: { key },
+      update: { name, nameEn, scope, manualOnly, sortOrder, isSystem: true, isActive: true, description: nameEn, descriptionEn: nameEn },
+      create: { key, name, nameEn, scope, manualOnly, sortOrder, isSystem: true, isActive: true, description: nameEn, descriptionEn: nameEn }
     });
   }
 
-  for (const setting of settings) {
+  for (const item of settings) {
     await prisma.setting.upsert({
-      where: {
-        key: setting.key
-      },
-      update: {
-        group: setting.group,
-        label: setting.label,
-        labelEn: setting.labelEn,
-        description: setting.description,
-        descriptionEn: setting.descriptionEn,
-        type: setting.type,
-        value: setting.value,
-        isPublic: false,
-        isActive: true,
-        sortOrder: setting.sortOrder
-      },
-      create: {
-        key: setting.key,
-        group: setting.group,
-        label: setting.label,
-        labelEn: setting.labelEn,
-        description: setting.description,
-        descriptionEn: setting.descriptionEn,
-        type: setting.type,
-        value: setting.value,
-        isPublic: false,
-        isActive: true,
-        sortOrder: setting.sortOrder
-      }
+      where: { key: item.key },
+      update: { ...item, isPublic: false, isActive: true },
+      create: { ...item, isPublic: false, isActive: true }
     });
   }
 
-  for (const appUser of appUsers) {
-    await prisma.appUser.upsert({
-      where: {
-        email: appUser.email
+  const governorateIds: Record<string, string> = {};
+  for (const [code, value] of Object.entries(governorates)) {
+    const record = await prisma.governorate.upsert({
+      where: { code },
+      update: { ...value, isActive: true, notes: seedTag },
+      create: { code, ...value, isActive: true, notes: seedTag },
+      select: { id: true }
+    });
+    governorateIds[code] = record.id;
+  }
+
+  const universityIds: Record<string, string> = {};
+  for (const [code, value] of Object.entries(universities)) {
+    const governorateId = governorateIds[value.governorate];
+    const record = await prisma.university.upsert({
+      where: { governorateId_code: { governorateId, code } },
+      update: { name: value.name, nameEn: value.nameEn, sortOrder: value.sortOrder, isActive: true, notes: seedTag },
+      create: { governorateId, code, name: value.name, nameEn: value.nameEn, sortOrder: value.sortOrder, isActive: true, notes: seedTag },
+      select: { id: true }
+    });
+    universityIds[code] = record.id;
+  }
+
+  const buildingIds: Record<string, string> = {};
+  for (const [key, value] of Object.entries(buildings)) {
+    const universityId = universityIds[value.university];
+    const record = await prisma.building.upsert({
+      where: { universityId_code: { universityId, code: value.code } },
+      update: { name: value.name, nameEn: value.nameEn, address: value.address, sortOrder: value.sortOrder, isActive: true, notes: seedTag },
+      create: { universityId, code: value.code, name: value.name, nameEn: value.nameEn, address: value.address, sortOrder: value.sortOrder, isActive: true, notes: seedTag },
+      select: { id: true }
+    });
+    buildingIds[key] = record.id;
+  }
+
+  const floorIds: Record<string, string> = {};
+  for (const [key, value] of Object.entries(floors)) {
+    const buildingId = buildingIds[value.building];
+    const record = await prisma.floor.upsert({
+      where: { buildingId_code: { buildingId, code: value.code } },
+      update: { name: value.name, nameEn: value.nameEn, levelNumber: value.level, sortOrder: value.sortOrder, isActive: true, notes: seedTag },
+      create: { buildingId, code: value.code, name: value.name, nameEn: value.nameEn, levelNumber: value.level, sortOrder: value.sortOrder, isActive: true, notes: seedTag },
+      select: { id: true }
+    });
+    floorIds[key] = record.id;
+  }
+
+  const roomIds: Record<string, string> = {};
+  for (const [key, value] of Object.entries(rooms)) {
+    const floorId = floorIds[value.floor];
+    const record = await prisma.room.upsert({
+      where: { floorId_code: { floorId, code: value.code } },
+      update: { name: value.name, nameEn: value.nameEn, roomType: value.roomType, supportedExamTypes: [...value.exams], capacityMin: value.min, capacityMax: value.max, isActive: true, notes: seedTag },
+      create: { floorId, code: value.code, name: value.name, nameEn: value.nameEn, roomType: value.roomType, supportedExamTypes: [...value.exams], capacityMin: value.min, capacityMax: value.max, isActive: true, notes: seedTag },
+      select: { id: true }
+    });
+    roomIds[key] = record.id;
+  }
+
+  const userIds: Record<string, string> = {};
+  for (const [key, value] of Object.entries(users)) {
+    const record = await prisma.user.upsert({
+      where: { phone: value.phone },
+      update: {
+        name: value.name,
+        nameEn: value.nameEn,
+        email: value.email,
+        source: value.source,
+        organization: value.organization,
+        branch: value.branch,
+        governorateId: governorateIds[value.governorate],
+        averageRating: value.rating,
+        totalSessions: value.sessions,
+        blockStatus: value.blockStatus,
+        blockEndsAt: value.blockEndsAt,
+        preferredLanguage: value.locale,
+        isActive: value.isActive,
+        notes: seedTag
       },
+      create: {
+        name: value.name,
+        nameEn: value.nameEn,
+        phone: value.phone,
+        email: value.email,
+        source: value.source,
+        organization: value.organization,
+        branch: value.branch,
+        governorateId: governorateIds[value.governorate],
+        averageRating: value.rating,
+        totalSessions: value.sessions,
+        blockStatus: value.blockStatus,
+        blockEndsAt: value.blockEndsAt,
+        preferredLanguage: value.locale,
+        isActive: value.isActive,
+        notes: seedTag
+      },
+      select: { id: true }
+    });
+    userIds[key] = record.id;
+  }
+
+  const appUserIds: Record<string, string> = {};
+  for (const appUser of appUsers) {
+    const linkedUserId = "linkedUserKey" in appUser && appUser.linkedUserKey ? userIds[appUser.linkedUserKey] : undefined;
+    const record = await prisma.appUser.upsert({
+      where: { email: appUser.email },
       update: {
         displayName: appUser.displayName,
         role: appUser.role,
         passwordHash,
-        preferredLanguage: appUser.preferredLanguage,
-        preferredTheme: appUser.preferredTheme,
-        isActive: true
+        preferredLanguage: appUser.locale,
+        preferredTheme: ThemePreference.SYSTEM,
+        isActive: true,
+        ...(linkedUserId ? { linkedUserId } : {})
       },
       create: {
         email: appUser.email,
         displayName: appUser.displayName,
         role: appUser.role,
         passwordHash,
-        preferredLanguage: appUser.preferredLanguage,
-        preferredTheme: appUser.preferredTheme,
-        isActive: true
-      }
+        preferredLanguage: appUser.locale,
+        preferredTheme: ThemePreference.SYSTEM,
+        isActive: true,
+        ...(linkedUserId ? { linkedUserId } : {})
+      },
+      select: { id: true }
+    });
+    appUserIds[appUser.email] = record.id;
+  }
+
+  for (const [key, type, subjectAr, subjectEn, bodyAr, bodyEn, variables] of emailTemplates) {
+    await prisma.emailTemplate.upsert({
+      where: { key },
+      update: { type, subjectAr, subjectEn, bodyAr, bodyEn, variables, isActive: true },
+      create: { key, type, subjectAr, subjectEn, bodyAr, bodyEn, variables, isActive: true }
+    });
+  }
+
+  const cycle = await prisma.cycle.upsert({
+    where: { code: cycleFixture.code },
+    update: { name: cycleFixture.name, nameEn: cycleFixture.nameEn, status: CycleStatus.ACTIVE, startDate: cycleFixture.startDate, endDate: cycleFixture.endDate, notes: seedTag, isActive: true },
+    create: { code: cycleFixture.code, name: cycleFixture.name, nameEn: cycleFixture.nameEn, status: CycleStatus.ACTIVE, startDate: cycleFixture.startDate, endDate: cycleFixture.endDate, notes: seedTag, isActive: true },
+    select: { id: true }
+  });
+
+  const sessionIds: Record<string, string> = {};
+  for (const [key, value] of Object.entries(sessions)) {
+    const record = await prisma.session.upsert({
+      where: { cycleId_sessionDate_examType: { cycleId: cycle.id, sessionDate: value.date, examType: value.examType } },
+      update: { name: value.name, nameEn: value.nameEn, startsAt: value.startsAt, endsAt: value.endsAt, status: value.status, dayIndex: value.dayIndex, notes: seedTag, isActive: true },
+      create: { cycleId: cycle.id, name: value.name, nameEn: value.nameEn, examType: value.examType, sessionDate: value.date, startsAt: value.startsAt, endsAt: value.endsAt, status: value.status, dayIndex: value.dayIndex, notes: seedTag, isActive: true },
+      select: { id: true }
+    });
+    sessionIds[key] = record.id;
+    for (const buildingKey of value.buildings) {
+      await prisma.sessionBuilding.upsert({
+        where: { sessionId_buildingId: { sessionId: record.id, buildingId: buildingIds[buildingKey] } },
+        update: { isActive: true, notes: seedTag },
+        create: { sessionId: record.id, buildingId: buildingIds[buildingKey], isActive: true, notes: seedTag }
+      });
+    }
+  }
+
+  const roleIds = Object.fromEntries(
+    (
+      await prisma.assignmentRoleDefinition.findMany({
+        where: { key: { in: assignmentRoles.map((item) => item[0]) } },
+        select: { key: true, id: true }
+      })
+    ).map((item) => [item.key, item.id])
+  ) as Record<string, string>;
+
+  const assignmentIds: Record<string, string> = {};
+  for (const [sessionKey, userKey, buildingKey, floorKey, roomKey, roleKey, status, method, manualOverride, overrideNote] of assignments) {
+    const sessionId = sessionIds[sessionKey];
+    const userId = userIds[userKey];
+    const record = await prisma.assignment.upsert({
+      where: { sessionId_userId: { sessionId, userId } },
+      update: {
+        buildingId: buildingIds[buildingKey],
+        floorId: floorKey ? floorIds[floorKey] : null,
+        roomId: roomKey ? roomIds[roomKey] : null,
+        roleDefinitionId: roleIds[roleKey],
+        status,
+        assignedMethod: method,
+        isManualOverride: manualOverride,
+        overrideNote
+      },
+      create: {
+        sessionId,
+        userId,
+        buildingId: buildingIds[buildingKey],
+        floorId: floorKey ? floorIds[floorKey] : null,
+        roomId: roomKey ? roomIds[roomKey] : null,
+        roleDefinitionId: roleIds[roleKey],
+        status,
+        assignedMethod: method,
+        isManualOverride: manualOverride,
+        overrideNote
+      },
+      select: { id: true }
+    });
+    assignmentIds[`${sessionKey}:${userKey}`] = record.id;
+  }
+
+  for (const [sessionKey, userKey, buildingKey, roleKey, priority, status, entrySource, reason, promotedAt, removedAt] of waitingList) {
+    await prisma.waitingList.upsert({
+      where: { sessionId_userId: { sessionId: sessionIds[sessionKey], userId: userIds[userKey] } },
+      update: { cycleId: cycle.id, buildingId: buildingIds[buildingKey], roleDefinitionId: roleIds[roleKey], priority, status, entrySource, reason, notes: seedTag, promotedAt, removedAt },
+      create: { sessionId: sessionIds[sessionKey], cycleId: cycle.id, userId: userIds[userKey], buildingId: buildingIds[buildingKey], roleDefinitionId: roleIds[roleKey], priority, status, entrySource, reason, notes: seedTag, promotedAt, removedAt }
+    });
+  }
+
+  for (const [sessionKey, userKey, status, checkedInAt, notes, actorEmail] of attendance) {
+    await prisma.attendance.upsert({
+      where: { assignmentId: assignmentIds[`${sessionKey}:${userKey}`] },
+      update: { status, checkedInAt, notes, updatedByAppUserId: appUserIds[actorEmail] },
+      create: { assignmentId: assignmentIds[`${sessionKey}:${userKey}`], status, checkedInAt, notes, updatedByAppUserId: appUserIds[actorEmail] }
+    });
+  }
+
+  for (const [sessionKey, userKey, actorEmail, score, criteriaPayload, notes] of evaluations) {
+    await prisma.evaluation.upsert({
+      where: {
+        sessionId_subjectUserId_evaluatorAppUserId: {
+          sessionId: sessionIds[sessionKey],
+          subjectUserId: userIds[userKey],
+          evaluatorAppUserId: appUserIds[actorEmail]
+        }
+      },
+      update: { assignmentId: assignmentIds[`${sessionKey}:${userKey}`], score, criteriaPayload, notes },
+      create: { sessionId: sessionIds[sessionKey], subjectUserId: userIds[userKey], evaluatorAppUserId: appUserIds[actorEmail], assignmentId: assignmentIds[`${sessionKey}:${userKey}`], score, criteriaPayload, notes }
+    });
+  }
+
+  for (const [userKey, emailEnabled, whatsappEnabled, smsEnabled, inAppEnabled, preferredLanguage] of Object.entries(preferences).map(([key, value]) => [key, ...value] as const)) {
+    await prisma.notificationPreference.upsert({
+      where: { userId: userIds[userKey] },
+      update: { emailEnabled, whatsappEnabled, smsEnabled, inAppEnabled, preferredLanguage },
+      create: { userId: userIds[userKey], emailEnabled, whatsappEnabled, smsEnabled, inAppEnabled, preferredLanguage }
+    });
+  }
+
+  for (const [userKey, type, status, startsAt, endsAt, reason, createdByEmail, liftedByEmail, liftedAt] of blocks) {
+    await upsertBlock({
+      userId: userIds[userKey],
+      type,
+      status,
+      startsAt,
+      endsAt,
+      reason,
+      createdByAppUserId: appUserIds[createdByEmail],
+      liftedByAppUserId: liftedByEmail ? appUserIds[liftedByEmail] : null,
+      liftedAt
     });
   }
 
   console.log(
-    `Seeded ${assignmentRoles.length} assignment roles, ${settings.length} settings, and ${appUsers.length} app users.`
+    [
+      `roles=${assignmentRoles.length}`,
+      `settings=${settings.length}`,
+      `appUsers=${appUsers.length}`,
+      `buildings=${Object.keys(buildings).length}`,
+      `rooms=${Object.keys(rooms).length}`,
+      `sessions=${Object.keys(sessions).length}`,
+      `assignments=${assignments.length}`,
+      `waitingList=${waitingList.length}`,
+      `attendance=${attendance.length}`,
+      `evaluations=${evaluations.length}`,
+      `blocks=${blocks.length}`,
+      `preferences=${Object.keys(preferences).length}`,
+      `templates=${emailTemplates.length}`,
+      `tag=${seedTag}`
+    ].join(" ")
   );
 }
 
@@ -527,4 +599,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
