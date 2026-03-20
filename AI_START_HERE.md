@@ -42,16 +42,16 @@ Use them only as loose reference if they still exist.
 - Phase 7 is in progress
 - Phase 7 Step 1 (Waiting List) is completed and verified
 - Phase 7 Step 2 (Swap Workflow) is completed and verified
-- The current execution target is Phase 7 Step 3 (Attendance Workflow)
+- Phase 7 Step 3 (Attendance Workflow) is completed and verified
+- The current execution target is Phase 7 Step 4 (Evaluation Workflow)
 
 ## Next Recommended Task
 
 Continue with:
 
-1. Attendance workflow
-2. Evaluation workflow
-3. Promotion suggestion logic
-4. Block workflow
+1. Evaluation workflow
+2. Promotion suggestion logic
+3. Block workflow
 
 ## Files To Read Next
 

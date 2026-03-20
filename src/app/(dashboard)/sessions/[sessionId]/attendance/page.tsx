@@ -1,24 +1,25 @@
 import { notFound } from "next/navigation";
 
-import { SessionDetailView } from "@/components/sessions/session-detail-view";
+import { SessionAttendanceWorkspace } from "@/components/attendance/session-attendance-workspace";
 import { requireRole } from "@/lib/auth/guards";
 import { getMessages, resolveRequestLocale } from "@/lib/i18n";
 import { getSessionById, SessionsServiceError } from "@/lib/sessions/service";
+import { getDerivedSessionStatus } from "@/lib/sessions/status";
 import { sessionRouteParamsSchema } from "@/lib/sessions/validation";
 
-type SessionDetailPageProps = {
+type SessionAttendancePageProps = {
   params: {
     sessionId: string;
   };
 };
 
-export default async function SessionDetailPage({
+export default async function SessionAttendancePage({
   params
-}: SessionDetailPageProps) {
+}: SessionAttendancePageProps) {
   const session = await requireRole([
     "super_admin",
     "coordinator",
-    "data_entry"
+    "senior"
   ]);
   const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
@@ -28,15 +29,20 @@ export default async function SessionDetailPage({
     const data = await getSessionById(routeParams.sessionId, {
       includeInactive: true
     });
-    const canOpenAttendanceWorkspace =
-      session.user.role === "super_admin" || session.user.role === "coordinator";
 
     return (
-      <SessionDetailView
-        data={data}
+      <SessionAttendanceWorkspace
         locale={locale}
         messages={messages}
-        canOpenAttendanceWorkspace={canOpenAttendanceWorkspace}
+        session={{
+          id: data.id,
+          name: data.name,
+          nameEn: data.nameEn,
+          examType: data.examType,
+          status: data.status,
+          derivedStatus: getDerivedSessionStatus(data),
+          isActive: data.isActive
+        }}
       />
     );
   } catch (error) {

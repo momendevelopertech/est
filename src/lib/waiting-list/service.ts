@@ -688,90 +688,107 @@ function assertWaitingStatus(entry: Prisma.WaitingListGetPayload<{ select: typeo
   );
 }
 
+type PromoteWaitingListEntryInTransactionOptions = {
+  actorAppUserId?: string;
+  shouldLogActivity: boolean;
+};
+
+export async function promoteWaitingListEntryInTransaction(
+  tx: Prisma.TransactionClient,
+  waitingListId: string,
+  input: PromoteWaitingListEntryInput,
+  options: PromoteWaitingListEntryInTransactionOptions
+) {
+  const contractInput: WaitingListPromoteContract = input;
+  const before = await assertWaitingListEntryExists(tx, waitingListId);
+  assertWaitingStatus(before);
+  assertSessionOperational(before.session);
+
+  const buildingId = contractInput.buildingId ?? before.buildingId ?? undefined;
+  const roleDefinitionId =
+    contractInput.roleDefinitionId ?? before.roleDefinitionId ?? undefined;
+
+  if (!buildingId || !roleDefinitionId) {
+    throw new WaitingListServiceError(
+      ERROR_CODES.waitingListPromotionMissingPlacement,
+      409,
+      "Promotion requires role and building placement.",
+      {
+        waitingListId: before.id,
+        buildingId: before.buildingId,
+        roleDefinitionId: before.roleDefinitionId
+      }
+    );
+  }
+
+  const promotedAssignment = await createAssignmentInTransaction(tx, {
+    sessionId: before.sessionId,
+    userId: before.userId,
+    buildingId,
+    roleDefinitionId,
+    floorId: contractInput.floorId,
+    roomId: contractInput.roomId,
+    assignedMethod: AssignmentMethod.MANUAL,
+    status: AssignmentStatus.DRAFT,
+    isManualOverride: false,
+    overrideNote: contractInput.overrideNote
+  });
+
+  const promoted = await tx.waitingList.update({
+    where: {
+      id: before.id
+    },
+    data: {
+      status: WaitingListStatus.PROMOTED,
+      promotedAt: new Date(),
+      removedAt: null,
+      buildingId,
+      roleDefinitionId
+    },
+    select: waitingListSelect
+  });
+
+  await rerankWaitingEntriesInTransaction(tx, before.sessionId);
+
+  if (options.shouldLogActivity) {
+    await logActivity({
+      client: tx,
+      userId: options.actorAppUserId,
+      action: "promote",
+      entityType: "waiting_list",
+      entityId: promoted.id,
+      description: `Promoted waiting-list entry for ${promoted.user.name} in session ${promoted.session.name}.`,
+      metadata: {
+        waitingListId: promoted.id,
+        sessionId: promoted.sessionId,
+        userId: promoted.userId,
+        assignmentId: promotedAssignment.id,
+        buildingId: promotedAssignment.buildingId,
+        roleDefinitionId: promotedAssignment.roleDefinitionId
+      },
+      beforePayload: before,
+      afterPayload: promoted
+    });
+  }
+
+  return {
+    entry: promoted,
+    assignment: promotedAssignment
+  };
+}
+
 export async function promoteWaitingListEntry(
   waitingListId: string,
   input: PromoteWaitingListEntryInput,
   actorAppUserId: string
 ) {
-  const contractInput: WaitingListPromoteContract = input;
-
   try {
     return await db.$transaction(
-      async (tx) => {
-        const before = await assertWaitingListEntryExists(tx, waitingListId);
-        assertWaitingStatus(before);
-        assertSessionOperational(before.session);
-
-        const buildingId = contractInput.buildingId ?? before.buildingId ?? undefined;
-        const roleDefinitionId =
-          contractInput.roleDefinitionId ?? before.roleDefinitionId ?? undefined;
-
-        if (!buildingId || !roleDefinitionId) {
-          throw new WaitingListServiceError(
-            ERROR_CODES.waitingListPromotionMissingPlacement,
-            409,
-            "Promotion requires role and building placement.",
-            {
-              waitingListId: before.id,
-              buildingId: before.buildingId,
-              roleDefinitionId: before.roleDefinitionId
-            }
-          );
-        }
-
-        const promotedAssignment = await createAssignmentInTransaction(tx, {
-          sessionId: before.sessionId,
-          userId: before.userId,
-          buildingId,
-          roleDefinitionId,
-          floorId: contractInput.floorId,
-          roomId: contractInput.roomId,
-          assignedMethod: AssignmentMethod.MANUAL,
-          status: AssignmentStatus.DRAFT,
-          isManualOverride: false,
-          overrideNote: contractInput.overrideNote
-        });
-
-        const promoted = await tx.waitingList.update({
-          where: {
-            id: before.id
-          },
-          data: {
-            status: WaitingListStatus.PROMOTED,
-            promotedAt: new Date(),
-            removedAt: null,
-            buildingId,
-            roleDefinitionId
-          },
-          select: waitingListSelect
-        });
-
-        await rerankWaitingEntriesInTransaction(tx, before.sessionId);
-
-        await logActivity({
-          client: tx,
-          userId: actorAppUserId,
-          action: "promote",
-          entityType: "waiting_list",
-          entityId: promoted.id,
-          description: `Promoted waiting-list entry for ${promoted.user.name} in session ${promoted.session.name}.`,
-          metadata: {
-            waitingListId: promoted.id,
-            sessionId: promoted.sessionId,
-            userId: promoted.userId,
-            assignmentId: promotedAssignment.id,
-            buildingId: promotedAssignment.buildingId,
-            roleDefinitionId: promotedAssignment.roleDefinitionId
-          },
-          beforePayload: before,
-          afterPayload: promoted
-        });
-
-        return {
-          entry: promoted,
-          assignment: promotedAssignment
-        };
-      },
+      async (tx) =>
+        promoteWaitingListEntryInTransaction(tx, waitingListId, input, {
+          actorAppUserId,
+          shouldLogActivity: true
+        }),
       {
         maxWait: 10000,
         timeout: 30000

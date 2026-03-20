@@ -33,6 +33,7 @@
 - A responsive assignment workspace is now live at `/sessions/[sessionId]/assignments` with manual assignment forms, auto/rerank controls, and lock-validation visibility
 - Waiting-list workflow is now implemented with ranked entries, promote/remove lifecycle actions, assignment integration, activity logging, and a responsive `/sessions/[sessionId]/waiting-list` screen
 - Swap workflow is now implemented with direct assignment swaps, waiting-list replacements, manual replacement flow, transactional safety, activity logging, and a responsive `/sessions/[sessionId]/swaps` screen
+- Attendance workflow is now implemented with status updates, waiting-list replacement suggestions, transactional absence replacement promotion, activity logging, and a responsive `/sessions/[sessionId]/attendance` screen
 
 ## Canonical Working Documents
 
@@ -85,12 +86,13 @@ We will instead:
 | Late-import re-ranking flow | done | `/api/assignments/rerank` now preserves manual assignments while re-running auto planning safely |
 | Waiting-list logic and screens | done | `/api/waiting-list` plus `/sessions/[sessionId]/waiting-list` now support ranked create/list/promote/remove workflows |
 | Swap workflow | done | `/api/swaps` plus `/sessions/[sessionId]/swaps` now support direct swap, waiting-list replacement, manual replacement, and transactional rollback safety |
+| Attendance workflow | done | `/api/attendance` plus `/sessions/[sessionId]/attendance` now support attendance status updates, replacement suggestions, and absent-replacement promotion flow |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 7 with attendance workflow on top of assignment, waiting-list, and swap foundations
+- Continue Phase 7 with evaluation workflow on top of assignment, waiting-list, swap, and attendance foundations
 
 ## Update Log
 
@@ -193,3 +195,19 @@ We will instead:
   - invalid swap rejection when manual override is not provided for incompatible roles
   - duplicate prevention for replacement users already assigned in the same session
   - rollback safety on failure (no partial assignment/waiting-list mutation persisted)
+- Added attendance contracts, validation, HTTP layer, and protected attendance API routes:
+  - `GET/POST /api/attendance`
+  - `GET /api/attendance/replacements`
+- Implemented attendance service workflows for:
+  - status updates (`PENDING`, `CONFIRMED`, `ABSENT`, `DECLINED`) with transactional upsert
+  - replacement suggestions ranked from waiting list with compatibility flags
+  - automatic replacement promotion for absent/declined assignments, including original-assignment cancellation in the same transaction
+- Reused waiting-list promotion logic inside transactions via `promoteWaitingListEntryInTransaction` to avoid duplicated assignment/waiting-list logic
+- Added responsive attendance workspace UI at `/sessions/[sessionId]/attendance` and linked it from session details with role-aware access
+- Verified attendance Step 3 end-to-end on real Neon DB through authenticated API scenarios:
+  - successful attendance confirmation updates
+  - successful replacement suggestion retrieval
+  - successful absent + replacement promotion flow
+  - invalid replacement-status validation rejection
+  - rollback safety when replacement promotion fails (no partial attendance or assignment mutation)
+  - activity-log persistence for attendance updates and waiting-list promotions

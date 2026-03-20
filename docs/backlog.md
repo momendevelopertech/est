@@ -86,7 +86,7 @@ Status legend:
 
 - `done` Build waiting-list logic and screens
 - `done` Build swap workflow
-- `todo` Build attendance workflow
+- `done` Build attendance workflow
 - `todo` Build evaluation workflow
 - `todo` Build promotion suggestion logic
 - `todo` Build block workflow
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build attendance workflow
-2. Build evaluation workflow
-3. Build promotion suggestion logic
-4. Build block workflow
-5. Build import template handling
+1. Build evaluation workflow
+2. Build promotion suggestion logic
+3. Build block workflow
+4. Build import template handling
+5. Build export generators

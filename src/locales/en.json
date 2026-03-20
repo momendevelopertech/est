@@ -378,6 +378,7 @@
     "openAssignmentsWorkspace": "Open assignment workspace",
     "openWaitingListWorkspace": "Open waiting-list workspace",
     "openSwapsWorkspace": "Open swaps workspace",
+    "openAttendanceWorkspace": "Open attendance workspace",
     "statusErrors": {
       "invalid_session_status_transition": "This status transition is not allowed from the current session state.",
       "session_status_constraint_failed": "Session timing constraints block this status change.",
@@ -579,6 +580,47 @@
     "errors": {
       "loadFailed": "Could not load swap workspace data.",
       "swapFailed": "Swap operation failed."
+    }
+  },
+  "attendance": {
+    "title": "Attendance workspace",
+    "subtitle": "Track assignment attendance and trigger replacement promotions for absent or declined proctors.",
+    "loading": "Loading attendance workspace...",
+    "backToSession": "Back to session",
+    "refresh": "Refresh attendance",
+    "filters": {
+      "title": "Attendance filters",
+      "description": "Filter assignment rows by attendance status.",
+      "all": "All"
+    },
+    "list": {
+      "title": "Session attendance",
+      "description": "Update attendance state per assignment and optionally promote a replacement from waiting list.",
+      "empty": "No attendance records match the selected filter."
+    },
+    "labels": {
+      "location": "Location",
+      "assignedAt": "Assigned at",
+      "checkedInAt": "Checked in at",
+      "updatedAt": "Last updated",
+      "notes": "Notes",
+      "noReplacement": "No replacement selected"
+    },
+    "statuses": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "ABSENT": "Absent",
+      "DECLINED": "Declined"
+    },
+    "actions": {
+      "save": "Save attendance",
+      "saving": "Saving...",
+      "loadSuggestions": "Load waiting-list suggestions"
+    },
+    "errors": {
+      "loadFailed": "Could not load attendance workspace data.",
+      "saveFailed": "Could not update attendance.",
+      "loadSuggestionsFailed": "Could not load replacement suggestions."
     }
   },
   "proctors": {

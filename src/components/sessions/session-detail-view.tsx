@@ -88,11 +88,13 @@ function formatBuildingPath(data: SessionDetailData, locale: Locale) {
 export function SessionDetailView({
   data,
   locale,
-  messages
+  messages,
+  canOpenAttendanceWorkspace
 }: {
   data: SessionDetailData;
   locale: Locale;
   messages: Messages;
+  canOpenAttendanceWorkspace?: boolean;
 }) {
   const sessionName = getLocalizedName(data, locale);
   const alternateName = getAlternateLocalizedName(data, locale);
@@ -239,6 +241,14 @@ export function SessionDetailView({
           >
             {messages.sessions.openSwapsWorkspace}
           </Link>
+          {canOpenAttendanceWorkspace ? (
+            <Link
+              href={`/sessions/${data.id}/attendance`}
+              className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
+            >
+              {messages.sessions.openAttendanceWorkspace}
+            </Link>
+          ) : null}
         </CardContent>
       </Card>
     </div>
