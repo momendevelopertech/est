@@ -38,6 +38,7 @@
 - Promotion suggestion logic is now implemented with settings-driven thresholds, ranked scoring breakdowns, blocked/inactive filtering, and protected `GET /api/promotion/suggestions`
 - Block workflow is now implemented with protected `POST /api/blocks` and `POST /api/blocks/unblock` routes, transactional block lifecycle updates, and activity logging
 - Import template handling is now implemented with protected `GET /api/import/templates` and `GET /api/import/templates/[templateKey]/download`, activity-log-backed template downloads, and a responsive bilingual `/settings/import-templates` screen
+- Export generators v1 are now implemented with protected `GET /api/export/assignments` and `GET /api/export/attendance`, CSV downloads, duplicate-row prevention, and export activity logging
 
 ## Canonical Working Documents
 
@@ -95,12 +96,13 @@ We will instead:
 | Promotion suggestion logic | done | `/api/promotion/suggestions` now returns ranked candidates with score breakdowns from evaluations, attendance ratios, and completed sessions using settings thresholds |
 | Block workflow | done | `/api/blocks` and `/api/blocks/unblock` now manage temporary/permanent blocks, prevent duplicate active blocks, and integrate blocking across assignment, waiting-list, swap, and promotion flows |
 | Import template handling | done | `/api/import/templates` plus `/settings/import-templates` now provide downloadable CSV templates/sample files with bilingual metadata and download activity logging |
+| Export generators (Step 2) | done | `/api/export/assignments` and `/api/export/attendance` now generate bilingual CSV exports with session validation, dedupe safety, and audit logging |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 8 with export generator implementation
+- Continue Phase 8 with dashboard metrics endpoint implementation
 
 ## Update Log
 
@@ -261,3 +263,16 @@ We will instead:
   - invalid template-key rejection with `validation_error`
   - rollback safety check (invalid requests do not create activity logs)
   - download activity-log persistence for successful template downloads
+- Added Phase 8 Step 2 export module (`src/lib/export`) with contracts, validation, DTO, HTTP helpers, and service-level CSV generators for assignments and attendance exports
+- Added protected export APIs:
+  - `GET /api/export/assignments?sessionId=...`
+  - `GET /api/export/attendance?sessionId=...`
+- Reused assignment and attendance service-layer retrieval flows for export data assembly and added dedupe guards to prevent duplicate rows in export outputs
+- Added transactional export activity logging (`action: export_generate`, `entityType: export`) with export type, session ID, row count, and duplicate-removal metadata
+- Verified Phase 8 Step 2 end-to-end on real Neon DB through authenticated API scenarios:
+  - valid assignments and attendance export downloads
+  - invalid session rejection with `session_not_found`
+  - empty-session export behavior (header-only CSV)
+  - bilingual CSV structure validation
+  - duplicate-row prevention checks
+  - export activity-log persistence checks

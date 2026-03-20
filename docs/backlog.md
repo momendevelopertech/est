@@ -94,7 +94,7 @@ Status legend:
 ## Phase 8 - Reporting And Excel
 
 - `done` Build import template handling
-- `todo` Build export generators
+- `done` Build export generators
 - `todo` Build dashboard metrics endpoints
 - `todo` Build reports hub and report pages
 - `todo` Add PDF export where needed
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build import template handling
-2. Build export generators
-3. Build dashboard metrics endpoints
-4. Build reports hub and report pages
-5. Add PDF export where needed
+1. Build dashboard metrics endpoints
+2. Build reports hub and report pages
+3. Add PDF export where needed
+4. Add bilingual Excel export headers
+5. Build premium dashboard layout and localized report views
