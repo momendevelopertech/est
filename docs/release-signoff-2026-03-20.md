@@ -64,7 +64,7 @@ Based on `docs/deployment-checklist.md`.
 ## 8. Release Record (To be finalized at push time)
 
 - Release version: `v0.1.0` (candidate)
-- Commit SHA: `TO_BE_FILLED_AFTER_MAIN_PUSH`
+- Commit SHA: `5a8986f`
 - Migration IDs:
   - `20260320130000_phase9_email_templates`
   - `20260320183000_phase9_in_app_notifications`

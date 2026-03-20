@@ -551,6 +551,7 @@ We will instead:
   - `docs/staging-dry-run-report-2026-03-20.md`
   - `docs/monitoring-readiness.md`
   - `docs/release-signoff-2026-03-20.md`
+- Published release-operations changes to `origin/main` at commit `5a8986f`
 
 ## Post-release Notes
 
