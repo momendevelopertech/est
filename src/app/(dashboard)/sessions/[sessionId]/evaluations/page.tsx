@@ -1,26 +1,27 @@
 import { notFound } from "next/navigation";
 
-import { SessionDetailView } from "@/components/sessions/session-detail-view";
+import { SessionEvaluationsWorkspace } from "@/components/evaluations/session-evaluations-workspace";
 import { requireRole } from "@/lib/auth/guards";
 import { getMessages, resolveRequestLocale } from "@/lib/i18n";
 import { getSessionById, SessionsServiceError } from "@/lib/sessions/service";
+import { getDerivedSessionStatus } from "@/lib/sessions/status";
 import { sessionRouteParamsSchema } from "@/lib/sessions/validation";
 
-type SessionDetailPageProps = {
+type SessionEvaluationsPageProps = {
   params: {
     sessionId: string;
   };
 };
 
-export default async function SessionDetailPage({
+export default async function SessionEvaluationsPage({
   params
-}: SessionDetailPageProps) {
-  const session = await requireRole([
+}: SessionEvaluationsPageProps) {
+  const authSession = await requireRole([
     "super_admin",
     "coordinator",
-    "data_entry"
+    "senior"
   ]);
-  const locale = await resolveRequestLocale(session.user.preferredLanguage);
+  const locale = await resolveRequestLocale(authSession.user.preferredLanguage);
   const messages = getMessages(locale);
 
   try {
@@ -28,17 +29,21 @@ export default async function SessionDetailPage({
     const data = await getSessionById(routeParams.sessionId, {
       includeInactive: true
     });
-    const canOpenAttendanceWorkspace =
-      session.user.role === "super_admin" || session.user.role === "coordinator";
-    const canOpenEvaluationsWorkspace = canOpenAttendanceWorkspace;
 
     return (
-      <SessionDetailView
-        data={data}
+      <SessionEvaluationsWorkspace
         locale={locale}
         messages={messages}
-        canOpenAttendanceWorkspace={canOpenAttendanceWorkspace}
-        canOpenEvaluationsWorkspace={canOpenEvaluationsWorkspace}
+        actorAppUserId={authSession.user.id}
+        session={{
+          id: data.id,
+          name: data.name,
+          nameEn: data.nameEn,
+          examType: data.examType,
+          status: data.status,
+          derivedStatus: getDerivedSessionStatus(data),
+          isActive: data.isActive
+        }}
       />
     );
   } catch (error) {

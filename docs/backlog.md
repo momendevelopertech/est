@@ -87,7 +87,7 @@ Status legend:
 - `done` Build waiting-list logic and screens
 - `done` Build swap workflow
 - `done` Build attendance workflow
-- `todo` Build evaluation workflow
+- `done` Build evaluation workflow
 - `todo` Build promotion suggestion logic
 - `todo` Build block workflow
 

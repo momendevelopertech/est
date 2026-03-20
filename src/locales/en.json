@@ -379,6 +379,7 @@
     "openWaitingListWorkspace": "Open waiting-list workspace",
     "openSwapsWorkspace": "Open swaps workspace",
     "openAttendanceWorkspace": "Open attendance workspace",
+    "openEvaluationsWorkspace": "Open evaluations workspace",
     "statusErrors": {
       "invalid_session_status_transition": "This status transition is not allowed from the current session state.",
       "session_status_constraint_failed": "Session timing constraints block this status change.",
@@ -621,6 +622,43 @@
       "loadFailed": "Could not load attendance workspace data.",
       "saveFailed": "Could not update attendance.",
       "loadSuggestionsFailed": "Could not load replacement suggestions."
+    }
+  },
+  "evaluations": {
+    "title": "Evaluations workspace",
+    "subtitle": "Evaluate active assignments with validated rating entries and per-assignment duplicate protection.",
+    "loading": "Loading evaluations workspace...",
+    "backToSession": "Back to session",
+    "refresh": "Refresh evaluations",
+    "list": {
+      "title": "Session assignments",
+      "description": "Review assignments, check evaluated state, and submit one evaluation per assignment.",
+      "empty": "No assignments are currently available for evaluation."
+    },
+    "labels": {
+      "location": "Location",
+      "assignedAt": "Assigned at",
+      "lastEvaluatedAt": "Last evaluated at",
+      "evaluator": "Evaluator",
+      "notEvaluated": "Not evaluated",
+      "rating": "Rating (1-5)",
+      "notes": "Notes"
+    },
+    "statuses": {
+      "evaluated": "Evaluated",
+      "notEvaluated": "Not evaluated"
+    },
+    "actions": {
+      "submit": "Submit evaluation",
+      "update": "Update evaluation",
+      "submitting": "Saving..."
+    },
+    "errors": {
+      "loadFailed": "Could not load evaluations workspace data.",
+      "submitFailed": "Could not submit evaluation.",
+      "ratingRequired": "Provide a rating before submitting.",
+      "ratingRange": "Rating must be between 1 and 5.",
+      "alreadyEvaluatedByAnother": "This assignment was already evaluated by another evaluator."
     }
   },
   "proctors": {

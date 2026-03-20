@@ -34,6 +34,7 @@
 - Waiting-list workflow is now implemented with ranked entries, promote/remove lifecycle actions, assignment integration, activity logging, and a responsive `/sessions/[sessionId]/waiting-list` screen
 - Swap workflow is now implemented with direct assignment swaps, waiting-list replacements, manual replacement flow, transactional safety, activity logging, and a responsive `/sessions/[sessionId]/swaps` screen
 - Attendance workflow is now implemented with status updates, waiting-list replacement suggestions, transactional absence replacement promotion, activity logging, and a responsive `/sessions/[sessionId]/attendance` screen
+- Evaluation workflow is now implemented with assignment-linked scoring, duplicate prevention, cancelled-assignment guards, session-state validation, average-rating recalculation, activity logging, and a responsive `/sessions/[sessionId]/evaluations` screen
 
 ## Canonical Working Documents
 
@@ -87,12 +88,13 @@ We will instead:
 | Waiting-list logic and screens | done | `/api/waiting-list` plus `/sessions/[sessionId]/waiting-list` now support ranked create/list/promote/remove workflows |
 | Swap workflow | done | `/api/swaps` plus `/sessions/[sessionId]/swaps` now support direct swap, waiting-list replacement, manual replacement, and transactional rollback safety |
 | Attendance workflow | done | `/api/attendance` plus `/sessions/[sessionId]/attendance` now support attendance status updates, replacement suggestions, and absent-replacement promotion flow |
+| Evaluation workflow | done | `/api/evaluations` plus `/sessions/[sessionId]/evaluations` now support validated create/list flows, assignment/session/user linkage checks, duplicate prevention, and audit logging |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 7 with evaluation workflow on top of assignment, waiting-list, swap, and attendance foundations
+- Continue Phase 7 with promotion suggestion logic on top of assignment, waiting-list, swap, attendance, and evaluation foundations
 
 ## Update Log
 
@@ -211,3 +213,18 @@ We will instead:
   - invalid replacement-status validation rejection
   - rollback safety when replacement promotion fails (no partial attendance or assignment mutation)
   - activity-log persistence for attendance updates and waiting-list promotions
+- Added evaluation contracts, validation, DTO, HTTP layer, and protected `GET/POST /api/evaluations` routes with role guards
+- Implemented evaluation service workflows for:
+  - assignment-linked evaluation creation with strict session/assignment/user consistency checks
+  - duplicate-per-assignment prevention with optional same-evaluator update support
+  - cancelled-assignment rejection and active-session operational gating
+  - transactional user average-rating recalculation after evaluation mutations
+  - activity logging for evaluation create/update actions
+- Added responsive evaluation workspace UI at `/sessions/[sessionId]/evaluations` and linked it from session details
+- Verified evaluation Step 4 end-to-end on real Neon DB through authenticated API scenarios:
+  - successful evaluation creation
+  - duplicate evaluation rejection
+  - invalid rating validation rejection
+  - cancelled-assignment evaluation rejection
+  - assignment/session/user linking correctness in API + DB
+  - activity-log persistence for evaluation creation

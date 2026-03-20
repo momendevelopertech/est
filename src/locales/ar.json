@@ -384,9 +384,10 @@
       "session_lock_validation_failed": "فشل التحقق قبل قفل الجلسة. صحح مشاكل التكليف والتغطية أولاً.",
       "forbidden": "لا تملك صلاحية تغيير حالة الجلسة."
     },
-    "openWaitingListWorkspace": "??? ????? ????? ????? ????????",
-    "openSwapsWorkspace": "??? ????? ????? ?????????",
-    "openAttendanceWorkspace": "??? ????? ????? ??????"
+    "openWaitingListWorkspace": "فتح مساحة قائمة الانتظار",
+    "openSwapsWorkspace": "فتح مساحة التبديلات",
+    "openAttendanceWorkspace": "فتح مساحة الحضور",
+    "openEvaluationsWorkspace": "فتح مساحة التقييمات"
   },
   "assignments": {
     "title": "مساحة إدارة التكليفات",
@@ -832,6 +833,43 @@
       "loadFailed": "???? ????? ?????? ????? ??????.",
       "saveFailed": "???? ????? ??????.",
       "loadSuggestionsFailed": "???? ????? ???????? ???????."
+    }
+  },
+  "evaluations": {
+    "title": "مساحة التقييمات",
+    "subtitle": "تقييم التكليفات النشطة مع التحقق من نطاق الدرجة ومنع التكرار لكل تكليف.",
+    "loading": "جارٍ تحميل مساحة التقييمات...",
+    "backToSession": "العودة إلى الجلسة",
+    "refresh": "تحديث التقييمات",
+    "list": {
+      "title": "تكليفات الجلسة",
+      "description": "راجع التكليفات وحدد حالة التقييم ثم أرسل تقييمًا واحدًا لكل تكليف.",
+      "empty": "لا توجد تكليفات متاحة للتقييم حاليًا."
+    },
+    "labels": {
+      "location": "الموقع",
+      "assignedAt": "وقت التكليف",
+      "lastEvaluatedAt": "آخر وقت تقييم",
+      "evaluator": "المقيّم",
+      "notEvaluated": "غير مقيّم",
+      "rating": "التقييم (1-5)",
+      "notes": "ملاحظات"
+    },
+    "statuses": {
+      "evaluated": "تم التقييم",
+      "notEvaluated": "غير مقيّم"
+    },
+    "actions": {
+      "submit": "إرسال التقييم",
+      "update": "تحديث التقييم",
+      "submitting": "جارٍ الحفظ..."
+    },
+    "errors": {
+      "loadFailed": "تعذر تحميل بيانات مساحة التقييمات.",
+      "submitFailed": "تعذر إرسال التقييم.",
+      "ratingRequired": "أدخل تقييمًا قبل الإرسال.",
+      "ratingRange": "يجب أن يكون التقييم بين 1 و 5.",
+      "alreadyEvaluatedByAnother": "تم تقييم هذا التكليف بالفعل بواسطة مقيّم آخر."
     }
   }
 }
