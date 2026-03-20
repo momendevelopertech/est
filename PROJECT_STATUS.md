@@ -35,6 +35,8 @@
 - Swap workflow is now implemented with direct assignment swaps, waiting-list replacements, manual replacement flow, transactional safety, activity logging, and a responsive `/sessions/[sessionId]/swaps` screen
 - Attendance workflow is now implemented with status updates, waiting-list replacement suggestions, transactional absence replacement promotion, activity logging, and a responsive `/sessions/[sessionId]/attendance` screen
 - Evaluation workflow is now implemented with assignment-linked scoring, duplicate prevention, cancelled-assignment guards, session-state validation, average-rating recalculation, activity logging, and a responsive `/sessions/[sessionId]/evaluations` screen
+- Promotion suggestion logic is now implemented with settings-driven thresholds, ranked scoring breakdowns, blocked/inactive filtering, and protected `GET /api/promotion/suggestions`
+- Block workflow is now implemented with protected `POST /api/blocks` and `POST /api/blocks/unblock` routes, transactional block lifecycle updates, and activity logging
 
 ## Canonical Working Documents
 
@@ -89,12 +91,14 @@ We will instead:
 | Swap workflow | done | `/api/swaps` plus `/sessions/[sessionId]/swaps` now support direct swap, waiting-list replacement, manual replacement, and transactional rollback safety |
 | Attendance workflow | done | `/api/attendance` plus `/sessions/[sessionId]/attendance` now support attendance status updates, replacement suggestions, and absent-replacement promotion flow |
 | Evaluation workflow | done | `/api/evaluations` plus `/sessions/[sessionId]/evaluations` now support validated create/list flows, assignment/session/user linkage checks, duplicate prevention, and audit logging |
+| Promotion suggestion logic | done | `/api/promotion/suggestions` now returns ranked candidates with score breakdowns from evaluations, attendance ratios, and completed sessions using settings thresholds |
+| Block workflow | done | `/api/blocks` and `/api/blocks/unblock` now manage temporary/permanent blocks, prevent duplicate active blocks, and integrate blocking across assignment, waiting-list, swap, and promotion flows |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Continue Phase 7 with promotion suggestion logic on top of assignment, waiting-list, swap, attendance, and evaluation foundations
+- Start Phase 8 with import template handling and export generator implementation
 
 ## Update Log
 
@@ -228,3 +232,21 @@ We will instead:
   - cancelled-assignment evaluation rejection
   - assignment/session/user linking correctness in API + DB
   - activity-log persistence for evaluation creation
+- Added promotion suggestion contracts, validation, HTTP layer, service, and protected `GET /api/promotion/suggestions` route
+- Implemented promotion suggestion ranking using settings thresholds (`min_rating_threshold`, `min_sessions_required`, `min_attendance_ratio`) with weighted score breakdowns from evaluations, attendance ratios, and completed sessions
+- Excluded blocked and inactive users from promotion candidates and hardened aggregation to avoid division-by-zero edge cases
+- Verified promotion Step 5 end-to-end on real Neon DB through authenticated API scenarios:
+  - ranking correctness
+  - threshold filtering
+  - blocked-user exclusion
+- Added block workflow contracts, validation, DTO, HTTP layer, state helpers, service, and protected block APIs:
+  - `POST /api/blocks`
+  - `POST /api/blocks/unblock`
+- Implemented transactional block lifecycle behavior for temporary/permanent blocks, duplicate active-block prevention, stale temporary-block expiry normalization, and unblock lifting
+- Integrated shared blocked-user state checks across manual assignment, auto-assignment candidate filtering, waiting-list admission, swap replacements, and promotion suggestion filtering
+- Verified block Step 6 end-to-end on real Neon DB through authenticated API scenarios:
+  - blocked user assignment rejection
+  - unblock restoring assignment eligibility
+  - temporary block expiry restoring eligibility
+  - auto-assignment exclusion for blocked users
+  - block create/unblock activity-log persistence

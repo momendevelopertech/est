@@ -1,7 +1,6 @@
 import {
   AssignmentMethod,
   AssignmentStatus,
-  BlockStatus,
   Prisma,
   SessionStatus,
   WaitingListStatus,
@@ -10,6 +9,7 @@ import {
 
 import { logActivity } from "@/lib/activity/log";
 import { createAssignmentInTransaction } from "@/lib/assignments/service";
+import { isUserBlockedState } from "@/lib/blocks/state";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
@@ -33,10 +33,6 @@ type ActivityClient = Prisma.TransactionClient | PrismaClient;
 
 type SessionRecord = Prisma.SessionGetPayload<{
   select: typeof waitingListSessionSelect;
-}>;
-
-type UserRecord = Prisma.UserGetPayload<{
-  select: typeof waitingListUserSelect;
 }>;
 
 const waitingListSessionSelect = {
@@ -172,25 +168,6 @@ function normalizeMutationError(error: unknown): never {
   }
 
   throw error;
-}
-
-function isUserBlocked(
-  user: Pick<UserRecord, "blockStatus" | "blockEndsAt">,
-  now = new Date()
-) {
-  if (user.blockStatus === BlockStatus.PERMANENT) {
-    return true;
-  }
-
-  if (user.blockStatus !== BlockStatus.TEMPORARY) {
-    return false;
-  }
-
-  if (!user.blockEndsAt) {
-    return true;
-  }
-
-  return now.getTime() < user.blockEndsAt.getTime();
 }
 
 function createSearchFilter(search?: string) {
@@ -595,7 +572,7 @@ export async function createWaitingListEntry(
 
         const user = await assertUserExists(tx, contractInput.userId);
 
-        if (isUserBlocked(user)) {
+        if (isUserBlockedState(user)) {
           throw new WaitingListServiceError(
             ERROR_CODES.userBlocked,
             409,

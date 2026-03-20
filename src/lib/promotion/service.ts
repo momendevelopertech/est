@@ -1,11 +1,11 @@
 import {
   AssignmentStatus,
   AttendanceStatus,
-  BlockStatus,
   Prisma,
   SessionStatus
 } from "@prisma/client";
 
+import { isUserBlockedState } from "@/lib/blocks/state";
 import { db } from "@/lib/db";
 import { getDerivedSessionStatus } from "@/lib/sessions/status";
 
@@ -134,25 +134,6 @@ function parseNumberSettingValue(value: unknown, fallback: number) {
   }
 
   return fallback;
-}
-
-function isBlockedUser(
-  user: Pick<PromotionUserRecord, "blockStatus" | "blockEndsAt">,
-  now = new Date()
-) {
-  if (user.blockStatus === BlockStatus.PERMANENT) {
-    return true;
-  }
-
-  if (user.blockStatus !== BlockStatus.TEMPORARY) {
-    return false;
-  }
-
-  if (!user.blockEndsAt) {
-    return true;
-  }
-
-  return now.getTime() < user.blockEndsAt.getTime();
 }
 
 function isCompletedSessionForScoring(
@@ -336,7 +317,7 @@ export async function getPromotionSuggestions(
     },
     select: promotionUserSelect
   });
-  const candidates = users.filter((user) => !isBlockedUser(user, now));
+  const candidates = users.filter((user) => !isUserBlockedState(user, now));
 
   if (candidates.length === 0) {
     return {

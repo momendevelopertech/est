@@ -88,8 +88,8 @@ Status legend:
 - `done` Build swap workflow
 - `done` Build attendance workflow
 - `done` Build evaluation workflow
-- `todo` Build promotion suggestion logic
-- `todo` Build block workflow
+- `done` Build promotion suggestion logic
+- `done` Build block workflow
 
 ## Phase 8 - Reporting And Excel
 
@@ -120,8 +120,8 @@ Status legend:
 
 These are the next five tasks to execute in order:
 
-1. Build evaluation workflow
-2. Build promotion suggestion logic
-3. Build block workflow
-4. Build import template handling
-5. Build export generators
+1. Build import template handling
+2. Build export generators
+3. Build dashboard metrics endpoints
+4. Build reports hub and report pages
+5. Add PDF export where needed

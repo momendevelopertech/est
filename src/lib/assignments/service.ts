@@ -1,7 +1,6 @@
 import {
   AssignmentMethod,
   AssignmentStatus,
-  BlockStatus,
   ExamType,
   OperationalRoleScope,
   Prisma,
@@ -10,6 +9,7 @@ import {
 } from "@prisma/client";
 
 import { logActivity } from "@/lib/activity/log";
+import { buildUnblockedUserWhere, isUserBlockedState } from "@/lib/blocks/state";
 import { db } from "@/lib/db";
 import { ERROR_CODES } from "@/lib/errors/codes";
 import { buildPaginationMeta, resolvePagination } from "@/lib/pagination";
@@ -406,30 +406,11 @@ function assertRoleScopePlacement(
   }
 }
 
-function isUserBlocked(
-  user: Pick<UserRecord, "blockStatus" | "blockEndsAt">,
-  now = new Date()
-) {
-  if (user.blockStatus === BlockStatus.PERMANENT) {
-    return true;
-  }
-
-  if (user.blockStatus !== BlockStatus.TEMPORARY) {
-    return false;
-  }
-
-  if (!user.blockEndsAt) {
-    return true;
-  }
-
-  return now.getTime() < user.blockEndsAt.getTime();
-}
-
 export function isUserBlockedForAssignments(
   user: Pick<UserRecord, "blockStatus" | "blockEndsAt">,
   now = new Date()
 ) {
-  return isUserBlocked(user, now);
+  return isUserBlockedState(user, now);
 }
 
 async function assertSessionExists(
@@ -1013,17 +994,7 @@ async function resolveAutoAssignmentCandidates(input: {
             }
           }
         : {}),
-      OR: [
-        {
-          blockStatus: BlockStatus.CLEAR
-        },
-        {
-          blockStatus: BlockStatus.TEMPORARY,
-          blockEndsAt: {
-            lte: now
-          }
-        }
-      ]
+      ...buildUnblockedUserWhere(now)
     },
     orderBy: [{ averageRating: "desc" }, { totalSessions: "asc" }, { createdAt: "asc" }],
     select: {
@@ -1084,7 +1055,7 @@ async function createAssignmentWithValidation(
     })
   ]);
 
-  if (isUserBlocked(user)) {
+  if (isUserBlockedState(user)) {
     throw new AssignmentsServiceError(
       ERROR_CODES.userBlocked,
       409,
@@ -1860,7 +1831,7 @@ export async function validateSessionPreLock(
       }
 
       for (const assignment of assignments) {
-        if (isUserBlocked(assignment.user, now)) {
+        if (isUserBlockedState(assignment.user, now)) {
           issues.push({
             code: "blocked_user_assigned",
             message: "Blocked users cannot remain assigned before locking the session.",
