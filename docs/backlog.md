@@ -93,7 +93,7 @@ Status legend:
 
 ## Phase 8 - Reporting And Excel
 
-- `todo` Build import template handling
+- `done` Build import template handling
 - `todo` Build export generators
 - `todo` Build dashboard metrics endpoints
 - `todo` Build reports hub and report pages

@@ -97,6 +97,43 @@
       "next": "Locations CRUD is the next expansion point after the remaining shell foundation polish."
     }
   },
+  "importTemplates": {
+    "title": "Import templates",
+    "subtitle": "Download standardized CSV templates for all supported import workflows.",
+    "description": "Template downloads are generated from service-layer contracts and tracked in the activity log for auditability.",
+    "open": "Open import templates",
+    "loading": "Loading import templates...",
+    "errorTitle": "Could not load import templates",
+    "errorBody": "The import template API did not return data. Check authentication and try again.",
+    "retry": "Reload",
+    "downloadTemplate": "Download template",
+    "downloadSample": "Download sample",
+    "downloading": "Preparing...",
+    "labels": {
+      "key": "Template key",
+      "format": "Format",
+      "columns": "Columns",
+      "sampleRows": "Sample rows"
+    },
+    "templates": {
+      "locations": {
+        "title": "Locations import",
+        "description": "Governorate-to-room hierarchy template used by the locations import flow."
+      },
+      "proctors": {
+        "title": "Proctors import",
+        "description": "Canonical proctor import template with bilingual identity and matching fields."
+      },
+      "cycle_proctors": {
+        "title": "Cycle proctors import",
+        "description": "Cycle and session mapping template for queued assignment candidates."
+      },
+      "sphinx_staff": {
+        "title": "Sphinx staff import",
+        "description": "Template for importing Sphinx-managed staffing pools before assignment workflows."
+      }
+    }
+  },
   "locations": {
     "title": "Locations hierarchy",
     "subtitle": "Browse the active location structure across governorates, universities, buildings, floors, and rooms.",

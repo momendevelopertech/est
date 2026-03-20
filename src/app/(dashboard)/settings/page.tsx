@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import {
   Card,
+  CardContent,
   CardDescription,
   CardHeader,
   CardTitle
@@ -23,6 +26,14 @@ export default async function SettingsPage() {
             {messages.settings.subtitle}
           </CardDescription>
         </CardHeader>
+        <CardContent>
+          <Link
+            href="/settings/import-templates"
+            className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {messages.importTemplates.open}
+          </Link>
+        </CardContent>
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-3">

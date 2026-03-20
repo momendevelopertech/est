@@ -37,6 +37,7 @@
 - Evaluation workflow is now implemented with assignment-linked scoring, duplicate prevention, cancelled-assignment guards, session-state validation, average-rating recalculation, activity logging, and a responsive `/sessions/[sessionId]/evaluations` screen
 - Promotion suggestion logic is now implemented with settings-driven thresholds, ranked scoring breakdowns, blocked/inactive filtering, and protected `GET /api/promotion/suggestions`
 - Block workflow is now implemented with protected `POST /api/blocks` and `POST /api/blocks/unblock` routes, transactional block lifecycle updates, and activity logging
+- Import template handling is now implemented with protected `GET /api/import/templates` and `GET /api/import/templates/[templateKey]/download`, activity-log-backed template downloads, and a responsive bilingual `/settings/import-templates` screen
 
 ## Canonical Working Documents
 
@@ -93,12 +94,13 @@ We will instead:
 | Evaluation workflow | done | `/api/evaluations` plus `/sessions/[sessionId]/evaluations` now support validated create/list flows, assignment/session/user linkage checks, duplicate prevention, and audit logging |
 | Promotion suggestion logic | done | `/api/promotion/suggestions` now returns ranked candidates with score breakdowns from evaluations, attendance ratios, and completed sessions using settings thresholds |
 | Block workflow | done | `/api/blocks` and `/api/blocks/unblock` now manage temporary/permanent blocks, prevent duplicate active blocks, and integrate blocking across assignment, waiting-list, swap, and promotion flows |
+| Import template handling | done | `/api/import/templates` plus `/settings/import-templates` now provide downloadable CSV templates/sample files with bilingual metadata and download activity logging |
 | Proctors import/export/profile history | todo | Depends on CRUD slice |
 
 ## Immediate Next Focus
 
 - Continue preserving UX and notification-system requirements from v3.0
-- Start Phase 8 with import template handling and export generator implementation
+- Continue Phase 8 with export generator implementation
 
 ## Update Log
 
@@ -250,3 +252,12 @@ We will instead:
   - temporary block expiry restoring eligibility
   - auto-assignment exclusion for blocked users
   - block create/unblock activity-log persistence
+- Added Phase 8 Step 1 import template handling module (`src/lib/import/templates`) with contracts, validation, DTO, HTTP helpers, transactional activity logging, and protected template-list/download APIs
+- Added responsive bilingual import-template workspace at `/settings/import-templates` and linked it from settings
+- Verified Phase 8 Step 1 end-to-end on real Neon DB through authenticated API scenarios:
+  - template list retrieval in English and Arabic
+  - unique-key enforcement in API output (no duplicate template keys)
+  - successful blank and sample CSV downloads with expected filenames/content structure
+  - invalid template-key rejection with `validation_error`
+  - rollback safety check (invalid requests do not create activity logs)
+  - download activity-log persistence for successful template downloads
