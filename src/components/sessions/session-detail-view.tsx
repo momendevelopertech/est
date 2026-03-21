@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
 import type { getSessionById } from "@/lib/sessions/service";
@@ -106,22 +108,20 @@ export function SessionDetailView({
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="accent">{messages.nav.sessions}</Badge>
-            <Badge>{messages.sessions.examTypes[data.examType]}</Badge>
-            <Badge>{data.isActive ? messages.sessions.labels.active : messages.sessions.labels.inactive}</Badge>
-            <SessionStatusBadge status={storedStatus} label={messages.sessions.statuses[storedStatus]} />
-            <SessionStatusBadge status={derivedStatus} label={messages.sessions.statuses[derivedStatus]} />
-          </div>
-          <CardTitle className="text-3xl">{sessionName}</CardTitle>
-          <CardDescription className="text-base">
-            {alternateName ?? messages.sessions.detailBody}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+      <PageHero
+        badges={[
+          { label: messages.nav.sessions, variant: "accent" },
+          { label: messages.sessions.examTypes[data.examType] },
+          { label: data.isActive ? messages.sessions.labels.active : messages.sessions.labels.inactive }
+        ]}
+        title={sessionName}
+        description={alternateName ?? messages.sessions.detailBody}
+        body={
           <div className="space-y-2 text-sm text-text-secondary">
+            <div className="flex flex-wrap gap-2">
+              <SessionStatusBadge status={storedStatus} label={messages.sessions.statuses[storedStatus]} />
+              <SessionStatusBadge status={derivedStatus} label={messages.sessions.statuses[derivedStatus]} />
+            </div>
             <p>
               {messages.sessions.labels.cycle}: {getLocalizedName(data.cycle, locale)}
             </p>
@@ -132,14 +132,9 @@ export function SessionDetailView({
               {messages.sessions.labels.endDateTime}: {formatDateTime(locale, data.endsAt)}
             </p>
           </div>
-          <Link
-            href="/sessions"
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover"
-          >
-            {messages.sessions.detailBack}
-          </Link>
-        </CardContent>
-      </Card>
+        }
+        actions={<ActionLink href="/sessions">{messages.sessions.detailBack}</ActionLink>}
+      />
 
       <Card>
         <CardHeader>

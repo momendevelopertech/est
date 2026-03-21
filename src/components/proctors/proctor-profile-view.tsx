@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Messages, Locale } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
 import type { getProctorProfile } from "@/lib/proctors/service";
@@ -95,24 +97,16 @@ export function ProctorProfileView({
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge variant="accent">{messages.nav.proctors}</Badge>
-            <Badge>
-              {data.isActive
-                ? messages.proctors.labels.active
-                : messages.proctors.labels.inactive}
-            </Badge>
-            <Badge>{messages.proctors.sources[data.source]}</Badge>
-            <Badge>{messages.proctors.blockStatuses[data.blockStatus]}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{profileLabel}</CardTitle>
-          <CardDescription className="text-base">
-            {alternateLabel ?? messages.proctors.profile.subtitle}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+      <PageHero
+        badges={[
+          { label: messages.nav.proctors, variant: "accent" },
+          { label: data.isActive ? messages.proctors.labels.active : messages.proctors.labels.inactive },
+          { label: messages.proctors.sources[data.source] },
+          { label: messages.proctors.blockStatuses[data.blockStatus] }
+        ]}
+        title={profileLabel}
+        description={alternateLabel ?? messages.proctors.profile.subtitle}
+        body={
           <div className="max-w-3xl space-y-2">
             <p className="text-sm leading-7 text-text-secondary">
               {data.notes ?? messages.proctors.noNotes}
@@ -121,14 +115,9 @@ export function ProctorProfileView({
               {messages.proctors.labels.phone}: {data.phone}
             </p>
           </div>
-          <Link
-            href="/proctors"
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover"
-          >
-            {messages.proctors.profile.backToDirectory}
-          </Link>
-        </CardContent>
-      </Card>
+        }
+        actions={<ActionLink href="/proctors">{messages.proctors.profile.backToDirectory}</ActionLink>}
+      />
 
       <Card>
         <CardHeader>

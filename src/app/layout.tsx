@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo, Inter } from "next/font/google";
+import { Cairo, Manrope } from "next/font/google";
 
 import { AppThemeProvider } from "@/components/providers/app-theme-provider";
 import { PwaRegistration } from "@/components/providers/pwa-registration";
@@ -10,7 +10,7 @@ import { getThemeRootClass, resolveRequestTheme } from "@/lib/theme/server";
 
 import "./globals.css";
 
-const inter = Inter({
+const manrope = Manrope({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans"
@@ -61,7 +61,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={getDirection(locale)}
-      className={`${inter.variable} ${cairo.variable} ${getThemeRootClass(theme)}`.trim()}
+      className={`${manrope.variable} ${cairo.variable} ${getThemeRootClass(theme)}`.trim()}
       suppressHydrationWarning
     >
       <body className="bg-background text-text-primary">

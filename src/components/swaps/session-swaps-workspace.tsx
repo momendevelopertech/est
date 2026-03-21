@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
+import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getLocalizedName } from "@/lib/i18n/presentation";
 
@@ -317,36 +319,37 @@ export function SessionSwapsWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.nav.sessions}</Badge>
-            <Badge>{messages.sessions.examTypes[session.examType]}</Badge>
-            <Badge>{messages.sessions.statuses[session.status as keyof typeof messages.sessions.statuses]}</Badge>
-            <Badge>
-              {messages.sessions.statuses[
-                session.derivedStatus as keyof typeof messages.sessions.statuses
-              ]}
-            </Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.swaps.title}</CardTitle>
-          <CardDescription>{messages.swaps.subtitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Link
-            href={`/sessions/${session.id}`}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-          >
-            {messages.swaps.backToSession}
-          </Link>
-          <Button
-            variant="secondary"
-            onClick={() => setRefreshKey((current) => current + 1)}
-          >
-            {messages.swaps.refresh}
-          </Button>
-        </CardContent>
-      </Card>
+      <PageHero
+        badges={[
+          { label: messages.nav.sessions, variant: "accent" },
+          { label: messages.sessions.examTypes[session.examType] },
+          { label: messages.sessions.statuses[session.status as keyof typeof messages.sessions.statuses] },
+          { label: messages.sessions.statuses[session.derivedStatus as keyof typeof messages.sessions.statuses] }
+        ]}
+        title={messages.swaps.title}
+        description={messages.swaps.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.swaps.direct.title}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {assignments.length}
+            </p>
+          </>
+        }
+        actions={
+          <>
+            <ActionLink href={`/sessions/${session.id}`}>{messages.swaps.backToSession}</ActionLink>
+            <Button
+              variant="secondary"
+              onClick={() => setRefreshKey((current) => current + 1)}
+            >
+              {messages.swaps.refresh}
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card>

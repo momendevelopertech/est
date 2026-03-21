@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ActionLink } from "@/components/ui/action-link";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 
 type ReportType = "assignments" | "attendance" | "evaluations";
@@ -242,32 +244,30 @@ export function ReportSummaryWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="panel relative overflow-hidden border-transparent px-6 py-6 sm:px-8">
-        <div className="pointer-events-none absolute inset-0 opacity-80">
-          <div className="absolute -top-20 right-0 h-56 w-56 rounded-full bg-accent/20 blur-3xl" />
-          <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-info/20 blur-3xl" />
-        </div>
-        <CardHeader className="relative">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.reports}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{pageCopy.title}</CardTitle>
-          <CardDescription className="text-base">{pageCopy.subtitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="relative flex flex-wrap gap-3">
-          <Link href="/reports">
-            <Button size="sm" variant="secondary">
-              {messages.reports.hub.title}
-            </Button>
-          </Link>
-          <Link href="/dashboard">
-            <Button size="sm" variant="secondary">
-              {messages.nav.dashboard}
-            </Button>
-          </Link>
-        </CardContent>
-      </Card>
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.reports }
+        ]}
+        title={pageCopy.title}
+        description={pageCopy.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.reports.summary.cardsSubtitle}
+            </p>
+            <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-text-primary">
+              {totalCards.length}
+            </p>
+          </>
+        }
+        actions={
+          <>
+            <ActionLink href="/reports">{messages.reports.hub.title}</ActionLink>
+            <ActionLink href="/dashboard">{messages.nav.dashboard}</ActionLink>
+          </>
+        }
+      />
 
       <div className="grid gap-4 xl:grid-cols-3">
         <Card className="xl:col-span-2">

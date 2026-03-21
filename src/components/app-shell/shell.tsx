@@ -21,7 +21,8 @@ export function AppShell({ children, locale, messages, user }: ShellProps) {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-none gap-4 px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-6">
+    <div className="mx-auto min-h-screen w-full max-w-none px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-5">
+      <div className="grid min-h-[calc(100vh-1.5rem)] gap-4 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[21rem_minmax(0,1fr)]">
       <Sidebar
         locale={locale}
         user={user}
@@ -29,16 +30,17 @@ export function AppShell({ children, locale, messages, user }: ShellProps) {
         navigation={navigation}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-6">
+      <div className="flex min-w-0 flex-1 flex-col gap-4 lg:gap-5">
         <Header
           locale={locale}
           messages={messages}
           navigation={navigation}
           user={user}
         />
-        <main className="min-w-0">
+        <main className="min-w-0 pb-4">
           <PageTransition>{children}</PageTransition>
         </main>
+      </div>
       </div>
     </div>
   );

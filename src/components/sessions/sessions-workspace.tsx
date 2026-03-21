@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
 import {
@@ -572,16 +573,25 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.sessions}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.sessions.title}</CardTitle>
-          <CardDescription className="text-base">{messages.sessions.subtitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.sessions }
+        ]}
+        title={messages.sessions.title}
+        description={messages.sessions.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.sessions.pagination.total.replace("{total}", "").trim()}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {pagination.total}
+            </p>
+          </>
+        }
+        body={
+          <div className="space-y-4">
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.sessions.description}
           </p>
@@ -724,8 +734,9 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
               {messages.sessions.reload}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </div>
+        }
+      />
 
       <Card>
         <CardHeader>

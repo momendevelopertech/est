@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ActionLink } from "@/components/ui/action-link";
 import {
   Card,
   CardContent,
@@ -12,6 +13,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -263,45 +265,46 @@ export function NotificationPreferencesWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="panel relative overflow-hidden border-transparent px-6 py-6 sm:px-8">
-        <div className="pointer-events-none absolute inset-0 opacity-80">
-          <div className="absolute -top-20 right-0 h-56 w-56 rounded-full bg-accent/20 blur-3xl" />
-          <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-info/20 blur-3xl" />
-        </div>
-        <CardHeader className="relative">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.notifications}</Badge>
-          </div>
-          <CardTitle className="text-3xl">
-            {messages.notificationPreferences.title}
-          </CardTitle>
-          <CardDescription className="max-w-3xl text-base">
-            {messages.notificationPreferences.subtitle}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="relative flex flex-wrap items-center gap-3">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => void loadPreferences()}
-            disabled={isLoading || isSaving}
-          >
-            {messages.notificationPreferences.actions.refresh}
-          </Button>
-          <Link
-            href="/notifications"
-            className="motion-button inline-flex h-9 items-center justify-center rounded-2xl bg-surface-elevated px-3 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {messages.notificationPreferences.actions.openInbox}
-          </Link>
-          {isSaving ? (
-            <Badge variant="warning">
-              {messages.notificationPreferences.status.saving}
-            </Badge>
-          ) : null}
-        </CardContent>
-      </Card>
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.notifications }
+        ]}
+        title={messages.notificationPreferences.title}
+        description={messages.notificationPreferences.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.notificationPreferences.actions.open}
+            </p>
+            <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-text-primary">
+              {isSaving
+                ? messages.notificationPreferences.status.saving
+                : messages.notificationPreferences.status.updated}
+            </p>
+          </>
+        }
+        actions={
+          <>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => void loadPreferences()}
+              disabled={isLoading || isSaving}
+            >
+              {messages.notificationPreferences.actions.refresh}
+            </Button>
+            <ActionLink href="/notifications">
+              {messages.notificationPreferences.actions.openInbox}
+            </ActionLink>
+            {isSaving ? (
+              <Badge variant="warning">
+                {messages.notificationPreferences.status.saving}
+              </Badge>
+            ) : null}
+          </>
+        }
+      />
 
       {isLoading ? (
         <div className="space-y-3">

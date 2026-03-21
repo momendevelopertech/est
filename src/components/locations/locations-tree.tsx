@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
@@ -573,18 +574,25 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.locations}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.locations.title}</CardTitle>
-          <CardDescription className="text-base">
-            {messages.locations.subtitle}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.locations }
+        ]}
+        title={messages.locations.title}
+        description={messages.locations.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.locations.kinds.room}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {stats.rooms}
+            </p>
+          </>
+        }
+        body={
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.locations.description}
           </p>
@@ -622,8 +630,9 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
               {messages.locations.reload}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </div>
+        }
+      />
 
       <Card>
         <CardHeader>

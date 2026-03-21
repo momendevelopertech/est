@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
@@ -627,16 +628,25 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.cycles}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.cycles.title}</CardTitle>
-          <CardDescription className="text-base">{messages.cycles.subtitle}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.cycles }
+        ]}
+        title={messages.cycles.title}
+        description={messages.cycles.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.cycles.pagination.total.replace("{total}", "").trim()}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {listState.pagination.total}
+            </p>
+          </>
+        }
+        body={
+          <div className="space-y-4">
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.cycles.description}
           </p>
@@ -712,8 +722,9 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
               {messages.cycles.reload}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+          </div>
+        }
+      />
 
       <Card>
         <CardHeader>

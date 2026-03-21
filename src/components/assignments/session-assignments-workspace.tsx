@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import Link from "next/link";
 
+import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getLocalizedName } from "@/lib/i18n/presentation";
 
@@ -291,7 +293,36 @@ export function SessionAssignmentsWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8"><CardHeader><div className="flex flex-wrap gap-2"><Badge variant="accent">{messages.nav.sessions}</Badge><Badge>{messages.sessions.examTypes[session.examType]}</Badge><Badge>{messages.sessions.statuses[session.status as keyof typeof messages.sessions.statuses]}</Badge><Badge>{messages.sessions.statuses[session.derivedStatus as keyof typeof messages.sessions.statuses]}</Badge></div><CardTitle className="text-3xl">{messages.assignments.title}</CardTitle><CardDescription>{messages.assignments.subtitle}</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2"><Link href={`/sessions/${session.id}`} className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface">{messages.assignments.backToSession}</Link><Button variant="secondary" onClick={() => setRefreshKey((current) => current + 1)}>{messages.assignments.refresh}</Button><Button variant="secondary" onClick={() => void runAutoAssign(true)} disabled={isAutoBusy}>{messages.assignments.automation.autoDryRun}</Button><Button onClick={() => void runAutoAssign(false)} disabled={isAutoBusy}>{messages.assignments.automation.autoExecute}</Button><Button variant="secondary" onClick={() => void runRerank(true)} disabled={isRerankBusy}>{messages.assignments.automation.rerankDryRun}</Button><Button onClick={() => void runRerank(false)} disabled={isRerankBusy}>{messages.assignments.automation.rerankExecute}</Button></CardContent></Card>
+      <PageHero
+        badges={[
+          { label: messages.nav.sessions, variant: "accent" },
+          { label: messages.sessions.examTypes[session.examType] },
+          { label: messages.sessions.statuses[session.status as keyof typeof messages.sessions.statuses] },
+          { label: messages.sessions.statuses[session.derivedStatus as keyof typeof messages.sessions.statuses] }
+        ]}
+        title={messages.assignments.title}
+        description={messages.assignments.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.assignments.list.title}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {shownAssignments.length}
+            </p>
+          </>
+        }
+        actions={
+          <>
+            <ActionLink href={`/sessions/${session.id}`}>{messages.assignments.backToSession}</ActionLink>
+            <Button variant="secondary" onClick={() => setRefreshKey((current) => current + 1)}>{messages.assignments.refresh}</Button>
+            <Button variant="secondary" onClick={() => void runAutoAssign(true)} disabled={isAutoBusy}>{messages.assignments.automation.autoDryRun}</Button>
+            <Button onClick={() => void runAutoAssign(false)} disabled={isAutoBusy}>{messages.assignments.automation.autoExecute}</Button>
+            <Button variant="secondary" onClick={() => void runRerank(true)} disabled={isRerankBusy}>{messages.assignments.automation.rerankDryRun}</Button>
+            <Button onClick={() => void runRerank(false)} disabled={isRerankBusy}>{messages.assignments.automation.rerankExecute}</Button>
+          </>
+        }
+      />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <Card><CardHeader><CardTitle>{messages.assignments.coverage.title}</CardTitle><CardDescription>{lockValidation?.isReady ? messages.assignments.coverage.ready : messages.assignments.coverage.notReady}</CardDescription></CardHeader><CardContent className="space-y-2">{(lockValidation?.issues.length ?? 0) === 0 ? <p className="text-sm text-text-secondary">{messages.assignments.coverage.emptyIssues}</p> : lockValidation?.issues.map((issue, index) => <div key={`${issue.code}-${index}`} className="rounded-2xl border border-danger/40 bg-surface-elevated px-3 py-3"><p className="text-sm font-medium text-danger">{messages.assignments.issueCodes[issue.code as keyof typeof messages.assignments.issueCodes] ?? issue.code}</p><p className="mt-1 text-xs text-text-secondary">{issue.message}</p>{issue.expected !== undefined || issue.actual !== undefined ? <p className="mt-1 text-xs text-text-secondary">{messages.assignments.labels.expected}: {issue.expected ?? "-"} / {messages.assignments.labels.actual}: {issue.actual ?? "-"}</p> : null}</div>)}</CardContent></Card>

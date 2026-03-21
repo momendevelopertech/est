@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PageHero } from "@/components/ui/page-hero";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -174,25 +175,26 @@ export function TestGuideWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="panel relative overflow-hidden border-transparent px-6 py-6 sm:px-8">
-        <div className="pointer-events-none absolute inset-0 opacity-80">
-          <div className="absolute -top-20 right-0 h-56 w-56 rounded-full bg-accent/20 blur-3xl" />
-          <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-warning/10 blur-3xl" />
-        </div>
-
-        <CardHeader className="relative">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge variant="warning">{messages.testGuide.badges.adminOnly}</Badge>
-            <Badge>{messages.nav.testGuide}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.testGuide.title}</CardTitle>
-          <CardDescription className="max-w-4xl text-base">
-            {messages.testGuide.subtitle}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="relative space-y-4">
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.testGuide.badges.adminOnly, variant: "warning" },
+          { label: messages.nav.testGuide }
+        ]}
+        title={messages.testGuide.title}
+        description={messages.testGuide.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.testGuide.productionUrlLabel}
+            </p>
+            <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-text-primary">
+              {messages.testGuide.badges.adminOnly}
+            </p>
+          </>
+        }
+        body={
+          <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
             <span>{messages.testGuide.productionUrlLabel}</span>
             <Link
@@ -205,8 +207,9 @@ export function TestGuideWorkspace({
           <p className="max-w-4xl text-sm leading-7 text-text-secondary">
             {messages.testGuide.intro}
           </p>
-        </CardContent>
-      </Card>
+          </div>
+        }
+      />
 
       <div className="grid gap-4 xl:grid-cols-3">
         {(["live", "local", "rules"] as const).map((key) => {

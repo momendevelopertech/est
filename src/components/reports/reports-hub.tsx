@@ -1,6 +1,5 @@
-import Link from "next/link";
-
 import { Badge } from "@/components/ui/badge";
+import { ActionLink } from "@/components/ui/action-link";
 import {
   Card,
   CardContent,
@@ -8,6 +7,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 
 type ReportsHubProps = {
@@ -35,18 +35,24 @@ export function ReportsHub({ locale, messages }: ReportsHubProps) {
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.reports}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.reports.hub.title}</CardTitle>
-          <CardDescription className="text-base">
-            {messages.reports.hub.subtitle}
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.reports }
+        ]}
+        title={messages.reports.hub.title}
+        description={messages.reports.hub.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.common.foundation}
+            </p>
+            <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-text-primary">
+              {messages.reports.hub.openReport}
+            </p>
+          </>
+        }
+      />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {reportLinks.map((item) => {
@@ -62,12 +68,9 @@ export function ReportsHub({ locale, messages }: ReportsHubProps) {
                 <Badge variant="accent">
                   {isArabic ? messages.common.rtl : messages.common.ltr}
                 </Badge>
-                <Link
-                  href={item.href}
-                  className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                >
+                <ActionLink href={item.href} variant="primary">
                   {messages.reports.hub.openReport}
-                </Link>
+                </ActionLink>
               </CardContent>
             </Card>
           );

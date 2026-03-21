@@ -77,10 +77,10 @@ export function NavLink({ href, label }: NavLinkProps) {
     <Link
       href={href}
       className={cn(
-        "motion-nav-link flex items-center gap-3 rounded-2xl px-3 py-3 text-sm",
+        "motion-nav-link flex items-center gap-3 rounded-[22px] border px-3.5 py-3 text-sm font-medium",
         isActive
-          ? "bg-accent text-white shadow-panel"
-          : "text-text-secondary hover:bg-surface-elevated hover:text-text-primary"
+          ? "border-transparent bg-accent text-white shadow-[0_18px_36px_-22px_rgba(15,118,110,0.9)]"
+          : "border-transparent text-text-secondary hover:border-border hover:bg-surface-elevated hover:text-text-primary"
       )}
     >
       {getNavIcon(href)}

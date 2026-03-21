@@ -242,20 +242,34 @@ export function PremiumDashboard({
 
   return (
     <div className="space-y-6">
-      <Card className="panel relative overflow-hidden border-transparent px-6 py-6 sm:px-8">
+      <Card className="relative overflow-hidden border-transparent px-6 py-6 sm:px-8">
         <div className="pointer-events-none absolute inset-0 opacity-80">
-          <div className="absolute -top-20 right-0 h-56 w-56 rounded-full bg-accent/20 blur-3xl" />
-          <div className="absolute -bottom-24 left-0 h-64 w-64 rounded-full bg-success/20 blur-3xl" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
+          <div className="absolute -top-20 end-0 h-56 w-56 rounded-full bg-accent/20 blur-3xl" />
+          <div className="absolute -bottom-24 start-0 h-64 w-64 rounded-full bg-success/20 blur-3xl" />
         </div>
         <CardHeader className="relative">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge variant="accent">{messages.common.protected}</Badge>
             <Badge>{userRoleLabel}</Badge>
           </div>
-          <CardTitle className="text-3xl">{messages.dashboard.title}</CardTitle>
-          <CardDescription className="max-w-3xl text-base">
-            {messages.dashboard.subtitle}
-          </CardDescription>
+          <div className="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)] lg:items-end">
+            <div>
+              <CardTitle className="text-3xl sm:text-4xl">{messages.dashboard.title}</CardTitle>
+              <CardDescription className="mt-2 max-w-3xl text-base">
+                {messages.dashboard.subtitle}
+              </CardDescription>
+            </div>
+
+            <div className="panel-subtle rounded-[24px] px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                {messages.dashboard.workspace.sections.coverageTitle}
+              </p>
+              <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-text-primary">
+                {messages.dashboard.workspace.sections.coverageBody}
+              </p>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="relative flex flex-wrap gap-3">
           <Link href="/reports">
@@ -288,7 +302,7 @@ export function PremiumDashboard({
           {[0, 1, 2, 3].map((item) => (
             <div
               key={item}
-              className="h-32 animate-pulse rounded-3xl border border-border bg-surface-elevated"
+              className="h-36 animate-pulse rounded-[28px] border border-border bg-surface-elevated"
             />
           ))}
         </div>
@@ -312,13 +326,18 @@ export function PremiumDashboard({
         <>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {topStats.map((card) => (
-              <Card key={card.key} className="panel border-transparent">
-                <CardHeader>
-                  <CardDescription>{card.title}</CardDescription>
-                  <CardTitle className="text-3xl">
-                    {formatNumber(locale, card.value)}
-                    {card.suffix ?? ""}
-                  </CardTitle>
+              <Card key={card.key} className="border-transparent">
+                <CardHeader className="flex min-h-[9.5rem] flex-col justify-between">
+                  <CardDescription className="max-w-[16rem]">{card.title}</CardDescription>
+                  <div className="mt-5">
+                    <CardTitle className="text-4xl sm:text-[2.5rem]">
+                      {formatNumber(locale, card.value)}
+                      {card.suffix ?? ""}
+                    </CardTitle>
+                    <div className="mt-3 h-1.5 w-20 rounded-full bg-accent/15">
+                      <div className="h-1.5 w-10 rounded-full bg-accent" />
+                    </div>
+                  </div>
                 </CardHeader>
               </Card>
             ))}
@@ -350,9 +369,9 @@ export function PremiumDashboard({
                             {formatNumber(locale, item.count)}
                           </span>
                         </div>
-                        <div className="h-2 rounded-full bg-surface-elevated">
+                        <div className="h-2.5 rounded-full bg-surface-elevated">
                           <div
-                            className="h-2 rounded-full bg-accent transition-[width] duration-300"
+                            className="h-2.5 rounded-full bg-accent transition-[width] duration-300"
                             style={{
                               width: `${percent}%`
                             }}
@@ -380,9 +399,9 @@ export function PremiumDashboard({
                             {formatNumber(locale, item.count)}
                           </span>
                         </div>
-                        <div className="h-2 rounded-full bg-surface-elevated">
+                        <div className="h-2.5 rounded-full bg-surface-elevated">
                           <div
-                            className="h-2 rounded-full bg-info transition-[width] duration-300"
+                            className="h-2.5 rounded-full bg-info transition-[width] duration-300"
                             style={{
                               width: `${percent}%`
                             }}
@@ -405,28 +424,28 @@ export function PremiumDashboard({
               <CardContent className="space-y-3">
                 <Link
                   href="/reports/assignments"
-                  className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
+                  className="motion-card flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
                 >
                   <span>{messages.reports.pages.assignments.title}</span>
                   <span className="text-text-secondary">/reports/assignments</span>
                 </Link>
                 <Link
                   href="/reports/attendance"
-                  className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
+                  className="motion-card flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
                 >
                   <span>{messages.reports.pages.attendance.title}</span>
                   <span className="text-text-secondary">/reports/attendance</span>
                 </Link>
                 <Link
                   href="/reports/evaluations"
-                  className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
+                  className="motion-card flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
                 >
                   <span>{messages.reports.pages.evaluations.title}</span>
                   <span className="text-text-secondary">/reports/evaluations</span>
                 </Link>
                 <Link
                   href="/reports"
-                  className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
+                  className="motion-card flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
                 >
                   <span>{messages.reports.hub.title}</span>
                   <span className="text-text-secondary">/reports</span>
@@ -434,7 +453,7 @@ export function PremiumDashboard({
                 {canAccessTestGuide ? (
                   <Link
                     href="/test"
-                    className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
+                    className="motion-card flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
                   >
                     <span>{messages.nav.testGuide}</span>
                     <span className="text-text-secondary">/test</span>
@@ -471,9 +490,9 @@ export function PremiumDashboard({
                           {formatNumber(locale, item.count)}
                         </span>
                       </div>
-                      <div className="h-2 rounded-full bg-surface-elevated">
+                      <div className="h-2.5 rounded-full bg-surface-elevated">
                         <div
-                          className="h-2 rounded-full bg-success transition-[width] duration-300"
+                          className="h-2.5 rounded-full bg-success transition-[width] duration-300"
                           style={{
                             width: `${percent}%`
                           }}
@@ -493,7 +512,7 @@ export function PremiumDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm">
+                <div className="flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm">
                   <span className="text-text-secondary">
                     {messages.dashboard.workspace.sections.uniqueAssignedUsers}
                   </span>
@@ -501,7 +520,7 @@ export function PremiumDashboard({
                     {formatNumber(locale, assignments.totals.uniqueAssignedUsers)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm">
+                <div className="flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm">
                   <span className="text-text-secondary">
                     {messages.dashboard.workspace.sections.attendanceRecords}
                   </span>
@@ -509,7 +528,7 @@ export function PremiumDashboard({
                     {formatNumber(locale, attendance.totals.attendanceRecords)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm">
+                <div className="flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm">
                   <span className="text-text-secondary">
                     {messages.dashboard.workspace.sections.completedAssignments}
                   </span>
@@ -517,7 +536,7 @@ export function PremiumDashboard({
                     {formatNumber(locale, assignments.totals.completedAssignments)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm">
+                <div className="flex items-center justify-between rounded-[22px] border border-border bg-surface-elevated px-4 py-3 text-sm">
                   <span className="text-text-secondary">
                     {messages.dashboard.workspace.sections.cancelledAssignments}
                   </span>

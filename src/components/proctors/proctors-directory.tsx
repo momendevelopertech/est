@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
@@ -567,18 +568,25 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.proctors}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.proctors.title}</CardTitle>
-          <CardDescription className="text-base">
-            {messages.proctors.subtitle}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.proctors }
+        ]}
+        title={messages.proctors.title}
+        description={messages.proctors.subtitle}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.proctors.listTitle}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {listState.data.length}
+            </p>
+          </>
+        }
+        body={
+          <div className="space-y-4">
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.proctors.description}
           </p>
@@ -654,12 +662,13 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               variant="secondary"
               size="sm"
               onClick={() => setRefreshKey((current) => current + 1)}
-            >
-              {messages.proctors.reload}
-            </Button>
+              >
+                {messages.proctors.reload}
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        }
+      />
 
       <Card>
         <CardHeader>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,6 +9,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
 import type { getCycleById } from "@/lib/cycles/service";
@@ -81,20 +83,16 @@ export function CycleDetailView({
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="accent">{messages.nav.cycles}</Badge>
-            <Badge>{messages.cycles.statuses[data.status]}</Badge>
-            <Badge>{data.isActive ? messages.cycles.labels.active : messages.cycles.labels.inactive}</Badge>
-            {data.code ? <Badge>{`${messages.cycles.labels.code}: ${data.code}`}</Badge> : null}
-          </div>
-          <CardTitle className="text-3xl">{cycleName}</CardTitle>
-          <CardDescription className="text-base">
-            {alternateName ?? messages.cycles.detailBody}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+      <PageHero
+        badges={[
+          { label: messages.nav.cycles, variant: "accent" },
+          { label: messages.cycles.statuses[data.status] },
+          { label: data.isActive ? messages.cycles.labels.active : messages.cycles.labels.inactive },
+          ...(data.code ? [{ label: `${messages.cycles.labels.code}: ${data.code}` }] : [])
+        ]}
+        title={cycleName}
+        description={alternateName ?? messages.cycles.detailBody}
+        body={
           <div className="space-y-2 text-sm text-text-secondary">
             <p>
               {messages.cycles.labels.dateRange}: {formatDate(locale, data.startDate)} -{" "}
@@ -104,14 +102,9 @@ export function CycleDetailView({
               {messages.cycles.labels.updatedAt}: {formatDateTime(locale, data.updatedAt)}
             </p>
           </div>
-          <Link
-            href="/cycles"
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover"
-          >
-            {messages.cycles.detailBack}
-          </Link>
-        </CardContent>
-      </Card>
+        }
+        actions={<ActionLink href="/cycles">{messages.cycles.detailBack}</ActionLink>}
+      />
 
       <Card>
         <CardHeader>

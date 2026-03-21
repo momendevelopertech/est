@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { ImportTemplateKey } from "@/lib/import/templates/contracts";
 import type { Locale, Messages } from "@/lib/i18n";
 
@@ -169,22 +170,26 @@ export function ImportTemplatesWorkspace({
 
   return (
     <div className="space-y-6">
-      <Card className="panel border-transparent px-6 py-6 sm:px-8">
-        <CardHeader>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="accent">{messages.common.protected}</Badge>
-            <Badge>{messages.nav.settings}</Badge>
-          </div>
-          <CardTitle className="text-3xl">{messages.importTemplates.title}</CardTitle>
-          <CardDescription className="text-base">
-            {messages.importTemplates.subtitle}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center justify-between gap-3">
-          <p className="max-w-3xl text-sm leading-7 text-text-secondary">
-            {messages.importTemplates.description}
-          </p>
-          <div className="flex flex-wrap gap-3">
+      <PageHero
+        badges={[
+          { label: messages.common.protected, variant: "accent" },
+          { label: messages.nav.settings }
+        ]}
+        title={messages.importTemplates.title}
+        description={messages.importTemplates.subtitle}
+        body={messages.importTemplates.description}
+        aside={
+          <>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+              {messages.importTemplates.labels.columns}
+            </p>
+            <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
+              {totalColumns}
+            </p>
+          </>
+        }
+        actions={
+          <>
             <Badge>{`${messages.importTemplates.labels.columns}: ${totalColumns}`}</Badge>
             <Button
               variant="secondary"
@@ -193,9 +198,9 @@ export function ImportTemplatesWorkspace({
             >
               {messages.importTemplates.retry}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </>
+        }
+      />
 
       {downloadError ? (
         <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4 text-sm text-danger">
