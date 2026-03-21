@@ -14,6 +14,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
@@ -916,7 +917,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
       </div>
 
       {isImportOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+        <ModalOverlay>
           <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
             <CardHeader>
               <CardTitle>{messages.proctors.importFlow.title}</CardTitle>
@@ -1048,11 +1049,11 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               </div>
             </CardContent>
           </Card>
-        </div>
+        </ModalOverlay>
       ) : null}
 
       {isExportOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+        <ModalOverlay>
           <Card className="panel w-full max-w-2xl border-transparent">
             <CardHeader>
               <CardTitle>{messages.proctors.exportFlow.title}</CardTitle>
@@ -1159,7 +1160,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               </div>
             </CardContent>
           </Card>
-        </div>
+        </ModalOverlay>
       ) : null}
     </div>
   );

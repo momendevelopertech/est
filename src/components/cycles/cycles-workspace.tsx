@@ -14,6 +14,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
@@ -875,7 +876,7 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
       </Card>
 
       {isFormOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+        <ModalOverlay>
           <Card className="panel max-h-[90vh] w-full max-w-3xl overflow-y-auto border-transparent">
             <CardHeader>
               <CardTitle>
@@ -1026,11 +1027,11 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </ModalOverlay>
       ) : null}
 
       {isCloneOpen && cloningCycle ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+        <ModalOverlay>
           <Card className="panel max-h-[90vh] w-full max-w-2xl overflow-y-auto border-transparent">
             <CardHeader>
               <CardTitle>{messages.cycles.cloneFlow.title}</CardTitle>
@@ -1127,7 +1128,7 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </ModalOverlay>
       ) : null}
     </div>
   );

@@ -12,6 +12,7 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ModalOverlay } from "@/components/ui/modal-overlay";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
@@ -708,7 +709,7 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
       </Card>
 
       {isImportOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4 py-6 backdrop-blur-sm">
+        <ModalOverlay>
           <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
             <CardHeader>
               <CardTitle>{messages.locations.importFlow.title}</CardTitle>
@@ -858,7 +859,7 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </ModalOverlay>
       ) : null}
     </div>
   );
