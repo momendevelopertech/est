@@ -135,6 +135,62 @@ const buildings = {
     nameEn: "Arab Academy Smart Village Building A",
     address: "Smart Village, Giza",
     sortOrder: 30
+  },
+  SHE_B: {
+    university: "AAST_SHE",
+    code: "SHE-B",
+    name: "\u0645\u0628\u0646\u0649 \u0647\u0646\u062f\u0633\u0629 \u0627\u0644\u0634\u064a\u0631\u0627\u062a\u0648\u0646 B",
+    nameEn: "Arab Academy Sheraton Engineering Building B",
+    address: "Sheraton, Cairo",
+    sortOrder: 40
+  },
+  SHE_CITL: {
+    university: "AAST_SHE",
+    code: "SHE-CITL",
+    name: "\u0645\u0628\u0646\u0649 \u0627\u0644\u0646\u0642\u0644 \u0627\u0644\u062f\u0648\u0644\u064a \u0648\u0627\u0644\u0644\u0648\u062c\u0633\u062a\u064a\u0627\u062a",
+    nameEn: "Arab Academy Sheraton CITL Building",
+    address: "Sheraton, Cairo",
+    sortOrder: 50
+  },
+  ABQ_ENG_B: {
+    university: "AAST_ABQ",
+    code: "ABQ-ENG-B",
+    name: "\u0645\u0628\u0646\u0649 \u0647\u0646\u062f\u0633\u0629 B \u0623\u0628\u0648 \u0642\u064a\u0631",
+    nameEn: "Arab Academy Abu Qir Engineering Building B",
+    address: "Abu Qir, Alexandria",
+    sortOrder: 60
+  },
+  SV_B: {
+    university: "AAST_SV",
+    code: "SV-B",
+    name: "\u0645\u0628\u0646\u0649 B \u0633\u0645\u0627\u0631\u062a \u0641\u064a\u0644\u062f\u062c",
+    nameEn: "Arab Academy Smart Village Building B",
+    address: "Smart Village, Giza",
+    sortOrder: 70
+  },
+  FUE_BUS: {
+    university: "FUE",
+    code: "FUE-BUS",
+    name: "\u0645\u0628\u0646\u0649 \u0643\u0644\u064a\u0629 \u0627\u0644\u0628\u064a\u0632\u0646\u0633 \u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u0645\u0633\u062a\u0642\u0628\u0644",
+    nameEn: "Future University Faculty of Business",
+    address: "New Cairo",
+    sortOrder: 80
+  },
+  HUE_ENG: {
+    university: "HUE",
+    code: "HUE-ENG",
+    name: "\u0645\u0628\u0646\u0649 \u0643\u0644\u064a\u0629 \u0627\u0644\u0647\u0646\u062f\u0633\u0629 \u062c\u0627\u0645\u0639\u0629 \u062d\u0648\u0631\u0633",
+    nameEn: "Horus University Faculty of Engineering",
+    address: "Damietta",
+    sortOrder: 90
+  },
+  RST_MAIN: {
+    university: "RST",
+    code: "RST-MAIN",
+    name: "\u0627\u0644\u0645\u0628\u0646\u0649 \u0627\u0644\u0631\u0626\u064a\u0633\u064a \u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u0631\u064a\u0627\u062f\u0629",
+    nameEn: "Al Ryada Main Building",
+    address: "Sadat City",
+    sortOrder: 100
   }
 } as const;
 
@@ -144,7 +200,16 @@ const floors = {
   ABBAS_ANNEX_F1: { building: "ABBAS_ANNEX", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
   ABBAS_ANNEX_F2: { building: "ABBAS_ANNEX", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 },
   GIZA_ENG_F1: { building: "GIZA_ENG", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
-  GIZA_ENG_F2: { building: "GIZA_ENG", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 }
+  GIZA_ENG_F2: { building: "GIZA_ENG", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 },
+  SHE_B_F1: { building: "SHE_B", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0631\u0636\u064a", nameEn: "Ground Floor", level: 0, sortOrder: 10 },
+  SHE_B_F2: { building: "SHE_B", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 20 },
+  SHE_CITL_F2: { building: "SHE_CITL", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 10 },
+  ABQ_ENG_B_F1: { building: "ABQ_ENG_B", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
+  ABQ_ENG_B_F2: { building: "ABQ_ENG_B", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 20 },
+  SV_B_F1: { building: "SV_B", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 },
+  FUE_BUS_F2: { building: "FUE_BUS", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 10 },
+  HUE_ENG_F2: { building: "HUE_ENG", code: "F2", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u062b\u0627\u0646\u064a", nameEn: "Second Floor", level: 2, sortOrder: 10 },
+  RST_MAIN_F1: { building: "RST_MAIN", code: "F1", name: "\u0627\u0644\u062f\u0648\u0631 \u0627\u0644\u0623\u0648\u0644", nameEn: "First Floor", level: 1, sortOrder: 10 }
 } as const;
 
 const rooms = {
@@ -154,7 +219,16 @@ const rooms = {
   ABBAS_ANNEX_A201: { floor: "ABBAS_ANNEX_F2", code: "304", name: "\u0644\u062c\u0646\u0629 304", nameEn: "Room 304", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 40 },
   ABBAS_ANNEX_AS1: { floor: "ABBAS_ANNEX_F2", code: "GS001", name: "\u063a\u0631\u0641\u0629 ASSN \u0648\u0623\u0648\u0631\u0627\u0642", nameEn: "ASSN Control Room", roomType: "ASSN", exams: [ExamType.EST_ASSN], min: 8, max: 18 },
   GIZA_ENG_G101: { floor: "GIZA_ENG_F1", code: "A106", name: "\u0644\u062c\u0646\u0629 A106", nameEn: "Room A106", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 35 },
-  GIZA_ENG_G201: { floor: "GIZA_ENG_F2", code: "A201", name: "\u0644\u062c\u0646\u0629 A201", nameEn: "Room A201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 35 }
+  GIZA_ENG_G201: { floor: "GIZA_ENG_F2", code: "A201", name: "\u0644\u062c\u0646\u0629 A201", nameEn: "Room A201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 35 },
+  SHE_B_B001: { floor: "SHE_B_F1", code: "B001", name: "\u0644\u062c\u0646\u0629 B001", nameEn: "Room B001", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 30 },
+  SHE_B_B103: { floor: "SHE_B_F2", code: "B103", name: "\u0644\u062c\u0646\u0629 B103", nameEn: "Room B103", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 30 },
+  SHE_CITL_201A: { floor: "SHE_CITL_F2", code: "201A", name: "\u0644\u062c\u0646\u0629 201A", nameEn: "Room 201 A", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 40 },
+  ABQ_ENG_B_100: { floor: "ABQ_ENG_B_F1", code: "100", name: "\u0644\u062c\u0646\u0629 100", nameEn: "Room 100", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 25 },
+  ABQ_ENG_B_202: { floor: "ABQ_ENG_B_F2", code: "202", name: "\u0644\u062c\u0646\u0629 202", nameEn: "Room 202", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 25 },
+  SV_B_B104: { floor: "SV_B_F1", code: "B104", name: "\u0644\u062c\u0646\u0629 B104", nameEn: "Room B104", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 30 },
+  FUE_BUS_F22: { floor: "FUE_BUS_F2", code: "F2.2", name: "\u0644\u062c\u0646\u0629 F2.2", nameEn: "Room F2.2", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 40, max: 50 },
+  HUE_ENG_E205: { floor: "HUE_ENG_F2", code: "E205", name: "\u0644\u062c\u0646\u0629 E205", nameEn: "Room E205", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 28, max: 30 },
+  RST_MAIN_P024: { floor: "RST_MAIN_F1", code: "P024", name: "\u0644\u062c\u0646\u0629 P024", nameEn: "Room P024", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 20 }
 } as const;
 
 const users = {
@@ -172,7 +246,12 @@ const users = {
   manual_assn_candidate: { name: "\u0631\u0627\u0646\u064a\u0627 \u0645\u062d\u0645\u062f", nameEn: "Rania Mohamed", phone: "+201099110109", email: "seed.rania.mohamed@example.com", source: UserSource.UNIVERSITY, governorate: "ALX", organization: "Arab Academy Abu Qir", branch: "Pharmacy Building", rating: "4.00", sessions: 6, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
   temp_blocked: { name: "\u0623\u0645\u0644 \u0639\u0644\u064a", nameEn: "Amal Ali", phone: "+201099110110", email: "seed.amal.ali@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Smart Village", rating: "4.05", sessions: 9, blockStatus: BlockStatus.TEMPORARY, blockEndsAt: d("2026-04-01T00:00:00.000Z"), locale: LocaleCode.AR, isActive: true },
   expired_block: { name: "\u0639\u0645\u0631 \u0641\u062a\u062d\u064a", nameEn: "Omar Fathy", phone: "+201099110111", email: "seed.omar.fathy@example.com", source: UserSource.SPHINX, governorate: "ALX", organization: "Sphinx Alex", branch: "Alex Team", rating: "3.80", sessions: 5, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  inactive_user: { name: "\u0644\u064a\u0644\u0649 \u0633\u064a\u062f", nameEn: "Laila Sayed", phone: "+201099110112", email: "seed.laila.sayed@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Future University in Egypt", branch: "New Cairo", rating: "4.00", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: false }
+  inactive_user: { name: "\u0644\u064a\u0644\u0649 \u0633\u064a\u062f", nameEn: "Laila Sayed", phone: "+201099110112", email: "seed.laila.sayed@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Future University in Egypt", branch: "New Cairo", rating: "4.00", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: false },
+  ryada_hala: { name: "\u0647\u0627\u0644\u0629 \u0635\u0644\u0627\u062d \u062d\u0627\u0645\u062f \u0639\u0637\u064a\u0629", nameEn: "Hala Salah Hamed Attia", phone: "+201067994949", email: "hala.hamed@rst.edu.eg", source: UserSource.UNIVERSITY, governorate: "MNF", organization: "Al Ryada University", branch: "Sadat City", rating: "4.60", sessions: 12, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  hue_ahmed_adel: { name: "\u0623\u062d\u0645\u062f \u0639\u0627\u062f\u0644 \u0648\u0647\u0628\u0629", nameEn: "Ahmed Adel Wahba", phone: "+201060606321", email: "ahawas@horus.edu.eg", source: UserSource.UNIVERSITY, governorate: "DMT", organization: "HUE Employee", branch: "Damietta", rating: "4.30", sessions: 10, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  fue_bahaa: { name: "\u0628\u0647\u0627\u0621 \u0627\u0644\u062f\u064a\u0646 \u0628\u064a\u0648\u0645\u064a \u0625\u0645\u0627\u0645 \u0634\u0639\u062a", nameEn: "Bahaa El-Dein Bayoumi Mohamed Emam Shaat", phone: "+201551290610", email: "bahaashaat1990@gmail.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "FUE Employee", branch: "New Cairo", rating: "4.25", sessions: 9, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  uk_joseph: { name: "\u062c\u0648\u0632\u064a\u0641 \u0646\u0627\u0635\u0631 \u0623\u0646\u0648\u0631 \u0635\u0645\u0648\u0626\u064a\u0644", nameEn: "Joseph Naser Anwr Samoul", phone: "+201211035098", email: "joenaser227@gmail.com", source: UserSource.EXTERNAL, governorate: "CAI", organization: "UK Marking Pool", branch: "Sheraton", rating: "4.10", sessions: 7, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  sphinx_tamer: { name: "\u062a\u0627\u0645\u0631 \u0639\u0628\u062f\u0627\u0644\u0633\u062a\u0627\u0631", nameEn: "Tamer Abdel Sattar", phone: "+201068801465", email: "tamerabdelsattar812@gmail.com", source: UserSource.SPHINX, governorate: "DMT", organization: "Sphinx Alex", branch: "Alex Team", rating: "4.40", sessions: 15, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true }
 } as const;
 
 const appUsers = [
@@ -252,7 +331,12 @@ const preferences = {
   promoted_candidate: [false, true, true, true, LocaleCode.EN],
   removed_candidate: [true, false, false, true, LocaleCode.EN],
   manual_assn_candidate: [true, true, false, true, LocaleCode.AR],
-  temp_blocked: [true, false, false, true, LocaleCode.AR]
+  temp_blocked: [true, false, false, true, LocaleCode.AR],
+  ryada_hala: [true, true, false, true, LocaleCode.AR],
+  hue_ahmed_adel: [true, true, false, true, LocaleCode.AR],
+  fue_bahaa: [true, false, true, true, LocaleCode.EN],
+  uk_joseph: [true, true, false, true, LocaleCode.EN],
+  sphinx_tamer: [true, true, false, true, LocaleCode.AR]
 } as const;
 
 const emailTemplates = [
@@ -263,6 +347,65 @@ const emailTemplates = [
   ["user_blocked", "block", "\u062a\u0645 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u062d\u0638\u0631", "Block activated", "\u062d\u0627\u0644\u0629 \u0627\u0644\u062d\u0638\u0631 \u0627\u0644\u062d\u0627\u0644\u064a\u0629 {{blockStatus}}.", "Your current block status is {{blockStatus}}.", ["name", "blockAction", "blockStatus", "blockEndsAt"]],
   ["user_unblocked", "block", "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u062d\u0638\u0631", "Block lifted", "\u062a\u0645 \u0631\u0641\u0639 \u0627\u0644\u062d\u0638\u0631 \u0648\u0623\u0635\u0628\u062d\u062a \u062d\u0627\u0644\u062a\u0643 {{blockStatus}}.", "Your block has been lifted and the current status is {{blockStatus}}.", ["name", "blockAction", "blockStatus", "blockEndsAt"]]
 ] as const;
+
+async function deactivateStaleSeedMasterData() {
+  const activeGovernorateCodes = Object.keys(governorates);
+  const activeUniversityCodes = Object.keys(universities);
+  const activeBuildingCodes = Object.values(buildings).map((item) => item.code);
+  const activeUserPhones = Object.values(users).map((item) => item.phone);
+
+  await prisma.governorate.updateMany({
+    where: {
+      notes: seedTag,
+      isActive: true,
+      code: {
+        notIn: activeGovernorateCodes
+      }
+    },
+    data: {
+      isActive: false
+    }
+  });
+
+  await prisma.university.updateMany({
+    where: {
+      notes: seedTag,
+      isActive: true,
+      code: {
+        notIn: activeUniversityCodes
+      }
+    },
+    data: {
+      isActive: false
+    }
+  });
+
+  await prisma.building.updateMany({
+    where: {
+      notes: seedTag,
+      isActive: true,
+      code: {
+        notIn: activeBuildingCodes
+      }
+    },
+    data: {
+      isActive: false
+    }
+  });
+
+  await prisma.user.updateMany({
+    where: {
+      notes: seedTag,
+      isActive: true,
+      phone: {
+        notIn: activeUserPhones
+      }
+    },
+    data: {
+      isActive: false
+    }
+  });
+}
 
 async function upsertBlock(input: {
   userId: string;
@@ -304,6 +447,8 @@ async function upsertBlock(input: {
 
 async function main() {
   const passwordHash = await hash(seedPassword, 12);
+
+  await deactivateStaleSeedMasterData();
 
   for (const [key, name, nameEn, scope, manualOnly, sortOrder] of assignmentRoles) {
     await prisma.assignmentRoleDefinition.upsert({
