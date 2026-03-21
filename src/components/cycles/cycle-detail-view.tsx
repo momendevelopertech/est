@@ -1,7 +1,4 @@
-import Link from "next/link";
-
 import { ActionLink } from "@/components/ui/action-link";
-import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
