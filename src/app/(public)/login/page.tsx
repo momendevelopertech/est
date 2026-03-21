@@ -37,6 +37,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const authError =
     searchParams?.error === ERROR_CODES.invalidCredentials
       ? messages.auth.error
+      : searchParams?.error === ERROR_CODES.authDbUnavailable
+        ? messages.auth.dbUnavailable
+        : searchParams?.error === ERROR_CODES.authEnvMisconfigured
+          ? messages.auth.envMisconfigured
       : searchParams?.error === ERROR_CODES.authServiceUnavailable
         ? messages.auth.serviceUnavailable
         : null;

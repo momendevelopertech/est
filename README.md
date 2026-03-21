@@ -27,7 +27,13 @@ The repository now includes:
 
 Runtime auth variables:
 
-- `AUTH_SECRET`
+- `AUTH_SECRET` (or `NEXTAUTH_SECRET`)
+- `NEXTAUTH_URL` (required in production, for example `https://est-weld-delta.vercel.app`)
+
+Production database variables:
+
+- `DATABASE_URL`
+- `DIRECT_DATABASE_URL` (recommended for migrations)
 
 Optional seed variable:
 
@@ -47,3 +53,4 @@ Default seeded accounts include:
 - This choice is intentional because the workspace Node version is `19.6.0`, while the latest Next.js `16.x` line requires Node `20.9.0` or newer.
 - Database-backed auth now expects seeded `app_users` records with hashed passwords.
 - Bilingual shell, theme controls, and the remaining foundation work are tracked in `docs/backlog.md`.
+- Vercel deploys run `prisma generate`, `prisma migrate deploy`, and `prisma db seed` via `npm run build:vercel`.

@@ -35,6 +35,8 @@ export const ERROR_CODES = {
   invalidCapacityRange: "invalid_capacity_range",
   invalidCredentials: "invalid_credentials",
   authServiceUnavailable: "auth_service_unavailable",
+  authDbUnavailable: "auth_db_unavailable",
+  authEnvMisconfigured: "auth_env_misconfigured",
   invalidDateRange: "invalid_date_range",
   invalidExamType: "invalid_exam_type",
   invalidHierarchyOrder: "invalid_hierarchy_order",

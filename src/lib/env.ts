@@ -15,7 +15,8 @@ const envKeyAliases = {
     "POSTGRES_URL_NON_POOLING",
     "POSTGRES_URL"
   ],
-  AUTH_SECRET: ["AUTH_SECRET"]
+  AUTH_SECRET: ["AUTH_SECRET", "NEXTAUTH_SECRET"],
+  NEXTAUTH_URL: ["NEXTAUTH_URL"]
 } as const;
 
 type ServerEnv = {
@@ -23,6 +24,7 @@ type ServerEnv = {
   DATABASE_URL: string;
   DIRECT_DATABASE_URL: string | undefined;
   AUTH_SECRET: string;
+  NEXTAUTH_URL: string | undefined;
   AUTH_SESSION_TTL_HOURS: number;
 };
 
@@ -44,6 +46,12 @@ function readRequiredStringEnv(key: "DATABASE_URL" | "AUTH_SECRET") {
 
 function readOptionalStringEnv(key: "DIRECT_DATABASE_URL") {
   return z.string().min(1).optional().parse(resolveEnvValue(key));
+}
+
+function readOptionalUrlEnv(key: "NEXTAUTH_URL") {
+  return z.string().url(`${key} must be a valid absolute URL`).optional().parse(
+    resolveEnvValue(key)
+  );
 }
 
 function resolveEnvValue(key: keyof typeof envKeyAliases) {
@@ -92,6 +100,11 @@ export const env: ServerEnv = {
   get AUTH_SECRET() {
     return getCachedEnvValue("AUTH_SECRET", () =>
       readRequiredStringEnv("AUTH_SECRET")
+    );
+  },
+  get NEXTAUTH_URL() {
+    return getCachedEnvValue("NEXTAUTH_URL", () =>
+      readOptionalUrlEnv("NEXTAUTH_URL")
     );
   },
   get AUTH_SESSION_TTL_HOURS() {

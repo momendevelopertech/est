@@ -47,6 +47,8 @@
     "password": "Password",
     "submit": "Sign in",
     "error": "The email or password was incorrect.",
+    "dbUnavailable": "Authentication failed because the database is currently unreachable. Check DATABASE_URL and database availability.",
+    "envMisconfigured": "Authentication failed because required environment settings are missing or invalid. Check NEXTAUTH_SECRET and NEXTAUTH_URL.",
     "serviceUnavailable": "Authentication is temporarily unavailable. Check database connectivity and deployment environment settings.",
     "credentialsTitle": "Seeded database accounts",
     "credentialsBody": "Run the Prisma seed, then sign in with one of the app users below. The shared seed password comes from SEED_APP_USERS_PASSWORD.",

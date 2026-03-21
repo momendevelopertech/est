@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { ZodError } from "zod";
 
 import { authCookieName } from "@/lib/auth/config";
 import { ERROR_CODES } from "@/lib/errors/codes";
@@ -12,6 +14,8 @@ import {
 import { env } from "@/lib/env";
 import { isLocale, localeCookieName } from "@/lib/i18n";
 import { themeCookieName } from "@/lib/theme";
+
+class AuthEnvironmentError extends Error {}
 
 function sanitizeRedirectPath(value: string | null) {
   if (!value || !value.startsWith("/")) {
@@ -36,7 +40,23 @@ function getRequestOrigin(request: Request) {
     return `${protocol}://${host}`;
   }
 
+  try {
+    if (env.NEXTAUTH_URL) {
+      return env.NEXTAUTH_URL;
+    }
+  } catch {
+    // Keep using request-derived origin when NEXTAUTH_URL is invalid.
+  }
+
   return new URL(request.url).origin;
+}
+
+function validateAuthEnvironment() {
+  void env.AUTH_SECRET;
+
+  if (env.NODE_ENV === "production" && !env.NEXTAUTH_URL) {
+    throw new AuthEnvironmentError("NEXTAUTH_URL is required in production");
+  }
 }
 
 export async function POST(request: Request) {
@@ -45,9 +65,11 @@ export async function POST(request: Request) {
   const password = String(formData.get("password") ?? "");
   const locale = String(formData.get("locale") ?? "");
   const redirectTo = sanitizeRedirectPath(String(formData.get("redirectTo") ?? ""));
-  const requestOrigin = getRequestOrigin(request);
+  let requestOrigin = new URL(request.url).origin;
 
   try {
+    validateAuthEnvironment();
+    requestOrigin = getRequestOrigin(request);
     const appUser = await authenticateAppUser(email, password);
 
     if (!appUser) {
@@ -101,10 +123,31 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error) {
-    console.error("auth_login_request_failed", error);
+    const mappedErrorCode =
+      error instanceof AuthEnvironmentError || error instanceof ZodError
+        ? ERROR_CODES.authEnvMisconfigured
+        : error instanceof Prisma.PrismaClientInitializationError ||
+            error instanceof Prisma.PrismaClientKnownRequestError ||
+            error instanceof Prisma.PrismaClientUnknownRequestError ||
+            error instanceof Prisma.PrismaClientRustPanicError
+          ? ERROR_CODES.authDbUnavailable
+          : ERROR_CODES.authServiceUnavailable;
+    const rootCause =
+      error instanceof Error
+        ? {
+            name: error.name,
+            message: error.message
+          }
+        : {
+            message: String(error)
+          };
+    console.error("auth_login_request_failed", {
+      code: mappedErrorCode,
+      rootCause
+    });
 
     const loginUrl = new URL("/login", requestOrigin);
-    loginUrl.searchParams.set("error", ERROR_CODES.authServiceUnavailable);
+    loginUrl.searchParams.set("error", mappedErrorCode);
 
     return NextResponse.redirect(loginUrl, {
       status: 303
