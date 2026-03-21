@@ -21,8 +21,13 @@ export function AppShell({ children, locale, messages, user }: ShellProps) {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-7xl gap-6 px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
-      <Sidebar messages={messages} navigation={navigation} />
+    <div className="mx-auto flex min-h-screen w-full max-w-none gap-4 px-3 py-4 sm:px-4 sm:py-5 lg:px-6 lg:py-6">
+      <Sidebar
+        locale={locale}
+        user={user}
+        messages={messages}
+        navigation={navigation}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col gap-6">
         <Header
