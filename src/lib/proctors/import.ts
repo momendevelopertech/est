@@ -647,9 +647,10 @@ export function getProctorsImportTemplateColumns() {
 export function getProctorsImportSampleCsv() {
   return [
     proctorImportColumns.join(","),
-    "محمد علي,Mohamed Ali,01001234567,m.ali@example.com,29801011234567,SPHINX,Sphinx,Heliopolis,CAI,Cairo,القاهرة,AR,active,Experienced room proctor",
-    ",Nora Hassan,01002223333,nora.hassan@example.com,,UNIVERSITY,Cairo University,Main Campus,GIZ,Giza,الجيزة,EN,active,English-only import row uses bilingual fallback",
-    "سارة عادل,Sara Adel,01003334444,,,EXTERNAL,External Pool,,ALEX,Alexandria,الإسكندرية,,inactive,"
+    "محمد صلاح,Mahmoud Salah,01001234567,m.salah@example.com,29801011234567,SPHINX,Sphinx Alex,Alex Team,ALX,الإسكندرية,Alexandria,AR,active,Head or control candidate from Sphinx-owned pool",
+    "سلمى هاني,Salma Hany,01002223333,salma.hany@example.com,29408121234567,UNIVERSITY,Arab Academy Sheraton,Engineering Building A,CAI,القاهرة,Cairo,AR,active,Senior candidate from university-owned pool",
+    "مريم نبيل,Mariam Nabil,01003334444,m.nabil@example.com,29903011234567,UNIVERSITY,FUE Employee,New Cairo,CAI,القاهرة,Cairo,EN,active,Room proctor candidate imported from university staff list",
+    "هبة سامر,Heba Samir,01004445555,,,EXTERNAL,Independent Pool,Smart Village,GIZ,الجيزة,Giza,,inactive,External reserve row without bilingual email data"
   ].join("\n");
 }
 

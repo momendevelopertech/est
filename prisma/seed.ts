@@ -49,12 +49,12 @@ const setting = (
 });
 
 const assignmentRoles = [
-  ["building_head", "\u0631\u0626\u064a\u0633 \u0627\u0644\u0645\u0628\u0646\u0649", "Building head", OperationalRoleScope.BUILDING, false, 10],
-  ["control_room", "\u0643\u0646\u062a\u0631\u0648\u0644", "Control", OperationalRoleScope.BUILDING, true, 20],
-  ["floor_senior", "\u0645\u0634\u0631\u0641 \u062f\u0648\u0631", "Floor senior", OperationalRoleScope.FLOOR, false, 30],
-  ["roaming_monitor", "\u0645\u0631\u0627\u0642\u0628 \u0645\u062a\u062d\u0631\u0643", "Roaming monitor", OperationalRoleScope.FLOOR, false, 40],
-  ["room_proctor", "\u0645\u0631\u0627\u0642\u0628 \u0644\u062c\u0646\u0629", "Room proctor", OperationalRoleScope.ROOM, false, 50],
-  ["assn_manual", "\u0645\u0631\u0627\u0642\u0628 ASSN", "ASSN proctor", OperationalRoleScope.ROOM, true, 60]
+  ["building_head", "\u0647\u064a\u062f", "Head", OperationalRoleScope.BUILDING, false, 10],
+  ["control_room", "\u0643\u0646\u062a\u0631\u0648\u0644", "Control Room", OperationalRoleScope.BUILDING, true, 20],
+  ["floor_senior", "\u0633\u0646\u064a\u0648\u0631", "Senior", OperationalRoleScope.FLOOR, false, 30],
+  ["roaming_monitor", "\u0631\u0648\u0645\u064a\u0646\u062c", "Roaming", OperationalRoleScope.FLOOR, false, 40],
+  ["room_proctor", "\u0628\u0631\u0648\u0643\u062a\u0648\u0631", "Proctor", OperationalRoleScope.ROOM, false, 50],
+  ["assn_manual", "\u0628\u0631\u0648\u0643\u062a\u0648\u0631 ASSN", "ASSN Proctor", OperationalRoleScope.ROOM, true, 60]
 ] as const;
 
 const settings = [
@@ -95,38 +95,45 @@ const settings = [
 ] as const;
 
 const governorates = {
-  CAI: { name: "\u0627\u0644\u0642\u0627\u0647\u0631\u0629", nameEn: "Cairo", sortOrder: 10 },
-  GIZ: { name: "\u0627\u0644\u062c\u064a\u0632\u0629", nameEn: "Giza", sortOrder: 20 }
+  ALX: { name: "\u0627\u0644\u0625\u0633\u0643\u0646\u062f\u0631\u064a\u0629", nameEn: "Alexandria", sortOrder: 10 },
+  CAI: { name: "\u0627\u0644\u0642\u0627\u0647\u0631\u0629", nameEn: "Cairo", sortOrder: 20 },
+  GIZ: { name: "\u0627\u0644\u062c\u064a\u0632\u0629", nameEn: "Giza", sortOrder: 30 },
+  MNF: { name: "\u0627\u0644\u0645\u0646\u0648\u0641\u064a\u0629", nameEn: "Menoufia", sortOrder: 40 },
+  DMT: { name: "\u062f\u0645\u064a\u0627\u0637", nameEn: "Damietta", sortOrder: 50 }
 } as const;
 
 const universities = {
-  ASU: { governorate: "CAI", name: "\u062c\u0627\u0645\u0639\u0629 \u0639\u064a\u0646 \u0634\u0645\u0633", nameEn: "Ain Shams University", sortOrder: 10 },
-  CU: { governorate: "GIZ", name: "\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u0642\u0627\u0647\u0631\u0629", nameEn: "Cairo University", sortOrder: 20 }
+  AAST_ABQ: { governorate: "ALX", name: "\u0627\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629 \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0623\u0628\u0648 \u0642\u064a\u0631", nameEn: "Arab Academy Abu Qir", sortOrder: 10 },
+  AAST_SHE: { governorate: "CAI", name: "\u0627\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629 \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0627\u0644\u0634\u064a\u0631\u0627\u062a\u0648\u0646", nameEn: "Arab Academy Sheraton", sortOrder: 20 },
+  AAST_SV: { governorate: "GIZ", name: "\u0627\u0644\u0623\u0643\u0627\u062f\u064a\u0645\u064a\u0629 \u0627\u0644\u0639\u0631\u0628\u064a\u0629 \u0633\u0645\u0627\u0631\u062a \u0641\u064a\u0644\u062f\u062c", nameEn: "Arab Academy Smart Village", sortOrder: 30 },
+  RST: { governorate: "MNF", name: "\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u0631\u064a\u0627\u062f\u0629", nameEn: "Al Ryada University", sortOrder: 40 },
+  HUE: { governorate: "DMT", name: "\u062c\u0627\u0645\u0639\u0629 \u062d\u0648\u0631\u0633", nameEn: "Horus University Egypt", sortOrder: 50 },
+  FUE: { governorate: "CAI", name: "\u062c\u0627\u0645\u0639\u0629 \u0627\u0644\u0645\u0633\u062a\u0642\u0628\u0644", nameEn: "Future University in Egypt", sortOrder: 60 }
 } as const;
 
 const buildings = {
   NASR_HQ: {
-    university: "ASU",
-    code: "NASR-HQ",
-    name: "\u0645\u0628\u0646\u0649 \u0645\u062f\u064a\u0646\u0629 \u0646\u0635\u0631 \u0627\u0644\u0631\u0626\u064a\u0633\u064a",
-    nameEn: "Nasr City Main Center",
-    address: "Nasr City, Cairo",
+    university: "AAST_SHE",
+    code: "SHE-A",
+    name: "\u0645\u0628\u0646\u0649 \u0647\u0646\u062f\u0633\u0629 \u0627\u0644\u0634\u064a\u0631\u0627\u062a\u0648\u0646 A",
+    nameEn: "Arab Academy Sheraton Engineering Building A",
+    address: "Sheraton, Cairo",
     sortOrder: 10
   },
   ABBAS_ANNEX: {
-    university: "ASU",
-    code: "ABBAS-ANNEX",
-    name: "\u0645\u0644\u062d\u0642 \u0627\u0644\u0639\u0628\u0627\u0633\u064a\u0629",
-    nameEn: "Abbassia Annex",
-    address: "Abbassia, Cairo",
+    university: "AAST_ABQ",
+    code: "ABQ-PHAR",
+    name: "\u0645\u0628\u0646\u0649 \u0635\u064a\u062f\u0644\u0629 \u0623\u0628\u0648 \u0642\u064a\u0631",
+    nameEn: "Arab Academy Abu Qir Faculty of Pharmacy",
+    address: "Abu Qir, Alexandria",
     sortOrder: 20
   },
   GIZA_ENG: {
-    university: "CU",
-    code: "GIZA-ENG",
-    name: "\u0642\u0627\u0639\u0629 \u0647\u0646\u062f\u0633\u0629 \u0627\u0644\u062c\u064a\u0632\u0629",
-    nameEn: "Giza Engineering Hall",
-    address: "Giza",
+    university: "AAST_SV",
+    code: "SV-A",
+    name: "\u0645\u0628\u0646\u0649 A \u0633\u0645\u0627\u0631\u062a \u0641\u064a\u0644\u062f\u062c",
+    nameEn: "Arab Academy Smart Village Building A",
+    address: "Smart Village, Giza",
     sortOrder: 30
   }
 } as const;
@@ -141,31 +148,31 @@ const floors = {
 } as const;
 
 const rooms = {
-  NASR_HQ_N101: { floor: "NASR_HQ_F1", code: "N101", name: "\u0644\u062c\u0646\u0629 N101", nameEn: "Room N101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 15, max: 32 },
-  NASR_HQ_N201: { floor: "NASR_HQ_F2", code: "N201", name: "\u0644\u062c\u0646\u0629 N201", nameEn: "Room N201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 12, max: 28 },
-  ABBAS_ANNEX_A101: { floor: "ABBAS_ANNEX_F1", code: "A101", name: "\u0644\u062c\u0646\u0629 A101", nameEn: "Room A101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 14, max: 30 },
-  ABBAS_ANNEX_A201: { floor: "ABBAS_ANNEX_F2", code: "A201", name: "\u0644\u062c\u0646\u0629 A201", nameEn: "Room A201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 12, max: 26 },
-  ABBAS_ANNEX_AS1: { floor: "ABBAS_ANNEX_F2", code: "AS1", name: "\u0644\u062c\u0646\u0629 ASSN 1", nameEn: "ASSN Room 1", roomType: "ASSN", exams: [ExamType.EST_ASSN], min: 8, max: 18 },
-  GIZA_ENG_G101: { floor: "GIZA_ENG_F1", code: "G101", name: "\u0644\u062c\u0646\u0629 G101", nameEn: "Room G101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 16, max: 36 },
-  GIZA_ENG_G201: { floor: "GIZA_ENG_F2", code: "G201", name: "\u0644\u062c\u0646\u0629 G201", nameEn: "Room G201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 12, max: 24 }
+  NASR_HQ_N101: { floor: "NASR_HQ_F1", code: "A101", name: "\u0644\u062c\u0646\u0629 A101", nameEn: "Room A101", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 45 },
+  NASR_HQ_N201: { floor: "NASR_HQ_F2", code: "A201", name: "\u0644\u062c\u0646\u0629 A201", nameEn: "Room A201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 20, max: 40 },
+  ABBAS_ANNEX_A101: { floor: "ABBAS_ANNEX_F1", code: "201", name: "\u0644\u062c\u0646\u0629 201", nameEn: "Room 201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 40 },
+  ABBAS_ANNEX_A201: { floor: "ABBAS_ANNEX_F2", code: "304", name: "\u0644\u062c\u0646\u0629 304", nameEn: "Room 304", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 40 },
+  ABBAS_ANNEX_AS1: { floor: "ABBAS_ANNEX_F2", code: "GS001", name: "\u063a\u0631\u0641\u0629 ASSN \u0648\u0623\u0648\u0631\u0627\u0642", nameEn: "ASSN Control Room", roomType: "ASSN", exams: [ExamType.EST_ASSN], min: 8, max: 18 },
+  GIZA_ENG_G101: { floor: "GIZA_ENG_F1", code: "A106", name: "\u0644\u062c\u0646\u0629 A106", nameEn: "Room A106", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 35 },
+  GIZA_ENG_G201: { floor: "GIZA_ENG_F2", code: "A201", name: "\u0644\u062c\u0646\u0629 A201", nameEn: "Room A201", roomType: "STANDARD", exams: [ExamType.EST1, ExamType.EST2], min: 25, max: 35 }
 } as const;
 
 const users = {
-  coordination_hub: { name: "\u0645\u0643\u062a\u0628 \u0627\u0644\u062a\u0646\u0633\u064a\u0642", nameEn: "Coordination Hub", phone: "+201099110001", email: "seed.coordination.user@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "ExamOps Coordination", branch: "Cairo Central", rating: "4.90", sessions: 22, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  senior_supervisor: { name: "\u0645\u0634\u0631\u0641 \u0623\u0648\u0644", nameEn: "Senior Supervisor", phone: "+201099110002", email: "seed.senior.user@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "ExamOps Operations", branch: "Nasr City", rating: "4.70", sessions: 18, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
-  viewer_observer: { name: "\u0645\u062a\u0627\u0628\u0639 \u062a\u0634\u063a\u064a\u0644\u064a", nameEn: "Operations Viewer", phone: "+201099110003", email: "seed.viewer.user@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "ExamOps QA", branch: "Giza", rating: "4.10", sessions: 9, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  proctor_head: { name: "\u0645\u062d\u0645\u0648\u062f \u0635\u0644\u0627\u062d", nameEn: "Mahmoud Salah", phone: "+201099110101", email: "seed.mahmoud.salah@example.com", source: UserSource.SPHINX, governorate: "CAI", organization: "Sphinx Staff", branch: "Nasr City", rating: "4.85", sessions: 24, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
-  floor_senior: { name: "\u0633\u0644\u0645\u0649 \u0647\u0627\u0646\u064a", nameEn: "Salma Hany", phone: "+201099110102", email: "seed.salma.hany@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Ain Shams University", branch: "Abbassia", rating: "4.68", sessions: 16, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
-  roaming_monitor: { name: "\u064a\u0648\u0633\u0641 \u0639\u0627\u062f\u0644", nameEn: "Youssef Adel", phone: "+201099110103", email: "seed.youssef.adel@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Giza", rating: "4.55", sessions: 14, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  room_proctor_a: { name: "\u0645\u0631\u064a\u0645 \u0646\u0628\u064a\u0644", nameEn: "Mariam Nabil", phone: "+201099110104", email: "seed.mariam.nabil@example.com", source: UserSource.UNIVERSITY, governorate: "GIZ", organization: "Cairo University", branch: "Giza", rating: "4.20", sessions: 11, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  room_proctor_b: { name: "\u062e\u0627\u0644\u062f \u0639\u0627\u0637\u0641", nameEn: "Khaled Atef", phone: "+201099110105", email: "seed.khaled.atef@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "6th of October", rating: "3.92", sessions: 7, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
-  waiting_candidate: { name: "\u0647\u0628\u0629 \u0633\u0627\u0645\u0631", nameEn: "Heba Samir", phone: "+201099110106", email: "seed.heba.samir@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Ain Shams University", branch: "Nasr City", rating: "4.35", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
-  promoted_candidate: { name: "\u0646\u0648\u0631\u0627 \u062c\u0645\u0627\u0644", nameEn: "Nora Gamal", phone: "+201099110107", email: "seed.nora.gamal@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Dokki", rating: "4.45", sessions: 10, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  removed_candidate: { name: "\u0637\u0627\u0631\u0642 \u062d\u0633\u0646", nameEn: "Tarek Hassan", phone: "+201099110108", email: "seed.tarek.hassan@example.com", source: UserSource.EXTERNAL, governorate: "CAI", organization: "Independent Pool", branch: "Maadi", rating: "3.10", sessions: 4, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  manual_assn_candidate: { name: "\u0631\u0627\u0646\u064a\u0627 \u0645\u062d\u0645\u062f", nameEn: "Rania Mohamed", phone: "+201099110109", email: "seed.rania.mohamed@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Ain Shams University", branch: "Abbassia", rating: "4.00", sessions: 6, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
-  temp_blocked: { name: "\u0623\u0645\u0644 \u0639\u0644\u064a", nameEn: "Amal Ali", phone: "+201099110110", email: "seed.amal.ali@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Giza", rating: "4.05", sessions: 9, blockStatus: BlockStatus.TEMPORARY, blockEndsAt: d("2026-04-01T00:00:00.000Z"), locale: LocaleCode.AR, isActive: true },
-  expired_block: { name: "\u0639\u0645\u0631 \u0641\u062a\u062d\u064a", nameEn: "Omar Fathy", phone: "+201099110111", email: "seed.omar.fathy@example.com", source: UserSource.SPHINX, governorate: "CAI", organization: "Sphinx Staff", branch: "Cairo", rating: "3.80", sessions: 5, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
-  inactive_user: { name: "\u0644\u064a\u0644\u0649 \u0633\u064a\u062f", nameEn: "Laila Sayed", phone: "+201099110112", email: "seed.laila.sayed@example.com", source: UserSource.UNIVERSITY, governorate: "GIZ", organization: "Cairo University", branch: "Giza", rating: "4.00", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: false }
+  coordination_hub: { name: "\u0645\u0643\u062a\u0628 \u062a\u0646\u0633\u064a\u0642 EST", nameEn: "EST Coordination Hub", phone: "+201099110001", email: "seed.coordination.user@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "ExamOps Coordination", branch: "Sheraton", rating: "4.90", sessions: 22, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  senior_supervisor: { name: "\u0645\u0634\u0631\u0641 \u062a\u0634\u063a\u064a\u0644", nameEn: "Operations Senior", phone: "+201099110002", email: "seed.senior.user@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "ExamOps Operations", branch: "Sheraton", rating: "4.70", sessions: 18, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  viewer_observer: { name: "\u0645\u062a\u0627\u0628\u0639 \u062a\u0634\u063a\u064a\u0644\u064a", nameEn: "Operations Viewer", phone: "+201099110003", email: "seed.viewer.user@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "ExamOps QA", branch: "Smart Village", rating: "4.10", sessions: 9, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  proctor_head: { name: "\u0645\u062d\u0645\u0648\u062f \u0635\u0644\u0627\u062d", nameEn: "Mahmoud Salah", phone: "+201099110101", email: "seed.mahmoud.salah@example.com", source: UserSource.SPHINX, governorate: "ALX", organization: "Sphinx Alex", branch: "Alex Team", rating: "4.85", sessions: 24, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  floor_senior: { name: "\u0633\u0644\u0645\u0649 \u0647\u0627\u0646\u064a", nameEn: "Salma Hany", phone: "+201099110102", email: "seed.salma.hany@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Arab Academy Sheraton", branch: "Engineering Building A", rating: "4.68", sessions: 16, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  roaming_monitor: { name: "\u064a\u0648\u0633\u0641 \u0639\u0627\u062f\u0644", nameEn: "Youssef Adel", phone: "+201099110103", email: "seed.youssef.adel@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Future University Pool", branch: "Smart Village", rating: "4.55", sessions: 14, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  room_proctor_a: { name: "\u0645\u0631\u064a\u0645 \u0646\u0628\u064a\u0644", nameEn: "Mariam Nabil", phone: "+201099110104", email: "seed.mariam.nabil@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "FUE Employee", branch: "New Cairo", rating: "4.20", sessions: 11, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  room_proctor_b: { name: "\u062e\u0627\u0644\u062f \u0639\u0627\u0637\u0641", nameEn: "Khaled Atef", phone: "+201099110105", email: "seed.khaled.atef@example.com", source: UserSource.UNIVERSITY, governorate: "DMT", organization: "HUE Employee", branch: "Damietta", rating: "3.92", sessions: 7, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  waiting_candidate: { name: "\u0647\u0628\u0629 \u0633\u0627\u0645\u0631", nameEn: "Heba Samir", phone: "+201099110106", email: "seed.heba.samir@example.com", source: UserSource.UNIVERSITY, governorate: "MNF", organization: "Al Ryada University", branch: "Sadat City", rating: "4.35", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  promoted_candidate: { name: "\u0646\u0648\u0631\u0627 \u062c\u0645\u0627\u0644", nameEn: "Nora Gamal", phone: "+201099110107", email: "seed.nora.gamal@example.com", source: UserSource.EXTERNAL, governorate: "CAI", organization: "UK Marking Pool", branch: "Sheraton", rating: "4.45", sessions: 10, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  removed_candidate: { name: "\u0637\u0627\u0631\u0642 \u062d\u0633\u0646", nameEn: "Tarek Hassan", phone: "+201099110108", email: "seed.tarek.hassan@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Smart Village", rating: "3.10", sessions: 4, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  manual_assn_candidate: { name: "\u0631\u0627\u0646\u064a\u0627 \u0645\u062d\u0645\u062f", nameEn: "Rania Mohamed", phone: "+201099110109", email: "seed.rania.mohamed@example.com", source: UserSource.UNIVERSITY, governorate: "ALX", organization: "Arab Academy Abu Qir", branch: "Pharmacy Building", rating: "4.00", sessions: 6, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: true },
+  temp_blocked: { name: "\u0623\u0645\u0644 \u0639\u0644\u064a", nameEn: "Amal Ali", phone: "+201099110110", email: "seed.amal.ali@example.com", source: UserSource.EXTERNAL, governorate: "GIZ", organization: "Independent Pool", branch: "Smart Village", rating: "4.05", sessions: 9, blockStatus: BlockStatus.TEMPORARY, blockEndsAt: d("2026-04-01T00:00:00.000Z"), locale: LocaleCode.AR, isActive: true },
+  expired_block: { name: "\u0639\u0645\u0631 \u0641\u062a\u062d\u064a", nameEn: "Omar Fathy", phone: "+201099110111", email: "seed.omar.fathy@example.com", source: UserSource.SPHINX, governorate: "ALX", organization: "Sphinx Alex", branch: "Alex Team", rating: "3.80", sessions: 5, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.EN, isActive: true },
+  inactive_user: { name: "\u0644\u064a\u0644\u0649 \u0633\u064a\u062f", nameEn: "Laila Sayed", phone: "+201099110112", email: "seed.laila.sayed@example.com", source: UserSource.UNIVERSITY, governorate: "CAI", organization: "Future University in Egypt", branch: "New Cairo", rating: "4.00", sessions: 8, blockStatus: BlockStatus.CLEAR, blockEndsAt: null, locale: LocaleCode.AR, isActive: false }
 } as const;
 
 const appUsers = [
@@ -181,16 +188,16 @@ const appUsers = [
 
 const cycleFixture = {
   code: "FINAL-VALIDATION-2026",
-  name: "\u062f\u0648\u0631\u0629 \u0627\u0644\u062a\u062d\u0642\u0642 \u0627\u0644\u0646\u0647\u0627\u0626\u064a 2026",
-  nameEn: "Final Validation Cycle 2026",
+  name: "\u062f\u0648\u0631\u0629 \u062a\u0634\u063a\u064a\u0644 EST \u064a\u0646\u0627\u064a\u0631 2026",
+  nameEn: "EST January 2026 Operations Cycle",
   startDate: day("2026-03-16"),
   endDate: day("2026-03-29")
 } as const;
 
 const sessions = {
-  completed_est1: { name: "\u062c\u0644\u0633\u0629 EST1 \u0645\u0643\u062a\u0645\u0644\u0629", nameEn: "Completed EST1 Session", examType: ExamType.EST1, date: day("2026-03-18"), startsAt: d("2026-03-18T07:00:00.000Z"), endsAt: d("2026-03-18T09:30:00.000Z"), status: SessionStatus.COMPLETED, dayIndex: 1, buildings: ["NASR_HQ", "GIZA_ENG"] },
-  scheduled_est2: { name: "\u062c\u0644\u0633\u0629 EST2 \u0645\u062c\u062f\u0648\u0644\u0629", nameEn: "Scheduled EST2 Session", examType: ExamType.EST2, date: day("2026-03-24"), startsAt: d("2026-03-24T07:00:00.000Z"), endsAt: d("2026-03-24T10:00:00.000Z"), status: SessionStatus.SCHEDULED, dayIndex: 2, buildings: ["NASR_HQ", "ABBAS_ANNEX"] },
-  locked_assn: { name: "\u062c\u0644\u0633\u0629 ASSN \u0645\u0642\u0641\u0644\u0629", nameEn: "Locked ASSN Session", examType: ExamType.EST_ASSN, date: day("2026-03-26"), startsAt: d("2026-03-26T08:00:00.000Z"), endsAt: d("2026-03-26T11:00:00.000Z"), status: SessionStatus.LOCKED, dayIndex: 3, buildings: ["ABBAS_ANNEX", "GIZA_ENG"] }
+  completed_est1: { name: "\u062c\u0644\u0633\u0629 EST1 \u0627\u0644\u062c\u0645\u0639\u0629", nameEn: "Friday EST1 Session", examType: ExamType.EST1, date: day("2026-03-18"), startsAt: d("2026-03-18T07:00:00.000Z"), endsAt: d("2026-03-18T09:30:00.000Z"), status: SessionStatus.COMPLETED, dayIndex: 1, buildings: ["ABBAS_ANNEX", "GIZA_ENG"] },
+  scheduled_est2: { name: "\u062c\u0644\u0633\u0629 EST2 \u0627\u0644\u0633\u0628\u062a", nameEn: "Saturday EST2 Session", examType: ExamType.EST2, date: day("2026-03-24"), startsAt: d("2026-03-24T07:00:00.000Z"), endsAt: d("2026-03-24T10:00:00.000Z"), status: SessionStatus.SCHEDULED, dayIndex: 2, buildings: ["NASR_HQ", "ABBAS_ANNEX"] },
+  locked_assn: { name: "\u062c\u0644\u0633\u0629 ASSN \u0627\u0644\u062a\u062d\u0642\u0642", nameEn: "Locked ASSN Validation Session", examType: ExamType.EST_ASSN, date: day("2026-03-26"), startsAt: d("2026-03-26T08:00:00.000Z"), endsAt: d("2026-03-26T11:00:00.000Z"), status: SessionStatus.LOCKED, dayIndex: 3, buildings: ["NASR_HQ", "GIZA_ENG"] }
 } as const;
 
 const assignments = [

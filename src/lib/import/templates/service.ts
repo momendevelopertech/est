@@ -113,24 +113,24 @@ const templateDefinitions: Record<ImportTemplateKey, TemplateStaticDefinition> =
     getColumns: () => cycleProctorsImportColumns,
     getSampleRows: () => [
       [
-        "SPRING-2026",
-        "2026-05-10",
+        "FINAL-VALIDATION-2026",
+        "2026-03-18",
         "EST1",
         "01001234567",
-        "ENG-1",
+        "ABQ-PHAR",
         "building_head",
         "1",
-        "priority candidate for session placement"
+        "preferred head candidate for Abu Qir pharmacy building"
       ],
       [
-        "SPRING-2026",
-        "2026-05-11",
+        "FINAL-VALIDATION-2026",
+        "2026-03-24",
         "EST2",
-        "01002223333",
-        "",
-        "",
-        "",
-        "fallback candidate when vacancy exists"
+        "01003334444",
+        "SHE-A",
+        "room_proctor",
+        "2",
+        "room-level fallback candidate when vacancy exists"
       ]
     ],
     title: {
@@ -149,17 +149,17 @@ const templateDefinitions: Record<ImportTemplateKey, TemplateStaticDefinition> =
     getColumns: () => sphinxStaffImportColumns,
     getSampleRows: () => [
       [
-        "Ahmed Salah",
-        "Ahmed Salah",
+        "محمود صلاح",
+        "Mahmoud Salah",
         "01005556666",
-        "ahmed.salah@example.com",
+        "mahmoud.salah@example.com",
         "29801011234567",
-        "Sphinx",
-        "Cairo Branch",
-        "CAI",
+        "Sphinx Alex",
+        "Alex Team",
+        "ALX",
         "AR",
         "active",
-        "existing sphinx staff import sample"
+        "sample row aligned with the Alexandria Sphinx pool"
       ]
     ],
     title: {
