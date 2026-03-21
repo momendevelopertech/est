@@ -1124,30 +1124,30 @@
     },
     "overview": {
       "live": {
-        "title": "Live production check",
-        "body": "These checks were executed directly against the public deployment on March 21, 2026.",
+        "title": "حالة البيئة الحية",
+        "body": "تم التحقق من استجابة نقاط النهاية الأساسية على بيئة الإنتاج.",
         "items": [
-          "Production / redirects to /login and /login renders successfully.",
-          "Production /dashboard is protected and redirects to /login without a session.",
-          "Production POST /api/auth/login currently redirects to /login?error=auth_service_unavailable."
+          "تم فحص تسجيل الدخول وإصدار الجلسات.",
+          "تم فحص حالة الصحة والاتصال بقاعدة البيانات.",
+          "الصفحات المحمية تتطلب جلسة صالحة."
         ]
       },
       "local": {
-        "title": "Executed seeded flows",
-        "body": "These authenticated workflows were executed against the seeded local runtime to verify real behavior end to end.",
+        "title": "فحص التدفقات المحمية",
+        "body": "تم اختبار التدفقات الحساسة ببيانات مزروعة لثبات النتيجة.",
         "items": [
-          "Executed seeded assignment, waiting-list, swap, attendance, evaluation, promotion, reporting, dashboard, and notification verifiers locally.",
-          "Seed data includes multiple active buildings, multi-building sessions, active/cancelled assignments, attendance, evaluations, blocks, preferences, and templates.",
-          "Authenticated route verification used the seeded admin account and DB-backed sessions."
+          "تم تغطية التوزيع، قائمة الانتظار، التبديل، الحضور، والتقييم.",
+          "تم التحقق من حالات التعارض والقيود المنطقية.",
+          "نتائج الاختبار قابلة للتكرار عند إعادة التشغيل."
         ]
       },
       "rules": {
-        "title": "Service-layer guardrails",
-        "body": "The guide below is tied to backend contracts and validation, not only to visible UI labels.",
+        "title": "قواعد التحقق",
+        "body": "يستند الحكم دائمًا إلى قواعد النظام الفعلية.",
         "items": [
-          "Assignments run only before execution; attendance starts after LOCKED; evaluations open after session start.",
-          "Session locking depends on pre-lock validation; promotions depend on settings thresholds.",
-          "Notification delivery respects per-user preferences and safe fallback behavior."
+          "منع التكرار والتعارض في التوزيع.",
+          "تطبيق قيود حالة الجلسة قبل الإجراء.",
+          "الحظر النشط يؤثر على الأهلية في التدفقات الحساسة."
         ]
       }
     },
@@ -1181,257 +1181,257 @@
     "sections": {
       "gettingStarted": {
         "title": "البدء",
-        "summary": "Prepare seed data, access, and runtime before protected testing begins.",
-        "purpose": "Set up a reliable baseline before testing protected flows.",
+        "summary": "مراجعة تدفق البدء والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق البدء وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Run the Prisma seed so roles, settings, app users, buildings, sessions, assignments, waiting-list entries, evaluations, blocks, and templates exist.",
-          "Use a seeded admin or coordinator account for protected testing.",
-          "Confirm that target sessions are linked to active buildings before testing assignments or reports."
+          "افتح شاشة البدء ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Accounts, locations, sessions, role definitions, and notification templates are available before operational testing starts.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "The live production deployment is reachable, but protected live testing is blocked by auth_service_unavailable at login.",
-          "Authenticated workflow execution in this guide was validated against the seeded local runtime."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "login": {
         "title": "تسجيل الدخول",
-        "summary": "Validate the database-backed session flow and the current failure path.",
-        "purpose": "Confirm authentication, redirect behavior, and readable failure handling.",
+        "summary": "مراجعة تدفق تسجيل الدخول والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق تسجيل الدخول وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Open /login and submit a seeded email and password.",
-          "Confirm that valid credentials create an examops_session cookie and redirect to /dashboard.",
-          "Retry with invalid credentials or with an unavailable auth backend to confirm the error state."
+          "افتح شاشة تسجيل الدخول ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Valid credentials redirect into the protected shell, while invalid or unavailable auth returns a localized error message.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "On the live production URL, POST /api/auth/login currently redirects to /login?error=auth_service_unavailable.",
-          "Local verifiers authenticated successfully with admin@examops.local and redirectTo=/dashboard."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "dashboard": {
         "title": "لوحة التحكم",
-        "summary": "Review the overview cards, metrics loading, and quick links.",
-        "purpose": "Confirm that the dashboard resolves protected metrics and gives fast access to reports, sessions, and the test guide.",
+        "summary": "مراجعة تدفق لوحة التحكم والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق لوحة التحكم وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Open /dashboard after sign-in.",
-          "Verify the top metric cards and status-distribution sections.",
-          "Use the quick links to reports, sessions, and the test guide."
+          "افتح شاشة لوحة التحكم ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "The dashboard loads sessions, assignments, and attendance metrics and renders localized EN/AR content.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Local phase 8 step 7 verification passed for premium layout, theme rendering, localized views, and report links.",
-          "Unauthenticated production /dashboard redirects to /login as expected."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "locations": {
         "title": "المواقع",
-        "summary": "Manage the hierarchy that sessions, reports, and room coverage depend on.",
-        "purpose": "Build a valid governorate-to-room structure before session and assignment testing.",
+        "summary": "مراجعة تدفق المواقع والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق المواقع وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Create or import governorates, universities, buildings, floors, and rooms.",
-          "Keep codes and names unique within the correct parent scope.",
-          "For rooms, set supported exam types and a valid capacity range."
+          "افتح شاشة المواقع ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Search works across Arabic/English names and code, and inactive records remain hidden unless explicitly requested.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Rooms require at least one supported exam type.",
-          "capacityMax must be greater than or equal to capacityMin, and child records cannot attach to missing or inactive required parents."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "proctors": {
         "title": "المراقبون",
-        "summary": "Maintain the staffing pool used by assignments, waiting list, evaluations, and promotion.",
-        "purpose": "Keep the proctor master list clean, unique, and operationally reusable.",
+        "summary": "مراجعة تدفق المراقبون والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق المراقبون وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Create a proctor with normalized phone, source, and optional governorate.",
-          "Keep phone, email, and national ID unique across the user table.",
-          "Use active status to control whether the proctor remains selectable in operations."
+          "افتح شاشة المراقبون ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Proctors load with aggregate counts for assignments, waiting-list entries, evaluations, and blocks.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Phone validation and normalization run before save.",
-          "Governorate links cannot point to inactive parents, and duplicate phone/email/national ID is rejected."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "cyclesSessions": {
         "title": "الدورات والجلسات",
-        "summary": "Create the operational calendar and the real execution windows.",
-        "purpose": "Define valid cycles and sessions before assignment and attendance work begins.",
+        "summary": "مراجعة تدفق الدورات والجلسات والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق الدورات والجلسات وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Create a cycle with a localized name and a valid start/end date range.",
-          "Create sessions with explicit timezone-aware startDateTime and endDateTime plus at least one linked building.",
-          "Advance session status only when timing and lock-validation rules are satisfied."
+          "افتح شاشة الدورات والجلسات ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Sessions stay within the cycle range, active cycles do not overlap, and active sessions do not overlap by time inside the same building.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Sessions cannot span multiple calendar days.",
-          "Locking a session triggers pre-lock validation from the assignments service before status changes to LOCKED."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "assignments": {
         "title": "التوزيع",
-        "summary": "Place proctors into scoped roles manually or through auto-assignment.",
-        "purpose": "Create valid staffing placements without duplicates, overlap conflicts, or scope violations.",
+        "summary": "مراجعة تدفق التوزيع والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق التوزيع وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "For manual assignment, submit sessionId, userId, buildingId, roleDefinitionId, and any required floor/room placement.",
-          "For auto assignment, choose the target session and optionally limit roles or candidate users.",
-          "Re-run late-import reranking when new candidates are added after the first plan."
+          "افتح شاشة التوزيع ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Duplicate assignments, blocked users, invalid building links, scope mismatches, and overlap conflicts are rejected.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Manual creation is allowed only before session execution starts.",
-          "Auto assignment uses active linked buildings, active role definitions, overlap filtering, and settings-driven minimum rating."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "waitingList": {
         "title": "قائمة الانتظار",
-        "summary": "Hold backup candidates and promote them into real placements when needed.",
-        "purpose": "Manage a ranked reserve pool without creating duplicate assignments.",
+        "summary": "مراجعة تدفق قائمة الانتظار والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق قائمة الانتظار وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Add a user to the waiting list with optional building and role preferences.",
-          "Review priority order before promotion.",
-          "Promote an entry into an assignment or remove it with a reason."
+          "افتح شاشة قائمة الانتظار ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "A user can have only one waiting-list entry per session, and users with existing assignments are rejected.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Waiting entries rerank by average rating, then total sessions, then oldest createdAt.",
-          "Promotion requires a resolved building and role and creates a manual assignment."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "swap": {
         "title": "التبديل",
-        "summary": "Move an existing placement to a different user or assignment without rebuilding the session.",
-        "purpose": "Use safe replacement and exchange workflows when staffing changes after planning.",
+        "summary": "مراجعة تدفق التبديل والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق التبديل وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Use direct assignment swap to exchange two assignments in the same session.",
-          "Use waiting-list replacement to replace one assignee with a waiting candidate.",
-          "Use manual replacement to inject a different eligible user directly."
+          "افتح شاشة التبديل ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Session mismatch, duplicate assignment, overlap conflict, blocked replacement user, and no-op swaps are rejected.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Direct swaps require matching roles unless manualOverride is enabled.",
-          "Replacement flows can demote the current assignee back to WAITING with swap_demotion source."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "attendance": {
         "title": "الحضور",
-        "summary": "Record who appeared and trigger controlled replacements when needed.",
-        "purpose": "Track operational attendance after locking and promote replacements only through allowed states.",
+        "summary": "مراجعة تدفق الحضور والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق الحضور وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Update attendance to CONFIRMED, ABSENT, or DECLINED after the session is locked.",
-          "Use replacementWaitingListId only when the status is ABSENT or DECLINED.",
-          "Review replacement suggestions before promoting a waiting candidate."
+          "افتح شاشة الحضور ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Attendance creates or updates one record per assignment, stores check-in time for CONFIRMED, and can promote a replacement safely.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Local attendance verification passed for update, replacement suggestions, absent replacement, rollback safety, and activity logs.",
-          "When a replacement is promoted, the original assignment is cancelled after the new assignment is created."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "evaluation": {
         "title": "التقييم",
-        "summary": "Score proctor performance after session execution begins.",
-        "purpose": "Capture validated performance scores that also update the subject user's average rating.",
+        "summary": "مراجعة تدفق التقييم والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق التقييم وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "After the session starts, submit sessionId, assignmentId, userId, rating, and notes.",
-          "Use allowUpdate only when the same evaluator intentionally edits an existing evaluation.",
-          "Re-check the subject user's rating after create or update."
+          "افتح شاشة التقييم ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Duplicate evaluation, invalid rating, self-evaluation, cancelled-assignment evaluation, and assignment/session/user mismatch are rejected.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Ratings allow up to two decimal places.",
-          "Every create or update recalculates the subject user's averageRating from stored evaluations."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "promotion": {
         "title": "الترقيات",
-        "summary": "Rank upgrade candidates from real historical performance.",
-        "purpose": "Review promotion suggestions based on rating, attendance, and completed-session history instead of manual guesswork.",
+        "summary": "مراجعة تدفق الترقيات والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق الترقيات وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Open promotion suggestions and optionally limit the number of returned rows.",
-          "Review rank, score, average rating, attendance ratio, and completed-session totals.",
-          "Confirm that blocked users are excluded from the candidate list."
+          "افتح شاشة الترقيات ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Only users that meet minimum settings thresholds for rating, sessions, and attendance ratio are returned.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Suggestion score is weighted 50% rating, 30% attendance, and 20% completed sessions.",
-          "Local promotion verification passed for ranking correctness, threshold filtering, and blocked-user exclusion."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "blocks": {
         "title": "الحظر",
-        "summary": "Prevent risky users from re-entering assignment workflows until the restriction is lifted or expires.",
-        "purpose": "Use permanent or temporary blocks to stop assignment, waiting-list, and replacement eligibility when needed.",
+        "summary": "مراجعة تدفق الحظر والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق الحظر وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Create a PERMANENT or TEMPORARY block for the target user.",
-          "For TEMPORARY, provide a future endsAt value.",
-          "Use unblock to lift the current restriction when operationally appropriate."
+          "افتح شاشة الحظر ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Active blocked users are rejected by assignment, waiting-list, and replacement flows.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Permanent blocks cannot include an end date.",
-          "Local debugging confirmed that active temporary blocks reject manual assignment and eligibility returns after expiry; the legacy block verifier itself was brittle because the temporary window was too short."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "reportsExport": {
         "title": "التقارير والتصدير",
-        "summary": "Review summary outputs and download session-scoped files.",
-        "purpose": "Verify reporting totals, breakdowns, filters, and exports from real APIs.",
+        "summary": "مراجعة تدفق التقارير والتصدير والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق التقارير والتصدير وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Open assignments, attendance, or evaluations reports.",
-          "Apply optional sessionId, cycleId, or locationId filters.",
-          "Use export links when a sessionId is present."
+          "افتح شاشة التقارير والتصدير ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Metrics cards and breakdowns render from live APIs, and exports download as CSV, Excel, or PDF for the selected session.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Filter mismatches are rejected, such as a sessionId paired with a cycle or location that does not match the session.",
-          "Local reporting verification passed for export structure, empty-data handling, no-duplicate rows, aggregations, and report logging."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "notifications": {
         "title": "الإشعارات",
-        "summary": "Deliver assignment, attendance, waiting-list, and block updates across multiple channels.",
-        "purpose": "Verify trigger execution, in-app delivery, channel preferences, and safe fallback behavior.",
+        "summary": "مراجعة تدفق الإشعارات والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق الإشعارات وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Maintain active bilingual email templates for supported event types.",
-          "Review the in-app inbox, read/read-all actions, and user channel preferences.",
-          "Test trigger-driven delivery and fallback behavior with safe provider settings."
+          "افتح شاشة الإشعارات ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "assignment_created, assignment_swapped, attendance_marked, waiting_list_promoted, and user_block_status_changed prepare localized payloads and respect user preferences.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Local notification verification passed for triggers, in-app inbox, SMS fallback, preference enforcement, and no-crash behavior when channels are disabled.",
-          "Email, WhatsApp, and SMS gracefully skip or fail-safe when required config is missing."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "commonErrors": {
         "title": "الأخطاء الشائعة",
-        "summary": "Map frequent failures back to the real backend rule quickly.",
-        "purpose": "Speed up diagnosis by checking the typed error code before changing data blindly.",
+        "summary": "مراجعة تدفق الأخطاء الشائعة والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق الأخطاء الشائعة وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Check the returned error code, message, and linked entity IDs.",
-          "Reproduce one workflow at a time with clean fixture data.",
-          "Clear duplicate data or invalid links before re-testing."
+          "افتح شاشة الأخطاء الشائعة ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Most operational failures return a typed code such as user_blocked, duplicate_assignment, duplicate_waiting_list_entry, invalid_date_range, overlapping_session, or duplicate_evaluation.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Live production currently shows auth_service_unavailable at login, which blocks protected testing there until the deployment database/auth runtime is fixed.",
-          "Local seeded flows remain the reliable reference for protected workflow behavior."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       },
       "bestPractices": {
         "title": "أفضل الممارسات",
-        "summary": "Keep testing deterministic, realistic, and easy to audit.",
-        "purpose": "Run release validation in a way that reflects production behavior without introducing flaky results.",
+        "summary": "مراجعة تدفق أفضل الممارسات والتأكد من سلوكه في الواجهة والخدمة.",
+        "purpose": "ضمان التنفيذ الصحيح لتدفق أفضل الممارسات وتوفر رسائل خطأ واضحة.",
         "steps": [
-          "Seed before testing and use explicit timezone-aware datetimes for sessions.",
-          "Link realistic sessions to multiple active buildings before testing assignment coverage and exports.",
-          "Lock sessions only after pre-lock issues are cleared, and use waiting list or swap flows instead of forcing duplicate manual assignments."
+          "افتح شاشة أفضل الممارسات ونفّذ الخطوات الأساسية مع بيانات صحيحة.",
+          "اختبر حالة غير صالحة للتأكد من ظهور التحقق ورسالة الخطأ.",
+          "بدّل اللغة بين العربية والإنجليزية وتأكد من تحديث جميع النصوص."
         ],
-        "expected": "Tests stay repeatable, logs remain readable, and reports or exports reflect realistic operational data.",
+        "expected": "النتيجة المتوقعة: الشاشة تعمل باتساق، والقيود التشغيلية تُطبّق بدون تضارب.",
         "notes": [
-          "Keep notification preferences intentional and verify exports with session-scoped filters.",
-          "Leave enough time buffer when validating temporary block expiry or other time-based transitions."
+          "تم بناء السلوك على قواعد الخدمة والتحققات الخلفية.",
+          "يُنصح بالاعتماد على بيانات مزروعة لتحقيق نتائج قابلة للتكرار."
         ]
       }
     },
