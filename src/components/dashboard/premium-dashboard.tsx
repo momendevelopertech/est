@@ -69,6 +69,7 @@ type PremiumDashboardProps = {
   locale: Locale;
   messages: Messages;
   userRoleLabel: string;
+  canAccessTestGuide: boolean;
 };
 
 function formatNumber(locale: Locale, value: number) {
@@ -96,7 +97,8 @@ function getLocalizedLabel(
 export function PremiumDashboard({
   locale,
   messages,
-  userRoleLabel
+  userRoleLabel,
+  canAccessTestGuide
 }: PremiumDashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -264,6 +266,13 @@ export function PremiumDashboard({
               {messages.dashboard.workspace.actions.openSessions}
             </Button>
           </Link>
+          {canAccessTestGuide ? (
+            <Link href="/test">
+              <Button size="sm" variant="secondary">
+                {messages.dashboard.workspace.actions.openTestGuide}
+              </Button>
+            </Link>
+          ) : null}
           <Button
             size="sm"
             variant="secondary"
@@ -422,6 +431,15 @@ export function PremiumDashboard({
                   <span>{messages.reports.hub.title}</span>
                   <span className="text-text-secondary">/reports</span>
                 </Link>
+                {canAccessTestGuide ? (
+                  <Link
+                    href="/test"
+                    className="flex items-center justify-between rounded-2xl border border-border bg-surface-elevated px-4 py-3 text-sm text-text-primary"
+                  >
+                    <span>{messages.nav.testGuide}</span>
+                    <span className="text-text-secondary">/test</span>
+                  </Link>
+                ) : null}
               </CardContent>
             </Card>
           </div>

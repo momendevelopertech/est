@@ -12,6 +12,9 @@ export default async function DashboardPage() {
       locale={locale}
       messages={messages}
       userRoleLabel={messages.roles[session.user.role]}
+      canAccessTestGuide={
+        session.user.role === "super_admin" || session.user.role === "coordinator"
+      }
     />
   );
 }

@@ -351,7 +351,7 @@ async function verify() {
     expect(unblockedAssignmentId, "Unblocked assignment id is missing.");
     fixture.createdAssignmentIds.push(unblockedAssignmentId);
 
-    const temporaryEndsAt = new Date(Date.now() + 3500);
+    const temporaryEndsAt = new Date(Date.now() + 8000);
     const temporaryBlock = await postJson("/api/blocks", cookie, {
       userId: fixture.userTemporaryId,
       type: "TEMPORARY",
@@ -378,8 +378,17 @@ async function verify() {
     );
     assert.equal(temporaryBlockedManualAssignment.body.error, "user_blocked");
 
+    const storedTemporaryEndsAt =
+      temporaryBlock.body?.data?.user?.blockEndsAt ??
+      temporaryBlock.body?.data?.block?.endsAt ??
+      temporaryEndsAt.toISOString();
+    const remainingWaitMs = Math.max(
+      new Date(storedTemporaryEndsAt).getTime() - Date.now() + 800,
+      1500
+    );
+
     await new Promise((resolve) => {
-      setTimeout(resolve, 4200);
+      setTimeout(resolve, remainingWaitMs);
     });
 
     const temporaryExpiredManualAssignment = await postJson("/api/assignments", cookie, {
