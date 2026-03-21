@@ -844,20 +844,30 @@ export async function executeSwap(
           afterPayload: result
         });
 
-        await executeNotificationTrigger(
-          {
-            eventType: "assignment_swapped",
-            payload: {
-              sessionId: result.sessionId,
-              changedAssignmentIds: result.changedAssignmentIds,
-              swapKind: result.kind
+        try {
+          await executeNotificationTrigger(
+            {
+              eventType: "assignment_swapped",
+              payload: {
+                sessionId: result.sessionId,
+                changedAssignmentIds: result.changedAssignmentIds,
+                swapKind: result.kind
+              }
+            },
+            {
+              actorAppUserId,
+              client: tx
             }
-          },
-          {
-            actorAppUserId,
-            client: tx
-          }
-        );
+          );
+        } catch (error) {
+          // Do not fail the core swap transaction when notification delivery fails.
+          console.error("swap_notification_trigger_failed", {
+            sessionId: result.sessionId,
+            swapKind: result.kind,
+            changedAssignmentIds: result.changedAssignmentIds,
+            error
+          });
+        }
 
         return result;
       },

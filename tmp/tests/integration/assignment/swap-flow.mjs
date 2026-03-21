@@ -26,41 +26,79 @@ function extractCookie(setCookieHeader, cookieName) {
 }
 
 async function loginAndGetCookie() {
-  const form = new FormData();
-  form.set("email", adminEmail);
-  form.set("password", adminPassword);
-  form.set("locale", "en");
-  form.set("redirectTo", "/dashboard");
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const form = new FormData();
+    form.set("email", adminEmail);
+    form.set("password", adminPassword);
+    form.set("locale", "en");
+    form.set("redirectTo", "/dashboard");
 
-  const response = await fetch(`${baseUrl}/api/auth/login`, {
-    method: "POST",
-    body: form,
-    redirect: "manual"
-  });
-  const token = extractCookie(response.headers.get("set-cookie"), "examops_session");
+    const response = await fetch(`${baseUrl}/api/auth/login`, {
+      method: "POST",
+      body: form,
+      redirect: "manual"
+    });
+    const token = extractCookie(response.headers.get("set-cookie"), "examops_session");
 
-  if (!token) {
-    throw new Error("Could not authenticate admin user for swap flow integration test.");
+    if (token) {
+      return `examops_session=${token}`;
+    }
+
+    if (response.status < 500 || attempt === 3) {
+      throw new Error(
+        "Could not authenticate admin user for swap flow integration test."
+      );
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, attempt * 400);
+    });
   }
-
-  return `examops_session=${token}`;
 }
 
 async function postJson(path, payload, cookie) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      Cookie: cookie
-    },
-    body: JSON.stringify(payload)
-  });
-  const body = await response.json();
+  const maxAttempts = 3;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Cookie: cookie
+      },
+      body: JSON.stringify(payload)
+    });
+    const text = await response.text();
+    let body = null;
+
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      body = {
+        raw: text
+      };
+    }
+
+    const isRetriable = response.status >= 500;
+
+    if (!isRetriable || attempt === maxAttempts) {
+      return {
+        status: response.status,
+        body
+      };
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, attempt * 400);
+    });
+  }
 
   return {
-    status: response.status,
-    body
+    status: 500,
+    body: {
+      raw: "request_failed_without_response"
+    }
   };
 }
 

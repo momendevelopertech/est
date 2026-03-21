@@ -1,7 +1,6 @@
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import fs from "node:fs";
 
 import { runNodeScript } from "./_lib/run-script.mjs";
 
@@ -22,7 +21,7 @@ async function isServerUp() {
     const response = await fetch(`${baseUrl}/login`, {
       method: "GET"
     });
-    return response.status >= 200 && response.status < 500;
+    return response.status >= 200 && response.status < 600;
   } catch {
     return false;
   }
@@ -44,8 +43,7 @@ async function waitForServer(timeoutMs = 30_000) {
 
 function startServer() {
   const nextCliPath = path.join(rootDir, "node_modules", "next", "dist", "bin", "next");
-  const hasBuild = fs.existsSync(path.join(rootDir, ".next", "BUILD_ID"));
-  const mode = hasBuild ? "start" : "dev";
+  const mode = "dev";
   const child = spawn(process.execPath, [nextCliPath, mode, "-p", String(port)], {
     cwd: rootDir,
     stdio: "inherit",

@@ -166,9 +166,30 @@ async function run() {
     ensure(cookie, "Missing auth cookie after login");
 
     const now = Date.now();
-    const baseDate = new Date(Date.UTC(2360 + (now % 10), 0, 10));
-    const startDate = toDateOnly(baseDate);
-    const endDate = toDateOnly(new Date(baseDate.getTime() + 2 * 24 * 60 * 60 * 1000));
+    const baseDate = new Date();
+    baseDate.setUTCFullYear(baseDate.getUTCFullYear() + 200);
+    baseDate.setUTCDate(baseDate.getUTCDate() + (now % 1500));
+
+    const createActiveCycle = async (attemptOffset = 0) => {
+      const start = new Date(baseDate.getTime() + attemptOffset * 5 * 24 * 60 * 60 * 1000);
+      const end = new Date(start.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+      return request(
+        "/api/cycles",
+        {
+          method: "POST",
+          ...buildJsonRequest({
+            code: `PH7-WL-${now}-${attemptOffset}`,
+            name: `Phase7 Waiting List ${now} #${attemptOffset}`,
+            nameEn: `Phase7 Waiting List EN ${now} #${attemptOffset}`,
+            status: "ACTIVE",
+            startDate: toDateOnly(start),
+            endDate: toDateOnly(end)
+          })
+        },
+        cookie
+      );
+    };
 
     const [building, role] = await Promise.all([
       prisma.building.findFirst({
@@ -190,25 +211,25 @@ async function run() {
     ensure(building?.id, "Missing active building");
     ensure(role?.id, "Missing active role definition");
 
-    const cycleResponse = await request(
-      "/api/cycles",
-      {
-        method: "POST",
-        ...buildJsonRequest({
-          code: `PH7-WL-${now}`,
-          name: `Phase7 Waiting List ${now}`,
-          nameEn: `Phase7 Waiting List EN ${now}`,
-          status: "ACTIVE",
-          startDate,
-          endDate
-        })
-      },
-      cookie
-    );
+    let cycleResponse = null;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      cycleResponse = await createActiveCycle(attempt);
+
+      if (
+        cycleResponse.response.ok ||
+        cycleResponse.body?.error !== "overlapping_cycle"
+      ) {
+        break;
+      }
+    }
+
+    ensure(cycleResponse, "Create cycle failed: no response received");
     ensure(cycleResponse.response.ok, `Create cycle failed: ${JSON.stringify(cycleResponse.body)}`);
     const cycleId = cycleResponse.body?.data?.id;
     ensure(cycleId, "Cycle id missing");
     cleanup.cycleIds.push(cycleId);
+    const cycleStartDate = String(cycleResponse.body?.data?.startDate ?? "").slice(0, 10);
+    const sessionDate = cycleStartDate || toDateOnly(baseDate);
 
     const sessionResponse = await request(
       "/api/sessions",
@@ -219,8 +240,8 @@ async function run() {
           name: `Phase7 Waiting Session ${now}`,
           nameEn: `Phase7 Waiting Session EN ${now}`,
           examType: "EST1",
-          startDateTime: `${startDate}T09:00:00+02:00`,
-          endDateTime: `${startDate}T11:00:00+02:00`,
+          startDateTime: `${sessionDate}T09:00:00+02:00`,
+          endDateTime: `${sessionDate}T11:00:00+02:00`,
           buildingIds: [building.id]
         })
       },

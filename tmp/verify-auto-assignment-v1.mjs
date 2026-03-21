@@ -106,6 +106,35 @@ async function safeRequest(pathname, options, cookie) {
   }
 }
 
+async function requestWithRetry(
+  pathname,
+  options = {},
+  cookie,
+  attempts = 3,
+  retryDelayMs = 400
+) {
+  let lastResult = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const result = await request(pathname, options, cookie);
+    lastResult = result;
+
+    const isRetriable =
+      result.response.status >= 500 ||
+      result.body?.error === "internal_server_error";
+
+    if (!isRetriable || attempt === attempts) {
+      return result;
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, retryDelayMs * attempt);
+    });
+  }
+
+  return lastResult;
+}
+
 function buildJsonRequest(body) {
   return {
     headers: {
@@ -210,7 +239,7 @@ async function run() {
     const targetBuildingId = buildings[0].id;
     const overlapBuildingId = buildings[1].id;
 
-    const cycleResponse = await request(
+    const cycleResponse = await requestWithRetry(
       "/api/cycles",
       {
         method: "POST",
@@ -231,7 +260,7 @@ async function run() {
     ensure(cycleId, "Cycle id missing");
     cleanup.cycleIds.push(cycleId);
 
-    const targetSessionResponse = await request(
+    const targetSessionResponse = await requestWithRetry(
       "/api/sessions",
       {
         method: "POST",
@@ -256,7 +285,7 @@ async function run() {
     ensure(targetSessionId, "Target session id missing");
     cleanup.sessionIds.push(targetSessionId);
 
-    const overlapSessionResponse = await request(
+    const overlapSessionResponse = await requestWithRetry(
       "/api/sessions",
       {
         method: "POST",
