@@ -1,19 +1,47 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { RefreshIcon } from "@/components/ui/icons";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getLocalizedName } from "@/lib/i18n/presentation";
 
 type AttendanceStatus = "PENDING" | "CONFIRMED" | "ABSENT" | "DECLINED";
 type AssignmentStatus = "DRAFT" | "CONFIRMED" | "LOCKED" | "CANCELLED" | "COMPLETED";
-type ApiPayload<T> = { ok: boolean; data?: T; error?: string; message?: string };
+type PaginationMeta = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  total: number;
+};
+type ApiPayload<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  pagination?: PaginationMeta;
+};
+
+const pageSizeOptions = [25, 50, 100];
 
 type SessionSummary = {
   id: string;
@@ -135,6 +163,16 @@ export function SessionAttendanceWorkspace({
     Record<string, boolean>
   >({});
   const [statusFilter, setStatusFilter] = useState<AttendanceStatus | "ALL">("ALL");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    hasNextPage: false,
+    hasPreviousPage: false,
+    page: 1,
+    pageCount: 1,
+    pageSize: 25,
+    total: 0
+  });
   const [formErrorByAssignmentId, setFormErrorByAssignmentId] = useState<
     Record<string, string | null>
   >({});
@@ -161,7 +199,7 @@ export function SessionAttendanceWorkspace({
 
       try {
         const response = await fetch(
-          `/api/attendance?sessionId=${session.id}&page=1&pageSize=500`,
+          `/api/attendance?sessionId=${session.id}&page=${page}&pageSize=${pageSize}${statusFilter !== "ALL" ? `&status=${statusFilter}` : ""}`,
           {
             credentials: "same-origin",
             signal: controller.signal,
@@ -172,7 +210,7 @@ export function SessionAttendanceWorkspace({
           attendance?: AttendanceRecord[];
         };
 
-        if (!response.ok || !payload.ok || !payload.data) {
+        if (!response.ok || !payload.ok || !payload.data || !payload.pagination) {
           throw new Error(apiError(payload, messages.attendance.errors.loadFailed));
         }
 
@@ -191,6 +229,7 @@ export function SessionAttendanceWorkspace({
         ) as Record<string, AttendanceDraft>;
 
         setAssignments(payload.data);
+        setPagination(payload.pagination);
         setAttendanceByAssignmentId(nextAttendanceIndex);
         setDraftsByAssignmentId(nextDrafts);
         setReplacementSuggestionsByAssignmentId({});
@@ -209,17 +248,7 @@ export function SessionAttendanceWorkspace({
 
     void loadWorkspace();
     return () => controller.abort();
-  }, [messages.attendance.errors.loadFailed, refreshKey, session.id]);
-
-  const filteredAssignments = useMemo(() => {
-    if (statusFilter === "ALL") {
-      return assignments;
-    }
-
-    return assignments.filter(
-      (assignment) => getCurrentAttendanceStatus(assignment) === statusFilter
-    );
-  }, [assignments, statusFilter]);
+  }, [messages.attendance.errors.loadFailed, page, pageSize, refreshKey, session.id, statusFilter]);
 
   async function loadReplacementSuggestions(assignmentId: string) {
     if (replacementSuggestionsByAssignmentId[assignmentId]) {
@@ -378,16 +407,36 @@ export function SessionAttendanceWorkspace({
               {messages.attendance.list.title}
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
-              {filteredAssignments.length}
+              {pagination.total}
             </p>
           </>
         }
         actions={
           <>
             <ActionLink href={`/sessions/${session.id}`}>{messages.attendance.backToSession}</ActionLink>
-            <Button variant="secondary" onClick={() => setRefreshKey((current) => current + 1)}>
-              {messages.attendance.refresh}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border border-border bg-surface px-3 text-sm text-text-primary outline-none"
+              >
+                {pageSizeOptions.map((sizeOption) => (
+                  <option key={sizeOption} value={String(sizeOption)}>
+                    {sizeOption}
+                  </option>
+                ))}
+              </select>
+              <IconButton
+                variant="secondary"
+                size="sm"
+                icon={<RefreshIcon />}
+                label={messages.attendance.refresh}
+                onClick={() => setRefreshKey((current) => current + 1)}
+              />
+            </div>
           </>
         }
       />
@@ -407,7 +456,10 @@ export function SessionAttendanceWorkspace({
                   ? "bg-accent text-white ring-transparent"
                   : "bg-surface-elevated text-text-primary ring-border hover:bg-surface"
               }`}
-              onClick={() => setStatusFilter(status)}
+              onClick={() => {
+                setStatusFilter(status);
+                setPage(1);
+              }}
             >
               {status === "ALL"
                 ? messages.attendance.filters.all
@@ -423,10 +475,26 @@ export function SessionAttendanceWorkspace({
           <CardDescription>{messages.attendance.list.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {filteredAssignments.length === 0 ? (
-            <p className="text-sm text-text-secondary">{messages.attendance.list.empty}</p>
+          {assignments.length === 0 ? (
+            <DataTableEmptyState
+              title={messages.attendance.list.title}
+              description={messages.attendance.list.empty}
+            />
           ) : (
-            filteredAssignments.map((assignment) => {
+            <>
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.attendance.list.title}</DataTableHead>
+                      <DataTableHead>{messages.attendance.labels.location}</DataTableHead>
+                      <DataTableHead>{messages.attendance.labels.assignedAt}</DataTableHead>
+                      <DataTableHead>{messages.attendance.labels.checkedInAt}</DataTableHead>
+                      <DataTableHead>{messages.attendance.actions.save}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {assignments.map((assignment) => {
               const draft = draftsByAssignmentId[assignment.id];
               const attendanceRecord = attendanceByAssignmentId[assignment.id] ?? null;
               const currentStatus = getCurrentAttendanceStatus(assignment);
@@ -436,42 +504,37 @@ export function SessionAttendanceWorkspace({
               const isSaving = isSavingByAssignmentId[assignment.id] ?? false;
 
               return (
-                <div
-                  key={assignment.id}
-                  className="rounded-2xl border border-border bg-surface-elevated px-4 py-4"
-                >
-                  <div className="flex flex-wrap gap-2">
-                    <Badge>{messages.attendance.statuses[currentStatus]}</Badge>
-                    <Badge>{messages.assignments.statuses[assignment.status]}</Badge>
-                    <Badge>{messages.assignments.methods[assignment.assignedMethod]}</Badge>
-                  </div>
-
-                  <p className="mt-3 text-base font-semibold text-text-primary">
-                    {getLocalizedName(assignment.user, locale)}
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    {getLocalizedName(assignment.roleDefinition, locale)}
-                  </p>
-                  <div className="mt-2 grid gap-2 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                    <p>
-                      {messages.attendance.labels.location}:{" "}
-                      {assignmentLocationLabel(assignment, locale)}
-                    </p>
-                    <p>
-                      {messages.attendance.labels.assignedAt}:{" "}
-                      {formatDateTime(locale, assignment.assignedAt)}
-                    </p>
-                    <p>
-                      {messages.attendance.labels.checkedInAt}:{" "}
-                      {formatDateTime(locale, attendanceRecord?.checkedInAt ?? null)}
-                    </p>
-                    <p>
-                      {messages.attendance.labels.updatedAt}:{" "}
-                      {formatDateTime(locale, attendanceRecord?.updatedAt ?? null)}
-                    </p>
-                  </div>
-
-                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                <DataTableRow key={assignment.id}>
+                  <DataTableCell>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>{messages.attendance.statuses[currentStatus]}</Badge>
+                        <Badge>{messages.assignments.statuses[assignment.status]}</Badge>
+                        <Badge>{messages.assignments.methods[assignment.assignedMethod]}</Badge>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-text-primary">
+                          {getLocalizedName(assignment.user, locale)}
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          {getLocalizedName(assignment.roleDefinition, locale)}
+                        </p>
+                      </div>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>{assignmentLocationLabel(assignment, locale)}</DataTableCell>
+                  <DataTableCell>{formatDateTime(locale, assignment.assignedAt)}</DataTableCell>
+                  <DataTableCell>
+                    <div className="space-y-1">
+                      <p>{formatDateTime(locale, attendanceRecord?.checkedInAt ?? null)}</p>
+                      <p className="text-xs text-text-secondary">
+                        {formatDateTime(locale, attendanceRecord?.updatedAt ?? null)}
+                      </p>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <div className="space-y-3 min-w-[18rem]">
+                      <div className="grid gap-3 lg:grid-cols-2">
                     <select
                       className="h-11 rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary"
                       value={draft?.status ?? currentStatus}
@@ -512,10 +575,10 @@ export function SessionAttendanceWorkspace({
                         }))
                       }
                     />
-                  </div>
+                      </div>
 
                   {shouldShowReplacement ? (
-                    <div className="mt-3 space-y-2">
+                    <div className="space-y-2">
                       <div className="flex flex-wrap gap-2">
                         <Button
                           variant="secondary"
@@ -555,12 +618,12 @@ export function SessionAttendanceWorkspace({
                   ) : null}
 
                   {formErrorByAssignmentId[assignment.id] ? (
-                    <p className="mt-2 text-sm text-danger">
+                    <p className="text-sm text-danger">
                       {formErrorByAssignmentId[assignment.id]}
                     </p>
                   ) : null}
 
-                  <div className="mt-3 flex justify-end">
+                  <div className="flex justify-end">
                     <Button
                       onClick={() => void saveAttendance(assignment.id)}
                       disabled={isSaving}
@@ -570,9 +633,29 @@ export function SessionAttendanceWorkspace({
                         : messages.attendance.actions.save}
                     </Button>
                   </div>
-                </div>
+                    </div>
+                  </DataTableCell>
+                </DataTableRow>
               );
-            })
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </div>
+
+              <PaginationControls
+                page={pagination.page}
+                pageCount={pagination.pageCount}
+                total={pagination.total}
+                hasPreviousPage={pagination.hasPreviousPage}
+                hasNextPage={pagination.hasNextPage}
+                summaryLabel={`${pagination.page} / ${pagination.pageCount}`}
+                totalLabel={`${messages.attendance.list.title}: ${pagination.total}`}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
+            </>
           )}
         </CardContent>
       </Card>

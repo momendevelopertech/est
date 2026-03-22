@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { OperationalResetCard } from "@/components/settings/operational-reset-card";
 import {
   Card,
   CardContent,
@@ -16,6 +17,7 @@ export default async function SettingsPage() {
   const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
   const items = Object.values(messages.settings.items);
+  const canResetOperationalData = session.user.role === "super_admin";
 
   return (
     <div className="space-y-4">
@@ -53,6 +55,10 @@ export default async function SettingsPage() {
           </Card>
         ))}
       </div>
+
+      {canResetOperationalData ? (
+        <OperationalResetCard copy={messages.settings.operationalReset} />
+      ) : null}
     </div>
   );
 }

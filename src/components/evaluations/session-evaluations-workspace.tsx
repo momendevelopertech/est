@@ -1,18 +1,46 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { RefreshIcon } from "@/components/ui/icons";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getLocalizedName } from "@/lib/i18n/presentation";
 
 type AssignmentStatus = "DRAFT" | "CONFIRMED" | "LOCKED" | "CANCELLED" | "COMPLETED";
-type ApiPayload<T> = { ok: boolean; data?: T; error?: string; message?: string };
+type PaginationMeta = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  total: number;
+};
+type ApiPayload<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  pagination?: PaginationMeta;
+};
+
+const pageSizeOptions = [25, 50, 100];
 
 type SessionSummary = {
   id: string;
@@ -104,6 +132,16 @@ export function SessionEvaluationsWorkspace({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<EvaluationAssignment[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    hasNextPage: false,
+    hasPreviousPage: false,
+    page: 1,
+    pageCount: 1,
+    pageSize: 25,
+    total: 0
+  });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [evaluationsByAssignmentId, setEvaluationsByAssignmentId] = useState<
     Record<string, EvaluationRecord>
   >({});
@@ -126,12 +164,12 @@ export function SessionEvaluationsWorkspace({
 
       try {
         const [assignmentsResponse, evaluationsResponse] = await Promise.all([
-          fetch(`/api/assignments?sessionId=${session.id}&page=1&pageSize=500`, {
+          fetch(`/api/assignments?sessionId=${session.id}&page=${page}&pageSize=${pageSize}`, {
             credentials: "same-origin",
             signal: controller.signal,
             headers: { Accept: "application/json" }
           }),
-          fetch(`/api/evaluations?sessionId=${session.id}&page=1&pageSize=500`, {
+          fetch(`/api/evaluations?sessionId=${session.id}&page=${page}&pageSize=${pageSize}`, {
             credentials: "same-origin",
             signal: controller.signal,
             headers: { Accept: "application/json" }
@@ -142,7 +180,7 @@ export function SessionEvaluationsWorkspace({
         const evaluationsPayload =
           (await evaluationsResponse.json()) as ApiPayload<EvaluationRecord[]>;
 
-        if (!assignmentsResponse.ok || !assignmentsPayload.ok || !assignmentsPayload.data) {
+        if (!assignmentsResponse.ok || !assignmentsPayload.ok || !assignmentsPayload.data || !assignmentsPayload.pagination) {
           throw new Error(apiError(assignmentsPayload, messages.evaluations.errors.loadFailed));
         }
 
@@ -170,6 +208,7 @@ export function SessionEvaluationsWorkspace({
         ) as Record<string, EvaluationDraft>;
 
         setAssignments(assignmentsPayload.data);
+        setPagination(assignmentsPayload.pagination);
         setEvaluationsByAssignmentId(nextEvaluationsByAssignmentId);
         setDraftsByAssignmentId(nextDraftsByAssignmentId);
       } catch (error) {
@@ -187,15 +226,7 @@ export function SessionEvaluationsWorkspace({
 
     void loadWorkspace();
     return () => controller.abort();
-  }, [messages.evaluations.errors.loadFailed, refreshKey, session.id]);
-
-  const visibleAssignments = useMemo(
-    () =>
-      assignments.filter(
-        (assignment) => assignment.status !== "CANCELLED"
-      ),
-    [assignments]
-  );
+  }, [messages.evaluations.errors.loadFailed, page, pageSize, refreshKey, session.id]);
 
   async function submitEvaluation(assignment: EvaluationAssignment) {
     const draft = draftsByAssignmentId[assignment.id];
@@ -318,16 +349,36 @@ export function SessionEvaluationsWorkspace({
               {messages.evaluations.list.title}
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
-              {visibleAssignments.length}
+              {pagination.total}
             </p>
           </>
         }
         actions={
           <>
             <ActionLink href={`/sessions/${session.id}`}>{messages.evaluations.backToSession}</ActionLink>
-            <Button variant="secondary" onClick={() => setRefreshKey((current) => current + 1)}>
-              {messages.evaluations.refresh}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border border-border bg-surface px-3 text-sm text-text-primary outline-none"
+              >
+                {pageSizeOptions.map((sizeOption) => (
+                  <option key={sizeOption} value={String(sizeOption)}>
+                    {sizeOption}
+                  </option>
+                ))}
+              </select>
+              <IconButton
+                variant="secondary"
+                size="sm"
+                icon={<RefreshIcon />}
+                label={messages.evaluations.refresh}
+                onClick={() => setRefreshKey((current) => current + 1)}
+              />
+            </div>
           </>
         }
       />
@@ -338,10 +389,26 @@ export function SessionEvaluationsWorkspace({
           <CardDescription>{messages.evaluations.list.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {visibleAssignments.length === 0 ? (
-            <p className="text-sm text-text-secondary">{messages.evaluations.list.empty}</p>
+          {assignments.length === 0 ? (
+            <DataTableEmptyState
+              title={messages.evaluations.list.title}
+              description={messages.evaluations.list.empty}
+            />
           ) : (
-            visibleAssignments.map((assignment) => {
+            <>
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.evaluations.list.title}</DataTableHead>
+                      <DataTableHead>{messages.evaluations.labels.location}</DataTableHead>
+                      <DataTableHead>{messages.evaluations.labels.assignedAt}</DataTableHead>
+                      <DataTableHead>{messages.evaluations.labels.lastEvaluatedAt}</DataTableHead>
+                      <DataTableHead>{messages.evaluations.actions.submit}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {assignments.map((assignment) => {
               const existing = evaluationsByAssignmentId[assignment.id] ?? null;
               const draft = draftsByAssignmentId[assignment.id] ?? {
                 rating: "",
@@ -351,47 +418,42 @@ export function SessionEvaluationsWorkspace({
               const isSaving = savingByAssignmentId[assignment.id] ?? false;
 
               return (
-                <div
-                  key={assignment.id}
-                  className="rounded-2xl border border-border bg-surface-elevated px-4 py-4"
-                >
-                  <div className="flex flex-wrap gap-2">
-                    <Badge>{messages.assignments.statuses[assignment.status]}</Badge>
-                    <Badge>{messages.assignments.methods[assignment.assignedMethod]}</Badge>
-                    <Badge variant={existing ? "accent" : "default"}>
-                      {existing
-                        ? messages.evaluations.statuses.evaluated
-                        : messages.evaluations.statuses.notEvaluated}
-                    </Badge>
-                  </div>
-
-                  <p className="mt-3 text-base font-semibold text-text-primary">
-                    {getLocalizedName(assignment.user, locale)}
-                  </p>
-                  <p className="text-sm text-text-secondary">
-                    {getLocalizedName(assignment.roleDefinition, locale)}
-                  </p>
-                  <div className="mt-2 grid gap-2 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                    <p>
-                      {messages.evaluations.labels.location}:{" "}
-                      {assignmentLocationLabel(assignment, locale)}
-                    </p>
-                    <p>
-                      {messages.evaluations.labels.assignedAt}:{" "}
-                      {formatDateTime(locale, assignment.assignedAt)}
-                    </p>
-                    <p>
-                      {messages.evaluations.labels.lastEvaluatedAt}:{" "}
-                      {formatDateTime(locale, existing?.updatedAt ?? null)}
-                    </p>
-                    <p>
-                      {messages.evaluations.labels.evaluator}:{" "}
-                      {existing?.evaluatorAppUser.displayName ??
-                        messages.evaluations.labels.notEvaluated}
-                    </p>
-                  </div>
-
-                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                <DataTableRow key={assignment.id}>
+                  <DataTableCell>
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>{messages.assignments.statuses[assignment.status]}</Badge>
+                        <Badge>{messages.assignments.methods[assignment.assignedMethod]}</Badge>
+                        <Badge variant={existing ? "accent" : "default"}>
+                          {existing
+                            ? messages.evaluations.statuses.evaluated
+                            : messages.evaluations.statuses.notEvaluated}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-text-primary">
+                          {getLocalizedName(assignment.user, locale)}
+                        </p>
+                        <p className="text-xs text-text-secondary">
+                          {getLocalizedName(assignment.roleDefinition, locale)}
+                        </p>
+                      </div>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>{assignmentLocationLabel(assignment, locale)}</DataTableCell>
+                  <DataTableCell>{formatDateTime(locale, assignment.assignedAt)}</DataTableCell>
+                  <DataTableCell>
+                    <div className="space-y-1">
+                      <p>{formatDateTime(locale, existing?.updatedAt ?? null)}</p>
+                      <p className="text-xs text-text-secondary">
+                        {existing?.evaluatorAppUser.displayName ??
+                          messages.evaluations.labels.notEvaluated}
+                      </p>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <div className="min-w-[18rem] space-y-3">
+                      <div className="grid gap-3 lg:grid-cols-2">
                     <Input
                       type="number"
                       min={1}
@@ -430,15 +492,15 @@ export function SessionEvaluationsWorkspace({
                         }))
                       }
                     />
-                  </div>
+                      </div>
 
                   {formErrorByAssignmentId[assignment.id] ? (
-                    <p className="mt-2 text-sm text-danger">
+                    <p className="text-sm text-danger">
                       {formErrorByAssignmentId[assignment.id]}
                     </p>
                   ) : null}
 
-                  <div className="mt-3 flex justify-end">
+                  <div className="flex justify-end">
                     <Button
                       onClick={() => void submitEvaluation(assignment)}
                       disabled={!canEdit || isSaving}
@@ -450,9 +512,29 @@ export function SessionEvaluationsWorkspace({
                           : messages.evaluations.actions.submit}
                     </Button>
                   </div>
-                </div>
+                    </div>
+                  </DataTableCell>
+                </DataTableRow>
               );
-            })
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </div>
+
+              <PaginationControls
+                page={pagination.page}
+                pageCount={pagination.pageCount}
+                total={pagination.total}
+                hasPreviousPage={pagination.hasPreviousPage}
+                hasNextPage={pagination.hasNextPage}
+                summaryLabel={`${pagination.page} / ${pagination.pageCount}`}
+                totalLabel={`${messages.evaluations.list.title}: ${pagination.total}`}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
+            </>
           )}
         </CardContent>
       </Card>

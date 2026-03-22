@@ -14,6 +14,7 @@
     "test:integration:assignment": "node tmp/tests/integration/assignment/coverage.mjs",
     "test:integration:notifications": "node tmp/tests/integration/notifications/coverage.mjs",
     "test:integration:reporting": "node tmp/tests/integration/reporting/coverage.mjs",
+    "data:import:real-est": "tsx scripts/import_real_est_data.ts",
     "db:migrate": "prisma migrate deploy",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",

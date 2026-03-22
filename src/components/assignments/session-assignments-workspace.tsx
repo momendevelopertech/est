@@ -6,14 +6,42 @@ import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { RefreshIcon } from "@/components/ui/icons";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getLocalizedName } from "@/lib/i18n/presentation";
 
 type ExamType = "EST1" | "EST2" | "EST_ASSN";
 type RoleScopeValue = "BUILDING" | "FLOOR" | "ROOM";
-type ApiPayload<T> = { ok: boolean; data?: T; error?: string; message?: string };
+type PaginationMeta = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  total: number;
+};
+type ApiPayload<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  pagination?: PaginationMeta;
+};
+
+const pageSizeOptions = [25, 50, 100];
 
 type SessionSummary = {
   id: string;
@@ -105,12 +133,22 @@ export function SessionAssignmentsWorkspace({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [assignments, setAssignments] = useState<AssignmentRecord[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    hasNextPage: false,
+    hasPreviousPage: false,
+    page: 1,
+    pageCount: 1,
+    pageSize: 25,
+    total: 0
+  });
   const [roles, setRoles] = useState<RoleDefinitionOption[]>([]);
   const [proctors, setProctors] = useState<ProctorOption[]>([]);
   const [lockValidation, setLockValidation] = useState<LockValidationResult | null>(null);
   const [floors, setFloors] = useState<FloorOption[]>([]);
   const [rooms, setRooms] = useState<RoomOption[]>([]);
   const [activeBuildingId, setActiveBuildingId] = useState(session.buildings[0]?.id ?? "");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [isAutoBusy, setIsAutoBusy] = useState(false);
   const [isRerankBusy, setIsRerankBusy] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
@@ -133,11 +171,14 @@ export function SessionAssignmentsWorkspace({
 
       try {
         const [aRes, rRes, pRes, lRes] = await Promise.all([
-          fetch(`/api/assignments?sessionId=${session.id}&page=1&pageSize=500`, {
-            credentials: "same-origin",
-            signal: controller.signal,
-            headers: { Accept: "application/json" }
-          }),
+          fetch(
+            `/api/assignments?sessionId=${session.id}&page=${page}&pageSize=${pageSize}${activeBuildingId ? `&buildingId=${activeBuildingId}` : ""}`,
+            {
+              credentials: "same-origin",
+              signal: controller.signal,
+              headers: { Accept: "application/json" }
+            }
+          ),
           fetch("/api/assignments/roles", {
             credentials: "same-origin",
             signal: controller.signal,
@@ -159,12 +200,15 @@ export function SessionAssignmentsWorkspace({
         const pPayload = (await pRes.json()) as ApiPayload<ProctorOption[]>;
         const lPayload = (await lRes.json()) as ApiPayload<LockValidationResult>;
 
-        if (!aRes.ok || !aPayload.ok || !aPayload.data) throw new Error(apiError(aPayload, messages.assignments.errors.loadFailed));
+        if (!aRes.ok || !aPayload.ok || !aPayload.data || !aPayload.pagination) {
+          throw new Error(apiError(aPayload, messages.assignments.errors.loadFailed));
+        }
         if (!rRes.ok || !rPayload.ok || !rPayload.data) throw new Error(apiError(rPayload, messages.assignments.errors.loadFailed));
         if (!pRes.ok || !pPayload.ok || !pPayload.data) throw new Error(apiError(pPayload, messages.assignments.errors.loadFailed));
         if (!lRes.ok || !lPayload.ok || !lPayload.data) throw new Error(apiError(lPayload, messages.assignments.errors.loadFailed));
 
         setAssignments(aPayload.data);
+        setPagination(aPayload.pagination);
         setRoles(rPayload.data);
         setProctors(pPayload.data);
         setLockValidation(lPayload.data);
@@ -177,7 +221,7 @@ export function SessionAssignmentsWorkspace({
 
     void loadWorkspace();
     return () => controller.abort();
-  }, [messages.assignments.errors.loadFailed, refreshKey, session.id]);
+  }, [activeBuildingId, messages.assignments.errors.loadFailed, page, pageSize, refreshKey, session.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -220,7 +264,6 @@ export function SessionAssignmentsWorkspace({
   }, [manual.floorId, session.examType]);
 
   const selectedRole = useMemo(() => roles.find((role) => role.id === manual.roleDefinitionId) ?? null, [manual.roleDefinitionId, roles]);
-  const shownAssignments = useMemo(() => activeBuildingId ? assignments.filter((assignment) => assignment.buildingId === activeBuildingId) : assignments, [activeBuildingId, assignments]);
 
   async function runAutoAssign(dryRun: boolean) {
     setIsAutoBusy(true);
@@ -306,14 +349,36 @@ export function SessionAssignmentsWorkspace({
               {messages.assignments.list.title}
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
-              {shownAssignments.length}
+              {pagination.total}
             </p>
           </>
         }
         actions={
           <>
             <ActionLink href={`/sessions/${session.id}`}>{messages.assignments.backToSession}</ActionLink>
-            <Button variant="secondary" onClick={() => setRefreshKey((current) => current + 1)}>{messages.assignments.refresh}</Button>
+            <div className="flex items-center gap-2">
+              <select
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border border-border bg-surface px-3 text-sm text-text-primary outline-none"
+              >
+                {pageSizeOptions.map((sizeOption) => (
+                  <option key={sizeOption} value={String(sizeOption)}>
+                    {sizeOption}
+                  </option>
+                ))}
+              </select>
+              <IconButton
+                variant="secondary"
+                size="sm"
+                icon={<RefreshIcon />}
+                label={messages.assignments.refresh}
+                onClick={() => setRefreshKey((current) => current + 1)}
+              />
+            </div>
             <Button variant="secondary" onClick={() => void runAutoAssign(true)} disabled={isAutoBusy}>{messages.assignments.automation.autoDryRun}</Button>
             <Button onClick={() => void runAutoAssign(false)} disabled={isAutoBusy}>{messages.assignments.automation.autoExecute}</Button>
             <Button variant="secondary" onClick={() => void runRerank(true)} disabled={isRerankBusy}>{messages.assignments.automation.rerankDryRun}</Button>
@@ -328,7 +393,95 @@ export function SessionAssignmentsWorkspace({
         <Card><CardHeader><CardTitle>{messages.assignments.manual.title}</CardTitle><CardDescription>{messages.assignments.manual.description}</CardDescription></CardHeader><CardContent className="space-y-3"><div className="grid gap-3 sm:grid-cols-2"><select className="h-11 rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary" value={manual.userId} onChange={(event) => setManual((current) => ({ ...current, userId: event.target.value }))}><option value="">{messages.assignments.manual.user}</option>{proctors.map((proctor) => <option key={proctor.id} value={proctor.id}>{getLocalizedName(proctor, locale)}</option>)}</select><select className="h-11 rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary" value={manual.roleDefinitionId} onChange={(event) => setManual((current) => ({ ...current, roleDefinitionId: event.target.value, roomId: "" }))}><option value="">{messages.assignments.manual.role}</option>{roles.map((role) => <option key={role.id} value={role.id}>{getLocalizedName(role, locale)}</option>)}</select><select className="h-11 rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary" value={manual.buildingId} onChange={(event) => setManual((current) => ({ ...current, buildingId: event.target.value, floorId: "", roomId: "" }))}><option value="">{messages.assignments.manual.building}</option>{session.buildings.map((building) => <option key={building.id} value={building.id}>{getLocalizedName(building, locale)}</option>)}</select><select className="h-11 rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary" value={manual.floorId} onChange={(event) => setManual((current) => ({ ...current, floorId: event.target.value, roomId: "" }))} disabled={selectedRole?.scope === "BUILDING"}><option value="">{messages.assignments.manual.floor}</option>{floors.map((floor) => <option key={floor.id} value={floor.id}>{getLocalizedName(floor, locale)}</option>)}</select><select className="h-11 rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary sm:col-span-2" value={manual.roomId} onChange={(event) => setManual((current) => ({ ...current, roomId: event.target.value }))} disabled={selectedRole?.scope !== "ROOM"}><option value="">{messages.assignments.manual.room}</option>{rooms.map((room) => <option key={room.id} value={room.id}>{getLocalizedName(room, locale)}</option>)}</select></div><Input value={manual.overrideNote} onChange={(event) => setManual((current) => ({ ...current, overrideNote: event.target.value }))} placeholder={messages.assignments.manual.notes} />{manualError ? <p className="text-sm text-danger">{manualError}</p> : null}<div className="flex justify-end"><Button onClick={() => void createManual()} disabled={isManualBusy}>{isManualBusy ? messages.assignments.manual.submitting : messages.assignments.manual.submit}</Button></div></CardContent></Card>
       </div>
 
-      <Card><CardHeader><CardTitle>{messages.assignments.list.title}</CardTitle><CardDescription>{messages.assignments.list.description}</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex flex-wrap gap-2">{session.buildings.map((building) => <button key={building.id} type="button" className={`rounded-2xl px-3 py-2 text-sm ring-1 transition-colors ${activeBuildingId === building.id ? "bg-accent text-white ring-transparent" : "bg-surface-elevated text-text-primary ring-border hover:bg-surface"}`} onClick={() => setActiveBuildingId(building.id)}>{getLocalizedName(building, locale)}</button>)}</div>{shownAssignments.length === 0 ? <p className="text-sm text-text-secondary">{messages.assignments.list.empty}</p> : <div className="space-y-3">{shownAssignments.map((assignment) => <div key={assignment.id} className="rounded-2xl border border-border bg-surface-elevated px-4 py-4"><div className="flex flex-wrap gap-2"><Badge>{messages.assignments.statuses[assignment.status]}</Badge><Badge>{messages.assignments.methods[assignment.assignedMethod]}</Badge><Badge>{messages.assignments.scopes[assignment.roleDefinition.scope]}</Badge></div><p className="mt-3 text-base font-semibold text-text-primary">{getLocalizedName(assignment.user, locale)}</p><p className="text-sm text-text-secondary">{getLocalizedName(assignment.roleDefinition, locale)}</p><div className="mt-3 grid gap-2 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4"><p>{messages.assignments.labels.location}: {locationPath(assignment, locale)}</p><p>{messages.assignments.labels.assignedAt}: {formatDateTime(locale, assignment.assignedAt)}</p><p>{messages.assignments.labels.status}: {messages.assignments.statuses[assignment.status]}</p><p>{messages.assignments.labels.method}: {messages.assignments.methods[assignment.assignedMethod]}</p></div>{assignment.overrideNote ? <p className="mt-2 text-sm text-text-secondary">{assignment.overrideNote}</p> : null}</div>)}</div>}</CardContent></Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.assignments.list.title}</CardTitle>
+          <CardDescription>{messages.assignments.list.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {session.buildings.map((building) => (
+              <button
+                key={building.id}
+                type="button"
+                className={`rounded-2xl px-3 py-2 text-sm ring-1 transition-colors ${activeBuildingId === building.id ? "bg-accent text-white ring-transparent" : "bg-surface-elevated text-text-primary ring-border hover:bg-surface"}`}
+                onClick={() => {
+                  setActiveBuildingId(building.id);
+                  setPage(1);
+                }}
+              >
+                {getLocalizedName(building, locale)}
+              </button>
+            ))}
+          </div>
+
+          {assignments.length === 0 ? (
+            <DataTableEmptyState
+              title={messages.assignments.list.title}
+              description={messages.assignments.list.empty}
+            />
+          ) : (
+            <>
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.assignments.list.title}</DataTableHead>
+                      <DataTableHead>{messages.assignments.labels.location}</DataTableHead>
+                      <DataTableHead>{messages.assignments.labels.status}</DataTableHead>
+                      <DataTableHead>{messages.assignments.labels.method}</DataTableHead>
+                      <DataTableHead>{messages.assignments.labels.assignedAt}</DataTableHead>
+                      <DataTableHead>{messages.assignments.manual.notes}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {assignments.map((assignment) => (
+                      <DataTableRow key={assignment.id}>
+                        <DataTableCell>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge>{messages.assignments.statuses[assignment.status]}</Badge>
+                              <Badge>{messages.assignments.methods[assignment.assignedMethod]}</Badge>
+                              <Badge>{messages.assignments.scopes[assignment.roleDefinition.scope]}</Badge>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-text-primary">
+                                {getLocalizedName(assignment.user, locale)}
+                              </p>
+                              <p className="text-xs text-text-secondary">
+                                {getLocalizedName(assignment.roleDefinition, locale)}
+                              </p>
+                            </div>
+                          </div>
+                        </DataTableCell>
+                        <DataTableCell>{locationPath(assignment, locale)}</DataTableCell>
+                        <DataTableCell>{messages.assignments.statuses[assignment.status]}</DataTableCell>
+                        <DataTableCell>{messages.assignments.methods[assignment.assignedMethod]}</DataTableCell>
+                        <DataTableCell>{formatDateTime(locale, assignment.assignedAt)}</DataTableCell>
+                        <DataTableCell>{assignment.overrideNote ?? "-"}</DataTableCell>
+                      </DataTableRow>
+                    ))}
+                  </DataTableBody>
+                </DataTable>
+              </div>
+
+              <PaginationControls
+                page={pagination.page}
+                pageCount={pagination.pageCount}
+                total={pagination.total}
+                hasPreviousPage={pagination.hasPreviousPage}
+                hasNextPage={pagination.hasNextPage}
+                summaryLabel={`${pagination.page} / ${pagination.pageCount}`}
+                totalLabel={`${messages.assignments.list.title}: ${pagination.total}`}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

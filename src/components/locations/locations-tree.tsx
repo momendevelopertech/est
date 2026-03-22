@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,8 +11,20 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { RefreshIcon } from "@/components/ui/icons";
+import { ModalFrame } from "@/components/ui/modal-frame";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
@@ -147,6 +159,20 @@ type TreeStats = {
   rooms: number;
 };
 
+type FlatLocationRow = {
+  id: string;
+  kind: TreeNodeKind;
+  name: string;
+  nameEn: string | null;
+  code: string | null;
+  isActive: boolean;
+  parentPath: string;
+  details: string;
+  children: number;
+};
+
+const pageSizeOptions = [25, 50, 100];
+
 function createTreeNodes(data: GovernorateRecord[]): TreeNode[] {
   return data.map((governorate) => ({
     id: governorate.id,
@@ -269,6 +295,61 @@ function filterTreeNodes(nodes: TreeNode[], searchTerm: string): TreeNode[] {
     }
 
     return [];
+  });
+}
+
+function flattenTreeNodes(
+  nodes: TreeNode[],
+  locale: Locale,
+  messages: Messages,
+  ancestors: string[] = []
+): FlatLocationRow[] {
+  return nodes.flatMap((node) => {
+    const localizedName = getLocalizedName(node, locale);
+    const parentPath = ancestors.length > 0 ? ancestors.join(" / ") : "-";
+    const examTypes = node.meta.supportedExamTypes?.map(
+      (examType) => messages.locations.examTypeLabels[examType]
+    );
+    const details = [
+      node.kind === "floor" && node.meta.levelNumber !== undefined
+        ? `${messages.locations.labels.level}: ${node.meta.levelNumber ?? "-"}`
+        : null,
+      node.kind === "room" && node.meta.roomType
+        ? `${messages.locations.labels.roomType}: ${node.meta.roomType}`
+        : null,
+      node.kind === "room" &&
+      node.meta.capacityMin !== undefined &&
+      node.meta.capacityMax !== undefined
+        ? `${messages.locations.labels.capacity}: ${node.meta.capacityMin}-${node.meta.capacityMax}`
+        : null,
+      node.kind === "room" && examTypes?.length
+        ? `${messages.locations.labels.examTypes}: ${examTypes.join(" / ")}`
+        : null
+    ]
+      .filter(Boolean)
+      .join(" • ");
+
+    const row: FlatLocationRow = {
+      id: node.id,
+      kind: node.kind,
+      name: node.name,
+      nameEn: node.nameEn,
+      code: node.code,
+      isActive: node.isActive,
+      parentPath,
+      details: details || "-",
+      children: node.children.length
+    };
+
+    return [
+      row,
+      ...flattenTreeNodes(
+        node.children,
+        locale,
+        messages,
+        [...ancestors, localizedName]
+      )
+    ];
   });
 }
 
@@ -413,6 +494,8 @@ function TreeNodeCard({
 export function LocationsTree({ locale, messages }: LocationsTreeProps) {
   const [includeInactive, setIncludeInactive] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [refreshKey, setRefreshKey] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -432,6 +515,16 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
   });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const visibleNodes = filterTreeNodes(nodes, searchTerm);
+  const flattenedRows = useMemo(
+    () => flattenTreeNodes(visibleNodes, locale, messages),
+    [locale, messages, visibleNodes]
+  );
+  const pageCount = Math.max(1, Math.ceil(flattenedRows.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const visibleRows = flattenedRows.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -463,6 +556,7 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
         setNodes(nextNodes);
         setStats(collectStats(payload.data));
         setExpanded(createInitialExpandedState(nextNodes));
+        setPage(1);
       } catch (loadError) {
         if (controller.signal.aborted) {
           return;
@@ -604,7 +698,10 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
               <Input
                 id="locations-search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setPage(1);
+                }}
                 placeholder={messages.locations.searchPlaceholder}
               />
             </div>
@@ -616,19 +713,38 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setIncludeInactive((current) => !current)}
+              onClick={() => {
+                setIncludeInactive((current) => !current);
+                setPage(1);
+              }}
             >
               {includeInactive
                 ? messages.locations.showActiveOnly
                 : messages.locations.showInactive}
             </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setRefreshKey((current) => current + 1)}
-            >
-              {messages.locations.reload}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border border-border bg-surface px-3 text-sm text-text-primary outline-none"
+              >
+                {pageSizeOptions.map((sizeOption) => (
+                  <option key={sizeOption} value={String(sizeOption)}>
+                    {sizeOption}
+                  </option>
+                ))}
+              </select>
+              <IconButton
+                variant="secondary"
+                size="sm"
+                icon={<RefreshIcon />}
+                label={messages.locations.reload}
+                onClick={() => setRefreshKey((current) => current + 1)}
+              />
+            </div>
           </div>
           </div>
         }
@@ -652,6 +768,7 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
           <CardDescription>{messages.locations.description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <span className="sr-only">{Object.keys(expanded).length}</span>
           {isLoading ? <TreeSkeleton /> : null}
 
           {!isLoading && error ? (
@@ -673,14 +790,10 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
           ) : null}
 
           {!isLoading && !error && nodes.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
-              <h3 className="text-lg font-semibold text-text-primary">
-                {messages.locations.emptyTitle}
-              </h3>
-              <p className="mt-2 text-sm leading-7 text-text-secondary">
-                {messages.locations.emptyBody}
-              </p>
-            </div>
+            <DataTableEmptyState
+              title={messages.locations.emptyTitle}
+              description={messages.locations.emptyBody}
+            />
           ) : null}
 
           {!isLoading && !error && nodes.length > 0 && visibleNodes.length === 0 ? (
@@ -695,36 +808,79 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
           ) : null}
 
           {!isLoading && !error && visibleNodes.length > 0 ? (
-            <div className="space-y-4">
-              {visibleNodes.map((node) => (
-                <TreeNodeCard
-                  key={node.id}
-                  locale={locale}
-                  messages={messages}
-                  node={node}
-                  depth={0}
-                  expanded={expanded}
-                  onToggle={(nodeId) =>
-                    setExpanded((current) => ({
-                      ...current,
-                      [nodeId]: !current[nodeId]
-                    }))
-                  }
-                />
-              ))}
-            </div>
+            <>
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.locations.title}</DataTableHead>
+                      <DataTableHead>{messages.locations.labels.children}</DataTableHead>
+                      <DataTableHead>{messages.locations.labels.code}</DataTableHead>
+                      <DataTableHead>{messages.locations.searchLabel}</DataTableHead>
+                      <DataTableHead>{messages.locations.labels.capacity}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {visibleRows.map((row) => (
+                      <DataTableRow key={row.id}>
+                        <DataTableCell>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap gap-2">
+                              <Badge variant="accent">{messages.locations.kinds[row.kind]}</Badge>
+                              <Badge>
+                                {row.isActive
+                                  ? messages.locations.labels.active
+                                  : messages.locations.labels.inactive}
+                              </Badge>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-text-primary">{row.name}</p>
+                              {row.nameEn ? (
+                                <p className="text-xs text-text-secondary">{row.nameEn}</p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </DataTableCell>
+                        <DataTableCell>{row.children}</DataTableCell>
+                        <DataTableCell>{row.code ?? "-"}</DataTableCell>
+                        <DataTableCell>{row.parentPath}</DataTableCell>
+                        <DataTableCell>{row.details}</DataTableCell>
+                      </DataTableRow>
+                    ))}
+                  </DataTableBody>
+                </DataTable>
+              </div>
+
+              <PaginationControls
+                page={currentPage}
+                pageCount={pageCount}
+                total={flattenedRows.length}
+                hasPreviousPage={currentPage > 1}
+                hasNextPage={currentPage < pageCount}
+                summaryLabel={`${messages.cycles.pagination.summary.replace("{page}", String(currentPage)).replace("{pageCount}", String(pageCount))}`}
+                totalLabel={`${messages.locations.title}: ${flattenedRows.length}`}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => Math.min(pageCount, current + 1))}
+              />
+            </>
           ) : null}
         </CardContent>
       </Card>
 
       {isImportOpen ? (
-        <ModalOverlay>
-          <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
-            <CardHeader>
-              <CardTitle>{messages.locations.importFlow.title}</CardTitle>
-              <CardDescription>{messages.locations.importFlow.subtitle}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <ModalFrame
+          title={messages.locations.importFlow.title}
+          description={messages.locations.importFlow.subtitle}
+          closeLabel={messages.locations.importFlow.close}
+          onClose={() => {
+            setIsImportOpen(false);
+            setImportError(null);
+          }}
+          className="max-w-5xl"
+          bodyClassName="space-y-6"
+        >
               <div className="space-y-2">
                 <label className="text-sm font-medium text-text-primary" htmlFor="locations-import-file">
                   {messages.locations.importFlow.fileLabel}
@@ -835,16 +991,6 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
 
               <div className="flex flex-wrap justify-end gap-3">
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setIsImportOpen(false);
-                    setImportError(null);
-                  }}
-                >
-                  {messages.locations.importFlow.close}
-                </Button>
-                <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => {
@@ -866,9 +1012,7 @@ export function LocationsTree({ locale, messages }: LocationsTreeProps) {
                     : messages.locations.importFlow.submit}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </ModalOverlay>
+        </ModalFrame>
       ) : null}
     </div>
   );

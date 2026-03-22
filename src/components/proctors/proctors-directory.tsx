@@ -13,8 +13,20 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { RefreshIcon } from "@/components/ui/icons";
+import { ModalFrame } from "@/components/ui/modal-frame";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
@@ -72,8 +84,18 @@ type ProctorRecord = {
 type ProctorsResponse = {
   ok: boolean;
   data?: ProctorRecord[];
+  pagination?: PaginationMeta;
   error?: string;
   message?: string;
+};
+
+type PaginationMeta = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  total: number;
 };
 
 type ProctorDetailResponse = {
@@ -122,6 +144,8 @@ type ProctorsDirectoryProps = {
 
 const selectClassName =
   "h-11 w-full rounded-2xl border border-border bg-surface px-4 text-sm text-text-primary outline-none focus-visible:ring-2 focus-visible:ring-accent";
+
+const pageSizeOptions = [10, 25, 50];
 
 function DetailSkeleton() {
   return (
@@ -203,12 +227,22 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
   const [sourceFilter, setSourceFilter] = useState<"" | ProctorSource>("");
   const [blockStatusFilter, setBlockStatusFilter] = useState<"" | BlockStatus>("");
   const [includeInactive, setIncludeInactive] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [refreshKey, setRefreshKey] = useState(0);
   const [listState, setListState] = useState({
     isLoading: true,
     error: null as string | null,
     errorCode: null as string | null,
-    data: [] as ProctorRecord[]
+    data: [] as ProctorRecord[],
+    pagination: {
+      hasNextPage: false,
+      hasPreviousPage: false,
+      page: 1,
+      pageCount: 1,
+      pageSize: 10,
+      total: 0
+    } as PaginationMeta
   });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detailState, setDetailState] = useState({
@@ -245,6 +279,8 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
 
       const params = new URLSearchParams();
       params.set("includeInactive", includeInactive ? "true" : "false");
+      params.set("page", String(page));
+      params.set("pageSize", String(pageSize));
 
       if (searchTerm.trim()) {
         params.set("search", searchTerm.trim());
@@ -269,7 +305,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
         });
         const payload = (await response.json()) as ProctorsResponse;
 
-        if (!response.ok || !payload.ok || !payload.data) {
+        if (!response.ok || !payload.ok || !payload.data || !payload.pagination) {
           throw new Error(payload.message ?? payload.error ?? "proctors_request_failed");
         }
 
@@ -279,7 +315,8 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
           isLoading: false,
           error: null,
           errorCode: null,
-          data: records
+          data: records,
+          pagination: payload.pagination
         });
         setSelectedId((current) => {
           if (current && records.some((record) => record.id === current)) {
@@ -297,7 +334,15 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
           isLoading: false,
           error: messages.proctors.errorBody,
           errorCode: error instanceof Error ? error.message : "proctors_request_failed",
-          data: []
+          data: [],
+          pagination: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            page: 1,
+            pageCount: 1,
+            pageSize,
+            total: 0
+          }
         });
         setSelectedId(null);
       }
@@ -312,6 +357,8 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
     blockStatusFilter,
     includeInactive,
     messages.proctors.errorBody,
+    page,
+    pageSize,
     refreshKey,
     searchTerm,
     sourceFilter
@@ -546,7 +593,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
   }
 
   const selectedProctor = detailState.data;
-  const listCount = listState.data.length;
+  const listCount = listState.pagination.total;
   const metrics = [
     {
       label: messages.proctors.labels.sessions,
@@ -598,7 +645,10 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               <Input
                 id="proctors-search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setPage(1);
+                }}
                 placeholder={messages.proctors.searchPlaceholder}
               />
             </div>
@@ -609,9 +659,10 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               <select
                 id="proctors-source"
                 value={sourceFilter}
-                onChange={(event) =>
-                  setSourceFilter(event.target.value as "" | ProctorSource)
-                }
+                onChange={(event) => {
+                  setSourceFilter(event.target.value as "" | ProctorSource);
+                  setPage(1);
+                }}
                 className={selectClassName}
               >
                 <option value="">{messages.proctors.filters.allSources}</option>
@@ -630,15 +681,36 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               <select
                 id="proctors-block-status"
                 value={blockStatusFilter}
-                onChange={(event) =>
-                  setBlockStatusFilter(event.target.value as "" | BlockStatus)
-                }
+                onChange={(event) => {
+                  setBlockStatusFilter(event.target.value as "" | BlockStatus);
+                  setPage(1);
+                }}
                 className={selectClassName}
               >
                 <option value="">{messages.proctors.filters.allBlockStatuses}</option>
                 <option value="CLEAR">{messages.proctors.blockStatuses.CLEAR}</option>
                 <option value="TEMPORARY">{messages.proctors.blockStatuses.TEMPORARY}</option>
                 <option value="PERMANENT">{messages.proctors.blockStatuses.PERMANENT}</option>
+              </select>
+            </div>
+            <div className="space-y-2 xl:col-span-3">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctors-page-size">
+                {messages.cycles.pagination.pageSize}
+              </label>
+              <select
+                id="proctors-page-size"
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+                className={selectClassName}
+              >
+                {pageSizeOptions.map((sizeOption) => (
+                  <option key={sizeOption} value={String(sizeOption)}>
+                    {sizeOption}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -652,19 +724,22 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => setIncludeInactive((current) => !current)}
+              onClick={() => {
+                setIncludeInactive((current) => !current);
+                setPage(1);
+              }}
             >
               {includeInactive
                 ? messages.proctors.showActiveOnly
                 : messages.proctors.showInactive}
             </Button>
-            <Button
+            <IconButton
               variant="secondary"
               size="sm"
+              icon={<RefreshIcon />}
+              label={messages.proctors.reload}
               onClick={() => setRefreshKey((current) => current + 1)}
-              >
-                {messages.proctors.reload}
-              </Button>
+            />
             </div>
           </div>
         }
@@ -710,73 +785,90 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
             ) : null}
 
             {!listState.isLoading && !listState.error && listState.data.length === 0 ? (
-              <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  {messages.proctors.emptyTitle}
-                </h3>
-                <p className="mt-2 text-sm leading-7 text-text-secondary">
-                  {messages.proctors.emptyBody}
-                </p>
-              </div>
+              <DataTableEmptyState
+                title={messages.proctors.emptyTitle}
+                description={messages.proctors.emptyBody}
+              />
             ) : null}
 
             {!listState.isLoading && !listState.error && listState.data.length > 0 ? (
-              <div className="space-y-3">
-                {listState.data.map((proctor) => {
-                  const label = getLocalizedName(proctor, locale);
-                  const alternate = getAlternateLocalizedName(proctor, locale);
-                  const isSelected = proctor.id === selectedId;
+              <>
+                <div className="rounded-[24px] border border-border bg-surface-elevated">
+                  <DataTable>
+                    <DataTableHeader>
+                      <tr>
+                        <DataTableHead>{messages.proctors.listTitle}</DataTableHead>
+                        <DataTableHead>{messages.proctors.labels.phone}</DataTableHead>
+                        <DataTableHead>{messages.proctors.labels.organization}</DataTableHead>
+                        <DataTableHead>{messages.proctors.labels.governorate}</DataTableHead>
+                        <DataTableHead>{messages.proctors.labels.sessions}</DataTableHead>
+                        <DataTableHead>{messages.proctors.labels.assignments}</DataTableHead>
+                      </tr>
+                    </DataTableHeader>
+                    <DataTableBody>
+                      {listState.data.map((proctor) => {
+                        const label = getLocalizedName(proctor, locale);
+                        const alternate = getAlternateLocalizedName(proctor, locale);
+                        const isSelected = proctor.id === selectedId;
 
-                  return (
-                    <button
-                      key={proctor.id}
-                      type="button"
-                      onClick={() => setSelectedId(proctor.id)}
-                      className={cn(
-                        "w-full rounded-3xl border px-4 py-4 text-start transition-colors",
-                        isSelected
-                          ? "border-accent bg-surface-elevated"
-                          : "border-border bg-surface hover:bg-surface-elevated"
-                      )}
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="accent">
-                          {messages.proctors.sources[proctor.source]}
-                        </Badge>
-                        <Badge>
-                          {proctor.isActive
-                            ? messages.proctors.labels.active
-                            : messages.proctors.labels.inactive}
-                        </Badge>
-                        <Badge>
-                          {messages.proctors.blockStatuses[proctor.blockStatus]}
-                        </Badge>
-                      </div>
-                      <h3 className="mt-3 text-lg font-semibold text-text-primary">{label}</h3>
-                      {alternate ? (
-                        <p className="mt-1 text-sm text-text-secondary">{alternate}</p>
-                      ) : null}
-                      <div className="mt-3 grid gap-2 text-sm text-text-secondary sm:grid-cols-2">
-                        <p>
-                          {messages.proctors.labels.phone}: {proctor.phone}
-                        </p>
-                        <p>
-                          {messages.proctors.labels.sessions}: {proctor.totalSessions}
-                        </p>
-                        <p>
-                          {messages.proctors.labels.organization}: {proctor.organization ?? "-"}
-                        </p>
-                        <p>
-                          {messages.proctors.labels.governorate}:{" "}
-                          {proctor.governorate
-                            ? getLocalizedName(proctor.governorate, locale)
-                            : "-"}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                        return (
+                          <DataTableRow
+                            key={proctor.id}
+                            className={cn(
+                              "cursor-pointer",
+                              isSelected ? "bg-accent/10" : undefined
+                            )}
+                            onClick={() => setSelectedId(proctor.id)}
+                          >
+                            <DataTableCell>
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="accent">{messages.proctors.sources[proctor.source]}</Badge>
+                                  <Badge>
+                                    {proctor.isActive
+                                      ? messages.proctors.labels.active
+                                      : messages.proctors.labels.inactive}
+                                  </Badge>
+                                  <Badge>{messages.proctors.blockStatuses[proctor.blockStatus]}</Badge>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-text-primary">{label}</p>
+                                  {alternate ? (
+                                    <p className="text-xs text-text-secondary">{alternate}</p>
+                                  ) : null}
+                                </div>
+                              </div>
+                            </DataTableCell>
+                            <DataTableCell>{proctor.phone}</DataTableCell>
+                            <DataTableCell>{proctor.organization ?? "-"}</DataTableCell>
+                            <DataTableCell>
+                              {proctor.governorate
+                                ? getLocalizedName(proctor.governorate, locale)
+                                : "-"}
+                            </DataTableCell>
+                            <DataTableCell>{proctor.totalSessions}</DataTableCell>
+                            <DataTableCell>{proctor._count.assignments}</DataTableCell>
+                          </DataTableRow>
+                        );
+                      })}
+                    </DataTableBody>
+                  </DataTable>
+                </div>
+
+                <PaginationControls
+                  page={listState.pagination.page}
+                  pageCount={listState.pagination.pageCount}
+                  total={listState.pagination.total}
+                  hasPreviousPage={listState.pagination.hasPreviousPage}
+                  hasNextPage={listState.pagination.hasNextPage}
+                  summaryLabel={`${messages.cycles.pagination.summary.replace("{page}", String(listState.pagination.page)).replace("{pageCount}", String(listState.pagination.pageCount))}`}
+                  totalLabel={messages.proctors.listBody.replace("{count}", String(listState.pagination.total))}
+                  previousLabel={messages.cycles.pagination.previous}
+                  nextLabel={messages.cycles.pagination.next}
+                  onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                  onNext={() => setPage((current) => current + 1)}
+                />
+              </>
             ) : null}
           </CardContent>
         </Card>
@@ -926,13 +1018,17 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
       </div>
 
       {isImportOpen ? (
-        <ModalOverlay>
-          <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
-            <CardHeader>
-              <CardTitle>{messages.proctors.importFlow.title}</CardTitle>
-              <CardDescription>{messages.proctors.importFlow.subtitle}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
+        <ModalFrame
+          title={messages.proctors.importFlow.title}
+          description={messages.proctors.importFlow.subtitle}
+          closeLabel={messages.proctors.importFlow.close}
+          onClose={() => {
+            setIsImportOpen(false);
+            setImportError(null);
+          }}
+          className="max-w-5xl"
+          bodyClassName="space-y-6"
+        >
               <div className="space-y-2">
                 <label
                   className="text-sm font-medium text-text-primary"
@@ -1031,15 +1127,6 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
 
               <div className="flex flex-wrap justify-end gap-3">
                 <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setIsImportOpen(false);
-                    setImportError(null);
-                  }}
-                >
-                  {messages.proctors.importFlow.close}
-                </Button>
-                <Button
                   variant="secondary"
                   onClick={() => {
                     setSelectedFile(null);
@@ -1056,19 +1143,21 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                     : messages.proctors.importFlow.submit}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </ModalOverlay>
+        </ModalFrame>
       ) : null}
 
       {isExportOpen ? (
-        <ModalOverlay>
-          <Card className="panel w-full max-w-2xl border-transparent">
-            <CardHeader>
-              <CardTitle>{messages.proctors.exportFlow.title}</CardTitle>
-              <CardDescription>{messages.proctors.exportFlow.subtitle}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <ModalFrame
+          title={messages.proctors.exportFlow.title}
+          description={messages.proctors.exportFlow.subtitle}
+          closeLabel={messages.proctors.exportFlow.close}
+          onClose={() => {
+            setIsExportOpen(false);
+            setExportError(null);
+          }}
+          className="max-w-3xl"
+          bodyClassName="space-y-4"
+        >
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-primary" htmlFor="export-format">
@@ -1141,15 +1230,6 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
 
               <div className="flex flex-wrap justify-end gap-3">
                 <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setIsExportOpen(false);
-                    setExportError(null);
-                  }}
-                >
-                  {messages.proctors.exportFlow.close}
-                </Button>
-                <Button
                   variant="secondary"
                   onClick={() => {
                     setExportGovernorateId("");
@@ -1167,9 +1247,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                     : messages.proctors.exportFlow.submit}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </ModalOverlay>
+        </ModalFrame>
       ) : null}
     </div>
   );

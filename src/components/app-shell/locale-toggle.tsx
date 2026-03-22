@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { GlobeIcon } from "@/components/ui/icons";
 import type { Locale, Messages } from "@/lib/i18n";
 
 type LocaleToggleProps = {
@@ -45,9 +46,13 @@ export function LocaleToggle({ locale, messages }: LocaleToggleProps) {
       onClick={handleLocaleChange}
       disabled={isPending}
       aria-label={messages.shell.locale}
-      className="min-w-24"
+      title={messages.shell.locale}
+      className="gap-1.5 rounded-xl px-2.5"
     >
-      {nextLocale === "ar" ? messages.common.arabic : messages.common.english}
+      <GlobeIcon />
+      <span className="text-xs font-semibold uppercase">
+        {nextLocale === "ar" ? "AR" : "EN"}
+      </span>
     </Button>
   );
 }

@@ -1,19 +1,47 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
+import { RefreshIcon } from "@/components/ui/icons";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getLocalizedName } from "@/lib/i18n/presentation";
 
 type WaitingListStatusValue = "WAITING" | "PROMOTED" | "REMOVED";
 type RoleScopeValue = "BUILDING" | "FLOOR" | "ROOM";
-type ApiPayload<T> = { ok: boolean; data?: T; error?: string; message?: string };
+type PaginationMeta = {
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  page: number;
+  pageCount: number;
+  pageSize: number;
+  total: number;
+};
+type ApiPayload<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  pagination?: PaginationMeta;
+};
+
+const pageSizeOptions = [25, 50, 100];
 
 type SessionSummary = {
   id: string;
@@ -98,9 +126,19 @@ export function SessionWaitingListWorkspace({
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [entries, setEntries] = useState<WaitingListEntry[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta>({
+    hasNextPage: false,
+    hasPreviousPage: false,
+    page: 1,
+    pageCount: 1,
+    pageSize: 25,
+    total: 0
+  });
   const [proctors, setProctors] = useState<ProctorOption[]>([]);
   const [roles, setRoles] = useState<RoleDefinitionOption[]>([]);
   const [activeStatus, setActiveStatus] = useState<WaitingListStatusValue | "ALL">("WAITING");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [isBusy, setIsBusy] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -121,7 +159,7 @@ export function SessionWaitingListWorkspace({
 
       try {
         const [wRes, pRes, rRes] = await Promise.all([
-          fetch(`/api/waiting-list?sessionId=${session.id}&page=1&pageSize=500`, {
+          fetch(`/api/waiting-list?sessionId=${session.id}&page=${page}&pageSize=${pageSize}${activeStatus !== "ALL" ? `&status=${activeStatus}` : ""}`, {
             credentials: "same-origin",
             signal: controller.signal,
             headers: { Accept: "application/json" }
@@ -141,7 +179,7 @@ export function SessionWaitingListWorkspace({
         const pPayload = (await pRes.json()) as ApiPayload<ProctorOption[]>;
         const rPayload = (await rRes.json()) as ApiPayload<RoleDefinitionOption[]>;
 
-        if (!wRes.ok || !wPayload.ok || !wPayload.data) {
+        if (!wRes.ok || !wPayload.ok || !wPayload.data || !wPayload.pagination) {
           throw new Error(apiError(wPayload, messages.waitingList.errors.loadFailed));
         }
 
@@ -154,6 +192,7 @@ export function SessionWaitingListWorkspace({
         }
 
         setEntries(wPayload.data);
+        setPagination(wPayload.pagination);
         setProctors(pPayload.data);
         setRoles(rPayload.data);
       } catch (error) {
@@ -171,15 +210,7 @@ export function SessionWaitingListWorkspace({
 
     void loadWorkspace();
     return () => controller.abort();
-  }, [messages.waitingList.errors.loadFailed, refreshKey, session.id]);
-
-  const visibleEntries = useMemo(
-    () =>
-      activeStatus === "ALL"
-        ? entries
-        : entries.filter((entry) => entry.status === activeStatus),
-    [activeStatus, entries]
-  );
+  }, [activeStatus, messages.waitingList.errors.loadFailed, page, pageSize, refreshKey, session.id]);
 
   async function submitCreate() {
     if (!form.userId || !form.buildingId || !form.roleDefinitionId) {
@@ -321,16 +352,36 @@ export function SessionWaitingListWorkspace({
               {messages.waitingList.list.title}
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
-              {visibleEntries.length}
+              {pagination.total}
             </p>
           </>
         }
         actions={
           <>
             <ActionLink href={`/sessions/${session.id}`}>{messages.waitingList.backToSession}</ActionLink>
-            <Button variant="secondary" onClick={() => setRefreshKey((current) => current + 1)}>
-              {messages.waitingList.refresh}
-            </Button>
+            <div className="flex items-center gap-2">
+              <select
+                value={String(pageSize)}
+                onChange={(event) => {
+                  setPageSize(Number(event.target.value));
+                  setPage(1);
+                }}
+                className="h-9 rounded-xl border border-border bg-surface px-3 text-sm text-text-primary outline-none"
+              >
+                {pageSizeOptions.map((sizeOption) => (
+                  <option key={sizeOption} value={String(sizeOption)}>
+                    {sizeOption}
+                  </option>
+                ))}
+              </select>
+              <IconButton
+                variant="secondary"
+                size="sm"
+                icon={<RefreshIcon />}
+                label={messages.waitingList.refresh}
+                onClick={() => setRefreshKey((current) => current + 1)}
+              />
+            </div>
           </>
         }
       />
@@ -431,7 +482,10 @@ export function SessionWaitingListWorkspace({
                     ? "bg-accent text-white ring-transparent"
                     : "bg-surface-elevated text-text-primary ring-border hover:bg-surface"
                 }`}
-                onClick={() => setActiveStatus(status)}
+                onClick={() => {
+                  setActiveStatus(status);
+                  setPage(1);
+                }}
               >
                 {status === "ALL"
                   ? messages.waitingList.filters.all
@@ -447,60 +501,92 @@ export function SessionWaitingListWorkspace({
           <CardTitle>{messages.waitingList.list.title}</CardTitle>
           <CardDescription>{messages.waitingList.list.description}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          {visibleEntries.length === 0 ? (
-            <p className="text-sm text-text-secondary">{messages.waitingList.list.empty}</p>
+        <CardContent className="space-y-4">
+          {entries.length === 0 ? (
+            <DataTableEmptyState
+              title={messages.waitingList.list.title}
+              description={messages.waitingList.list.empty}
+            />
           ) : (
-            visibleEntries.map((entry) => (
-              <div key={entry.id} className="rounded-2xl border border-border bg-surface-elevated px-4 py-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge>{messages.waitingList.statuses[entry.status]}</Badge>
-                  <Badge>{messages.waitingList.labels.priority}: {entry.priority}</Badge>
-                  {entry.roleDefinition ? (
-                    <Badge>{getLocalizedName(entry.roleDefinition, locale)}</Badge>
-                  ) : null}
-                </div>
-
-                <p className="mt-3 text-base font-semibold text-text-primary">
-                  {getLocalizedName(entry.user, locale)}
-                </p>
-                <div className="mt-2 grid gap-2 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                  <p>{messages.waitingList.labels.rating}: {entry.user.averageRating}</p>
-                  <p>{messages.waitingList.labels.totalSessions}: {entry.user.totalSessions}</p>
-                  <p>{messages.waitingList.labels.source}: {entry.entrySource ?? "-"}</p>
-                  <p>{messages.waitingList.labels.createdAt}: {formatDateTime(locale, entry.createdAt)}</p>
-                  <p>{messages.waitingList.labels.building}: {entry.building ? getLocalizedName(entry.building, locale) : "-"}</p>
-                  <p>{messages.waitingList.labels.promotedAt}: {formatDateTime(locale, entry.promotedAt)}</p>
-                  <p>{messages.waitingList.labels.removedAt}: {formatDateTime(locale, entry.removedAt)}</p>
-                </div>
-
-                {entry.reason ? (
-                  <p className="mt-2 text-sm text-text-secondary">
-                    {messages.waitingList.labels.reason}: {entry.reason}
-                  </p>
-                ) : null}
-
-                {entry.notes ? <p className="mt-1 text-sm text-text-secondary">{entry.notes}</p> : null}
-
-                {entry.status === "WAITING" ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button
-                      onClick={() => void promoteEntry(entry)}
-                      disabled={isBusy}
-                    >
-                      {messages.waitingList.actions.promote}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => void removeEntry(entry)}
-                      disabled={isBusy}
-                    >
-                      {messages.waitingList.actions.remove}
-                    </Button>
-                  </div>
-                ) : null}
+            <>
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.waitingList.list.title}</DataTableHead>
+                      <DataTableHead>{messages.waitingList.labels.building}</DataTableHead>
+                      <DataTableHead>{messages.waitingList.labels.source}</DataTableHead>
+                      <DataTableHead>{messages.waitingList.labels.createdAt}</DataTableHead>
+                      <DataTableHead>{messages.waitingList.labels.reason}</DataTableHead>
+                      <DataTableHead>{messages.waitingList.actions.promote}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {entries.map((entry) => (
+                      <DataTableRow key={entry.id}>
+                        <DataTableCell>
+                          <div className="space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge>{messages.waitingList.statuses[entry.status]}</Badge>
+                              <Badge>{messages.waitingList.labels.priority}: {entry.priority}</Badge>
+                              {entry.roleDefinition ? (
+                                <Badge>{getLocalizedName(entry.roleDefinition, locale)}</Badge>
+                              ) : null}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-text-primary">
+                                {getLocalizedName(entry.user, locale)}
+                              </p>
+                              <p className="text-xs text-text-secondary">
+                                {messages.waitingList.labels.rating}: {entry.user.averageRating} · {messages.waitingList.labels.totalSessions}: {entry.user.totalSessions}
+                              </p>
+                            </div>
+                          </div>
+                        </DataTableCell>
+                        <DataTableCell>
+                          {entry.building ? getLocalizedName(entry.building, locale) : "-"}
+                        </DataTableCell>
+                        <DataTableCell>{entry.entrySource ?? "-"}</DataTableCell>
+                        <DataTableCell>{formatDateTime(locale, entry.createdAt)}</DataTableCell>
+                        <DataTableCell>{entry.reason ?? entry.notes ?? "-"}</DataTableCell>
+                        <DataTableCell>
+                          {entry.status === "WAITING" ? (
+                            <div className="flex flex-wrap gap-2">
+                              <Button onClick={() => void promoteEntry(entry)} disabled={isBusy}>
+                                {messages.waitingList.actions.promote}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                onClick={() => void removeEntry(entry)}
+                                disabled={isBusy}
+                              >
+                                {messages.waitingList.actions.remove}
+                              </Button>
+                            </div>
+                          ) : (
+                            "-"
+                          )}
+                        </DataTableCell>
+                      </DataTableRow>
+                    ))}
+                  </DataTableBody>
+                </DataTable>
               </div>
-            ))
+
+              <PaginationControls
+                page={pagination.page}
+                pageCount={pagination.pageCount}
+                total={pagination.total}
+                hasPreviousPage={pagination.hasPreviousPage}
+                hasNextPage={pagination.hasNextPage}
+                summaryLabel={`${pagination.page} / ${pagination.pageCount}`}
+                totalLabel={`${messages.waitingList.list.title}: ${pagination.total}`}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
+            </>
           )}
         </CardContent>
       </Card>

@@ -136,6 +136,21 @@
       "auth": "Auth reads active app users, password hashes, and persisted sessions from PostgreSQL.",
       "locale": "Language and theme preferences can be stored in the database and mirrored to cookies for rendering.",
       "next": "Locations CRUD is the next expansion point after the remaining shell foundation polish."
+    },
+    "operationalReset": {
+      "title": "Operational data reset",
+      "description": "Delete operational data from the live database before importing a fresh EST dataset.",
+      "warning": "This action removes cycles, sessions, assignments, waiting-list entries, attendance, evaluations, blocks, locations, imported proctors, activity logs, and active app sessions.",
+      "preserve": "App accounts, role definitions, runtime settings, and email templates are preserved so the system can be repopulated safely.",
+      "confirmLabel": "Type RESET to enable the destructive action.",
+      "confirmPlaceholder": "Type RESET",
+      "countsTitle": "Current operational data footprint",
+      "previewLoading": "Loading the current data footprint...",
+      "previewFailed": "Could not load the current data footprint.",
+      "resetAction": "Reset operational data",
+      "resetting": "Resetting...",
+      "success": "Operational data was cleared successfully. Sign in again if your current session was removed.",
+      "forbidden": "Only super admins can reset operational data."
     }
   },
   "importTemplates": {

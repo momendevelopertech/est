@@ -13,8 +13,20 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { RefreshIcon } from "@/components/ui/icons";
+import { ModalFrame } from "@/components/ui/modal-frame";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
@@ -207,7 +219,7 @@ function SessionListSkeleton() {
       {[0, 1, 2].map((item) => (
         <div
           key={item}
-          className="h-40 animate-pulse rounded-3xl border border-border bg-surface-elevated"
+          className="h-16 animate-pulse rounded-3xl border border-border bg-surface-elevated"
         />
       ))}
     </div>
@@ -726,13 +738,13 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
             >
               {includeInactive ? messages.sessions.showActiveOnly : messages.sessions.showInactive}
             </Button>
-            <Button
+            <IconButton
               variant="secondary"
               size="sm"
+              icon={<RefreshIcon />}
+              label={messages.sessions.reload}
               onClick={() => setRefreshKey((current) => current + 1)}
-            >
-              {messages.sessions.reload}
-            </Button>
+            />
           </div>
           </div>
         }
@@ -774,190 +786,183 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
               ) : null}
             </div>
           ) : sessions.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
-              <h3 className="text-lg font-semibold text-text-primary">{messages.sessions.emptyTitle}</h3>
-              <p className="mt-2 text-sm leading-7 text-text-secondary">{messages.sessions.emptyBody}</p>
-            </div>
+            <DataTableEmptyState
+              title={messages.sessions.emptyTitle}
+              description={messages.sessions.emptyBody}
+            />
           ) : (
             <>
-              <div className="space-y-3">
-                {sessions.map((session) => {
-                  const localizedName = getLocalizedName(session, locale);
-                  const alternateName = getAlternateLocalizedName(session, locale);
-                  const availableTransitions = getAllowedSessionStatusTransitions({
-                    status: session.status,
-                    isActive: session.isActive,
-                    startDateTime: session.startDateTime,
-                    endDateTime: session.endDateTime,
-                    assignmentsCount: session._count.assignments,
-                    waitingListCount: session._count.waitingList,
-                    evaluationsCount: session._count.evaluations
-                  });
-                  const isStatusBusy = statusBusyById[session.id] ?? false;
-                  const isDeactivating = deactivatingSessionId === session.id;
-                  const activeBuildingNames = session.buildings
-                    .filter((buildingLink) => buildingLink.isActive)
-                    .map((buildingLink) => getLocalizedName(buildingLink.building, locale));
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.sessions.listTitle}</DataTableHead>
+                      <DataTableHead>{messages.sessions.labels.cycle}</DataTableHead>
+                      <DataTableHead>{messages.sessions.labels.location}</DataTableHead>
+                      <DataTableHead>{messages.sessions.labels.startDateTime}</DataTableHead>
+                      <DataTableHead>{messages.sessions.labels.assignments}</DataTableHead>
+                      <DataTableHead>{messages.sessions.labels.waitingList}</DataTableHead>
+                      <DataTableHead>{messages.sessions.labels.evaluations}</DataTableHead>
+                      <DataTableHead className="w-[22rem]">{messages.sessions.actions.view}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {sessions.map((session) => {
+                      const localizedName = getLocalizedName(session, locale);
+                      const alternateName = getAlternateLocalizedName(session, locale);
+                      const availableTransitions = getAllowedSessionStatusTransitions({
+                        status: session.status,
+                        isActive: session.isActive,
+                        startDateTime: session.startDateTime,
+                        endDateTime: session.endDateTime,
+                        assignmentsCount: session._count.assignments,
+                        waitingListCount: session._count.waitingList,
+                        evaluationsCount: session._count.evaluations
+                      });
+                      const isStatusBusy = statusBusyById[session.id] ?? false;
+                      const isDeactivating = deactivatingSessionId === session.id;
+                      const activeBuildingNames = session.buildings
+                        .filter((buildingLink) => buildingLink.isActive)
+                        .map((buildingLink) => getLocalizedName(buildingLink.building, locale));
 
-                  return (
-                    <div
-                      key={session.id}
-                      className="rounded-3xl border border-border bg-surface-elevated px-4 py-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge>{messages.sessions.examTypes[session.examType]}</Badge>
-                          <Badge>
-                            {session.isActive ? messages.sessions.labels.active : messages.sessions.labels.inactive}
-                          </Badge>
-                          <SessionStatusBadge
-                            status={session.status}
-                            label={messages.sessions.statuses[session.status]}
-                          />
-                          <SessionStatusBadge
-                            status={session.derivedStatus}
-                            label={messages.sessions.statuses[session.derivedStatus]}
-                          />
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/sessions/${session.id}`}
-                            className="inline-flex h-9 items-center justify-center rounded-2xl bg-surface-elevated px-3 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-                          >
-                            {messages.sessions.actions.view}
-                          </Link>
-                          <Button variant="secondary" size="sm" onClick={() => openEditModal(session)}>
-                            {messages.sessions.actions.edit}
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => void deactivateSession(session)}
-                            disabled={isDeactivating || !session.isActive}
-                          >
-                            {isDeactivating
-                              ? messages.sessions.actions.deactivating
-                              : messages.sessions.actions.deactivate}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <h3 className="mt-4 text-lg font-semibold text-text-primary">{localizedName}</h3>
-                      {alternateName ? (
-                        <p className="mt-1 text-sm text-text-secondary">{alternateName}</p>
-                      ) : null}
-
-                      <div className="mt-3 grid gap-2 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                        <p>
-                          {messages.sessions.labels.cycle}: {getLocalizedName(session.cycle, locale)}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.location}: {activeBuildingNames.join(" / ") || "-"}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.startDateTime}: {formatDateTime(locale, session.startDateTime)}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.endDateTime}: {formatDateTime(locale, session.endDateTime)}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.assignments}: {session._count.assignments}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.waitingList}: {session._count.waitingList}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.evaluations}: {session._count.evaluations}
-                        </p>
-                        <p>
-                          {messages.sessions.labels.updatedAt}: {formatDateTime(locale, session.updatedAt)}
-                        </p>
-                      </div>
-
-                      {canManageStatus ? (
-                        <div className="mt-4 space-y-2 rounded-2xl border border-border bg-background px-3 py-3">
-                          <p className="text-sm font-medium text-text-primary">
-                            {messages.sessions.actions.transitionsTitle}
-                          </p>
-                          <p className="text-xs text-text-secondary">{messages.sessions.actions.transitionHelp}</p>
-
-                          {availableTransitions.length === 0 ? (
-                            <p className="text-sm text-text-secondary">{messages.sessions.actions.noTransitions}</p>
-                          ) : (
-                            <div className="flex flex-wrap gap-2">
-                              {availableTransitions.map((nextStatus) => (
-                                <Button
-                                  key={nextStatus}
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={() => void changeSessionStatus(session.id, nextStatus)}
-                                  disabled={isStatusBusy || !session.isActive}
-                                >
-                                  {isStatusBusy
-                                    ? messages.sessions.actions.changingStatus
-                                    : `${messages.sessions.actions.changeStatus}: ${messages.sessions.statuses[nextStatus]}`}
-                                </Button>
-                              ))}
+                      return (
+                        <DataTableRow key={session.id}>
+                          <DataTableCell>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge>{messages.sessions.examTypes[session.examType]}</Badge>
+                                <Badge>
+                                  {session.isActive
+                                    ? messages.sessions.labels.active
+                                    : messages.sessions.labels.inactive}
+                                </Badge>
+                                <SessionStatusBadge
+                                  status={session.status}
+                                  label={messages.sessions.statuses[session.status]}
+                                />
+                                <SessionStatusBadge
+                                  status={session.derivedStatus}
+                                  label={messages.sessions.statuses[session.derivedStatus]}
+                                />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-text-primary">{localizedName}</p>
+                                {alternateName ? (
+                                  <p className="text-xs text-text-secondary">{alternateName}</p>
+                                ) : null}
+                              </div>
                             </div>
-                          )}
+                          </DataTableCell>
+                          <DataTableCell>{getLocalizedName(session.cycle, locale)}</DataTableCell>
+                          <DataTableCell>{activeBuildingNames.join(" / ") || "-"}</DataTableCell>
+                          <DataTableCell>
+                            <div className="space-y-1">
+                              <p>{formatDateTime(locale, session.startDateTime)}</p>
+                              <p className="text-xs text-text-secondary">
+                                {formatDateTime(locale, session.endDateTime)}
+                              </p>
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell>{session._count.assignments}</DataTableCell>
+                          <DataTableCell>{session._count.waitingList}</DataTableCell>
+                          <DataTableCell>{session._count.evaluations}</DataTableCell>
+                          <DataTableCell>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                <Link
+                                  href={`/sessions/${session.id}`}
+                                  className="inline-flex h-9 items-center justify-center rounded-xl bg-background px-3 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
+                                >
+                                  {messages.sessions.actions.view}
+                                </Link>
+                                <Button variant="secondary" size="sm" onClick={() => openEditModal(session)}>
+                                  {messages.sessions.actions.edit}
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => void deactivateSession(session)}
+                                  disabled={isDeactivating || !session.isActive}
+                                >
+                                  {isDeactivating
+                                    ? messages.sessions.actions.deactivating
+                                    : messages.sessions.actions.deactivate}
+                                </Button>
+                              </div>
 
-                          {statusErrorById[session.id] ? (
-                            <p className="text-sm text-danger">{statusErrorById[session.id]}</p>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  );
+                              {canManageStatus ? (
+                                <div className="space-y-2 rounded-2xl border border-border bg-background px-3 py-3">
+                                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                                    {messages.sessions.actions.transitionsTitle}
+                                  </p>
+                                  {availableTransitions.length === 0 ? (
+                                    <p className="text-sm text-text-secondary">
+                                      {messages.sessions.actions.noTransitions}
+                                    </p>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                      {availableTransitions.map((nextStatus) => (
+                                        <Button
+                                          key={nextStatus}
+                                          variant="secondary"
+                                          size="sm"
+                                          onClick={() => void changeSessionStatus(session.id, nextStatus)}
+                                          disabled={isStatusBusy || !session.isActive}
+                                        >
+                                          {isStatusBusy
+                                            ? messages.sessions.actions.changingStatus
+                                            : `${messages.sessions.actions.changeStatus}: ${messages.sessions.statuses[nextStatus]}`}
+                                        </Button>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {statusErrorById[session.id] ? (
+                                    <p className="text-sm text-danger">{statusErrorById[session.id]}</p>
+                                  ) : null}
+                                </div>
+                              ) : null}
+                            </div>
+                          </DataTableCell>
+                        </DataTableRow>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </div>
+
+              <PaginationControls
+                page={pagination.page}
+                pageCount={pagination.pageCount}
+                total={pagination.total}
+                hasPreviousPage={pagination.hasPreviousPage}
+                hasNextPage={pagination.hasNextPage}
+                summaryLabel={replaceTokens(messages.sessions.pagination.summary, {
+                  page: pagination.page,
+                  pageCount: pagination.pageCount
                 })}
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-surface-elevated px-4 py-3">
-                <p className="text-sm text-text-secondary">
-                  {replaceTokens(messages.sessions.pagination.summary, {
-                    page: pagination.page,
-                    pageCount: pagination.pageCount
-                  })}
-                </p>
-                <p className="text-sm text-text-secondary">
-                  {replaceTokens(messages.sessions.pagination.total, {
-                    total: pagination.total
-                  })}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                    disabled={!pagination.hasPreviousPage}
-                  >
-                    {messages.sessions.pagination.previous}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((current) => current + 1)}
-                    disabled={!pagination.hasNextPage}
-                  >
-                    {messages.sessions.pagination.next}
-                  </Button>
-                </div>
-              </div>
+                totalLabel={replaceTokens(messages.sessions.pagination.total, {
+                  total: pagination.total
+                })}
+                previousLabel={messages.sessions.pagination.previous}
+                nextLabel={messages.sessions.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
             </>
           )}
         </CardContent>
       </Card>
 
       {isFormOpen ? (
-        <ModalOverlay>
-          <Card className="panel max-h-[90vh] w-full max-w-4xl overflow-y-auto border-transparent">
-            <CardHeader>
-              <CardTitle>
-                {editingSession ? messages.sessions.form.editTitle : messages.sessions.form.createTitle}
-              </CardTitle>
-              <CardDescription>{messages.sessions.form.subtitle}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <ModalFrame
+          title={editingSession ? messages.sessions.form.editTitle : messages.sessions.form.createTitle}
+          description={messages.sessions.form.subtitle}
+          closeLabel={messages.sessions.form.cancel}
+          onClose={closeFormModal}
+          className="max-w-5xl"
+          bodyClassName="space-y-4"
+        >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-primary" htmlFor="session-cycle">
@@ -1131,9 +1136,7 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
                       : messages.sessions.form.submitCreate}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </ModalOverlay>
+        </ModalFrame>
       ) : null}
     </div>
   );

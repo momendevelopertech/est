@@ -5,10 +5,11 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
+import { IconButton } from "@/components/ui/icon-button";
+import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/icons";
 import type { ThemeMode } from "@/lib/auth/types";
 import type { Messages } from "@/lib/i18n";
 import { themeModes } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 
 type ThemeToggleProps = {
   initialTheme: ThemeMode;
@@ -74,39 +75,31 @@ export function ThemeToggle({ initialTheme, messages }: ThemeToggleProps) {
     });
   }
 
+  function getNextTheme(currentTheme: ThemeMode): ThemeMode {
+    const index = themeModes.indexOf(currentTheme);
+    return themeModes[(index + 1) % themeModes.length];
+  }
+
+  function getThemeIcon(themeMode: ThemeMode) {
+    switch (themeMode) {
+      case "light":
+        return <SunIcon />;
+      case "dark":
+        return <MoonIcon />;
+      default:
+        return <MonitorIcon />;
+    }
+  }
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
-        {messages.theme.label}
-      </span>
-
-      <div
-        className="inline-flex flex-wrap items-center gap-1 rounded-2xl border border-border bg-surface-elevated p-1 shadow-sm"
-        role="group"
-        aria-label={messages.theme.label}
-      >
-        {themeModes.map((themeMode) => {
-          const isActive = selectedTheme === themeMode;
-
-          return (
-            <button
-              key={themeMode}
-              type="button"
-              onClick={() => handleThemeChange(themeMode)}
-              disabled={isPending}
-              aria-pressed={isActive}
-              className={cn(
-                "motion-button inline-flex min-w-16 items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em]",
-                isActive
-                  ? "bg-accent text-white shadow-panel"
-                  : "text-text-secondary hover:bg-surface hover:text-text-primary"
-              )}
-            >
-              {getThemeLabel(themeMode)}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <IconButton
+      type="button"
+      variant="secondary"
+      size="sm"
+      icon={getThemeIcon(selectedTheme)}
+      label={`${messages.theme.label}: ${getThemeLabel(selectedTheme)}`}
+      onClick={() => handleThemeChange(getNextTheme(selectedTheme))}
+      disabled={isPending}
+    />
   );
 }

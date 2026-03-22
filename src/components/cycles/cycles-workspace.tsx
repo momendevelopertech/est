@@ -13,8 +13,20 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableEmptyState,
+  DataTableHead,
+  DataTableHeader,
+  DataTableRow
+} from "@/components/ui/data-table";
+import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { ModalOverlay } from "@/components/ui/modal-overlay";
+import { RefreshIcon } from "@/components/ui/icons";
+import { ModalFrame } from "@/components/ui/modal-frame";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
@@ -246,7 +258,7 @@ function CycleListSkeleton() {
       {[0, 1, 2].map((item) => (
         <div
           key={item}
-          className="h-32 animate-pulse rounded-3xl border border-border bg-surface-elevated"
+          className="h-16 animate-pulse rounded-3xl border border-border bg-surface-elevated"
         />
       ))}
     </div>
@@ -714,13 +726,13 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
             >
               {includeInactive ? messages.cycles.showActiveOnly : messages.cycles.showInactive}
             </Button>
-            <Button
+            <IconButton
               variant="secondary"
               size="sm"
+              icon={<RefreshIcon />}
+              label={messages.cycles.reload}
               onClick={() => setRefreshKey((current) => current + 1)}
-            >
-              {messages.cycles.reload}
-            </Button>
+            />
           </div>
           </div>
         }
@@ -759,143 +771,139 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
           ) : null}
 
           {!listState.isLoading && !listState.error && listState.data.length === 0 ? (
-            <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
-              <h3 className="text-lg font-semibold text-text-primary">{messages.cycles.emptyTitle}</h3>
-              <p className="mt-2 text-sm leading-7 text-text-secondary">{messages.cycles.emptyBody}</p>
-            </div>
+            <DataTableEmptyState
+              title={messages.cycles.emptyTitle}
+              description={messages.cycles.emptyBody}
+            />
           ) : null}
 
           {!listState.isLoading && !listState.error && listState.data.length > 0 ? (
             <>
-              <div className="space-y-3">
-                {listState.data.map((cycle) => {
-                  const localizedName = getLocalizedName(cycle, locale);
-                  const alternateName = getAlternateLocalizedName(cycle, locale);
-                  const isDeactivating = deactivatingCycleId === cycle.id;
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.cycles.listTitle}</DataTableHead>
+                      <DataTableHead>{messages.cycles.labels.dateRange}</DataTableHead>
+                      <DataTableHead>{messages.cycles.labels.sessions}</DataTableHead>
+                      <DataTableHead>{messages.cycles.labels.waitingList}</DataTableHead>
+                      <DataTableHead>{messages.cycles.labels.updatedAt}</DataTableHead>
+                      <DataTableHead>{messages.cycles.labels.sourceCycle}</DataTableHead>
+                      <DataTableHead>{messages.cycles.labels.cloneMode}</DataTableHead>
+                      <DataTableHead className="w-[18rem]">{messages.cycles.actions.view}</DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {listState.data.map((cycle) => {
+                      const localizedName = getLocalizedName(cycle, locale);
+                      const alternateName = getAlternateLocalizedName(cycle, locale);
+                      const isDeactivating = deactivatingCycleId === cycle.id;
 
-                  return (
-                    <div
-                      key={cycle.id}
-                      className="rounded-3xl border border-border bg-surface-elevated px-4 py-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap gap-2">
-                          <Badge variant="accent">{messages.cycles.statuses[cycle.status]}</Badge>
-                          <Badge>{cycle.isActive ? messages.cycles.labels.active : messages.cycles.labels.inactive}</Badge>
-                          {cycle.code ? <Badge>{`${messages.cycles.labels.code}: ${cycle.code}`}</Badge> : null}
-                        </div>
+                      return (
+                        <DataTableRow key={cycle.id}>
+                          <DataTableCell>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="accent">{messages.cycles.statuses[cycle.status]}</Badge>
+                                <Badge>
+                                  {cycle.isActive
+                                    ? messages.cycles.labels.active
+                                    : messages.cycles.labels.inactive}
+                                </Badge>
+                                {cycle.code ? (
+                                  <Badge>{`${messages.cycles.labels.code}: ${cycle.code}`}</Badge>
+                                ) : null}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-text-primary">{localizedName}</p>
+                                {alternateName ? (
+                                  <p className="text-xs text-text-secondary">{alternateName}</p>
+                                ) : null}
+                              </div>
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell>
+                            {formatDate(locale, cycle.startDate)} - {formatDate(locale, cycle.endDate)}
+                          </DataTableCell>
+                          <DataTableCell>{cycle._count.sessions}</DataTableCell>
+                          <DataTableCell>{cycle._count.waitingList}</DataTableCell>
+                          <DataTableCell>{formatDateTime(locale, cycle.updatedAt)}</DataTableCell>
+                          <DataTableCell>
+                            {cycle.sourceCycle ? getLocalizedName(cycle.sourceCycle, locale) : "-"}
+                          </DataTableCell>
+                          <DataTableCell>
+                            {cycle.cloneMode ? messages.cycles.cloneModes[cycle.cloneMode] : "-"}
+                          </DataTableCell>
+                          <DataTableCell>
+                            <div className="flex flex-wrap gap-2">
+                              <Link
+                                href={`/cycles/${cycle.id}`}
+                                className="inline-flex h-9 items-center justify-center rounded-xl bg-background px-3 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
+                              >
+                                {messages.cycles.actions.view}
+                              </Link>
+                              <Button variant="secondary" size="sm" onClick={() => openEditModal(cycle)}>
+                                {messages.cycles.actions.edit}
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => openCloneModal(cycle)}
+                                disabled={!cycle.isActive || isDeactivating}
+                              >
+                                {messages.cycles.actions.clone}
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => void deactivateCycle(cycle)}
+                                disabled={isDeactivating || !cycle.isActive}
+                              >
+                                {isDeactivating
+                                  ? messages.cycles.actions.deactivating
+                                  : messages.cycles.actions.deactivate}
+                              </Button>
+                            </div>
+                          </DataTableCell>
+                        </DataTableRow>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
+              </div>
 
-                        <div className="flex flex-wrap gap-2">
-                          <Link
-                            href={`/cycles/${cycle.id}`}
-                            className="inline-flex h-9 items-center justify-center rounded-2xl bg-surface-elevated px-3 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-                          >
-                            {messages.cycles.actions.view}
-                          </Link>
-                          <Button variant="secondary" size="sm" onClick={() => openEditModal(cycle)}>
-                            {messages.cycles.actions.edit}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => openCloneModal(cycle)}
-                            disabled={!cycle.isActive || isDeactivating}
-                          >
-                            {messages.cycles.actions.clone}
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => void deactivateCycle(cycle)}
-                            disabled={isDeactivating || !cycle.isActive}
-                          >
-                            {isDeactivating
-                              ? messages.cycles.actions.deactivating
-                              : messages.cycles.actions.deactivate}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <h3 className="mt-4 text-lg font-semibold text-text-primary">{localizedName}</h3>
-                      {alternateName ? (
-                        <p className="mt-1 text-sm text-text-secondary">{alternateName}</p>
-                      ) : null}
-
-                      <div className="mt-3 grid gap-2 text-sm text-text-secondary sm:grid-cols-2 xl:grid-cols-4">
-                        <p>
-                          {messages.cycles.labels.dateRange}: {formatDate(locale, cycle.startDate)} -{" "}
-                          {formatDate(locale, cycle.endDate)}
-                        </p>
-                        <p>
-                          {messages.cycles.labels.sessions}: {cycle._count.sessions}
-                        </p>
-                        <p>
-                          {messages.cycles.labels.waitingList}: {cycle._count.waitingList}
-                        </p>
-                        <p>
-                          {messages.cycles.labels.clonedCycles}: {cycle._count.clonedCycles}
-                        </p>
-                        <p>
-                          {messages.cycles.labels.updatedAt}: {formatDateTime(locale, cycle.updatedAt)}
-                        </p>
-                        <p>
-                          {messages.cycles.labels.sourceCycle}: {cycle.sourceCycle ? getLocalizedName(cycle.sourceCycle, locale) : "-"}
-                        </p>
-                        <p>
-                          {messages.cycles.labels.cloneMode}: {cycle.cloneMode ? messages.cycles.cloneModes[cycle.cloneMode] : "-"}
-                        </p>
-                      </div>
-                    </div>
-                  );
+              <PaginationControls
+                page={listState.pagination.page}
+                pageCount={listState.pagination.pageCount}
+                total={listState.pagination.total}
+                hasPreviousPage={listState.pagination.hasPreviousPage}
+                hasNextPage={listState.pagination.hasNextPage}
+                summaryLabel={replaceTokens(messages.cycles.pagination.summary, {
+                  page: listState.pagination.page,
+                  pageCount: listState.pagination.pageCount
                 })}
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-surface-elevated px-4 py-3">
-                <p className="text-sm text-text-secondary">
-                  {replaceTokens(messages.cycles.pagination.summary, {
-                    page: listState.pagination.page,
-                    pageCount: listState.pagination.pageCount
-                  })}
-                </p>
-                <p className="text-sm text-text-secondary">
-                  {replaceTokens(messages.cycles.pagination.total, {
-                    total: listState.pagination.total
-                  })}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                    disabled={!listState.pagination.hasPreviousPage}
-                  >
-                    {messages.cycles.pagination.previous}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setPage((current) => current + 1)}
-                    disabled={!listState.pagination.hasNextPage}
-                  >
-                    {messages.cycles.pagination.next}
-                  </Button>
-                </div>
-              </div>
+                totalLabel={replaceTokens(messages.cycles.pagination.total, {
+                  total: listState.pagination.total
+                })}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
             </>
           ) : null}
         </CardContent>
       </Card>
 
       {isFormOpen ? (
-        <ModalOverlay>
-          <Card className="panel max-h-[90vh] w-full max-w-3xl overflow-y-auto border-transparent">
-            <CardHeader>
-              <CardTitle>
-                {editingCycle ? messages.cycles.form.editTitle : messages.cycles.form.createTitle}
-              </CardTitle>
-              <CardDescription>{messages.cycles.form.subtitle}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <ModalFrame
+          title={editingCycle ? messages.cycles.form.editTitle : messages.cycles.form.createTitle}
+          description={messages.cycles.form.subtitle}
+          closeLabel={messages.cycles.form.cancel}
+          onClose={closeFormModal}
+          className="max-w-4xl"
+          bodyClassName="space-y-4"
+        >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-text-primary" htmlFor="cycle-code">
@@ -1036,19 +1044,18 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                       : messages.cycles.form.submitCreate}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </ModalOverlay>
+        </ModalFrame>
       ) : null}
 
       {isCloneOpen && cloningCycle ? (
-        <ModalOverlay>
-          <Card className="panel max-h-[90vh] w-full max-w-2xl overflow-y-auto border-transparent">
-            <CardHeader>
-              <CardTitle>{messages.cycles.cloneFlow.title}</CardTitle>
-              <CardDescription>{messages.cycles.cloneFlow.subtitle}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <ModalFrame
+          title={messages.cycles.cloneFlow.title}
+          description={messages.cycles.cloneFlow.subtitle}
+          closeLabel={messages.cycles.cloneFlow.cancel}
+          onClose={closeCloneModal}
+          className="max-w-3xl"
+          bodyClassName="space-y-4"
+        >
               <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
                 <p className="text-sm font-medium text-text-primary">
                   {messages.cycles.cloneFlow.sourceCycle}: {getLocalizedName(cloningCycle, locale)}
@@ -1137,9 +1144,7 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                   {isCloning ? messages.cycles.actions.cloning : messages.cycles.cloneFlow.submit}
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </ModalOverlay>
+        </ModalFrame>
       ) : null}
     </div>
   );
