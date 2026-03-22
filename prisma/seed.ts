@@ -23,9 +23,14 @@ import { hash } from "bcryptjs";
 const prisma = new PrismaClient();
 const seedPassword = process.env.SEED_APP_USERS_PASSWORD ?? "ChangeMe123!";
 const seedTag = "release-validation-fixture-2026";
+const allowProductionSeed = process.env.ALLOW_PRODUCTION_SEED === "true";
 
 if (seedPassword.length < 8) {
   throw new Error("SEED_APP_USERS_PASSWORD must be at least 8 characters");
+}
+
+if (process.env.NODE_ENV === "production" && !allowProductionSeed) {
+  throw new Error("Refusing to run prisma seed in production without ALLOW_PRODUCTION_SEED=true");
 }
 
 const d = (value: string) => new Date(value);
