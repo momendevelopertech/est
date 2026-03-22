@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { PageHero } from "@/components/ui/page-hero";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -9,334 +8,240 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import { PageHero } from "@/components/ui/page-hero";
 import type { Locale, Messages } from "@/lib/i18n";
+import { adminFirstRunGuide } from "@/lib/test-guide/admin-first-run-guide";
 
 type TestGuideWorkspaceProps = {
   locale: Locale;
   messages: Messages;
-  englishMessages: Messages;
-  arabicMessages: Messages;
 };
 
-const guideGroups = [
-  {
-    key: "access",
-    sections: ["gettingStarted", "login", "dashboard"]
-  },
-  {
-    key: "setup",
-    sections: ["locations", "proctors", "cyclesSessions"]
-  },
-  {
-    key: "operations",
-    sections: [
-      "assignments",
-      "waitingList",
-      "swap",
-      "attendance",
-      "evaluation",
-      "promotion",
-      "blocks"
-    ]
-  },
-  {
-    key: "oversight",
-    sections: ["reportsExport", "notifications"]
-  },
-  {
-    key: "quality",
-    sections: ["commonErrors", "bestPractices"]
-  }
-] as const;
-
-type SectionKey = (typeof guideGroups)[number]["sections"][number];
-type GuideSection = Messages["testGuide"]["sections"][SectionKey];
-type GuideLabels = Messages["testGuide"]["labels"];
-
-const sectionStatuses: Record<
-  SectionKey,
-  Array<"liveChecked" | "seededRuntime" | "productionBlocker" | "codeVerified">
-> = {
-  gettingStarted: ["liveChecked", "seededRuntime", "productionBlocker"],
-  login: ["liveChecked", "seededRuntime", "productionBlocker"],
-  dashboard: ["liveChecked", "seededRuntime"],
-  locations: ["seededRuntime", "codeVerified"],
-  proctors: ["seededRuntime", "codeVerified"],
-  cyclesSessions: ["seededRuntime", "codeVerified"],
-  assignments: ["seededRuntime", "codeVerified"],
-  waitingList: ["seededRuntime", "codeVerified"],
-  swap: ["seededRuntime", "codeVerified"],
-  attendance: ["seededRuntime", "codeVerified"],
-  evaluation: ["seededRuntime", "codeVerified"],
-  promotion: ["seededRuntime", "codeVerified"],
-  blocks: ["seededRuntime", "codeVerified"],
-  reportsExport: ["seededRuntime", "codeVerified"],
-  notifications: ["seededRuntime", "codeVerified"],
-  commonErrors: ["liveChecked", "seededRuntime", "codeVerified"],
-  bestPractices: ["seededRuntime", "codeVerified"]
-};
-
-function getBadgeVariant(
-  key: "liveChecked" | "seededRuntime" | "productionBlocker" | "codeVerified"
-) {
-  if (key === "productionBlocker") {
-    return "warning" as const;
-  }
-
-  if (key === "seededRuntime") {
-    return "success" as const;
-  }
-
-  return "accent" as const;
-}
-
-function LanguagePanel({
-  dir,
-  lang,
-  label,
-  labels,
-  section
-}: {
-  dir: "ltr" | "rtl";
-  lang: "en" | "ar";
-  label: string;
-  labels: GuideLabels;
-  section: GuideSection;
-}) {
+function BulletList({ items }: { items: string[] }) {
   return (
-    <div
-      dir={dir}
-      lang={lang}
-      className={`rounded-3xl border border-border bg-surface px-4 py-4 ${
-        lang === "ar" ? "font-arabic text-right" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-text-primary">{label}</p>
-        <Badge>{lang.toUpperCase()}</Badge>
-      </div>
-
-      <div className="mt-4 space-y-4">
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-            {labels.purpose}
-          </p>
-          <p className="text-sm leading-7 text-text-primary">{section.purpose}</p>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-            {labels.steps}
-          </p>
-          <ol className="space-y-2 text-sm leading-7 text-text-primary">
-            {section.steps.map((step, index) => (
-              <li key={`${lang}-${index}`} className="flex gap-3">
-                <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-xs font-semibold text-text-secondary">
-                  {index + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-            {labels.expected}
-          </p>
-          <p className="text-sm leading-7 text-text-primary">{section.expected}</p>
-        </div>
-
-        <div className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
-            {labels.notes}
-          </p>
-          <ul className="space-y-2 text-sm leading-7 text-text-primary">
-            {section.notes.map((note, index) => (
-              <li key={`${lang}-note-${index}`} className="flex gap-3">
-                <span className="mt-[0.72rem] h-2 w-2 shrink-0 rounded-full bg-accent" />
-                <span>{note}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </div>
+    <ul className="space-y-2 text-sm leading-7 text-text-primary">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="flex gap-3">
+          <span className="mt-[0.72rem] h-2 w-2 shrink-0 rounded-full bg-accent" />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-export function TestGuideWorkspace({
-  locale,
-  messages,
-  englishMessages,
-  arabicMessages
-}: TestGuideWorkspaceProps) {
+function OrderedList({ items }: { items: string[] }) {
+  return (
+    <ol className="space-y-2 text-sm leading-7 text-text-primary">
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`} className="flex gap-3">
+          <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-elevated text-xs font-semibold text-text-secondary">
+            {index + 1}
+          </span>
+          <span>{item}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function TestGuideWorkspace({ locale, messages }: TestGuideWorkspaceProps) {
   const isArabic = locale === "ar";
+  const guide = adminFirstRunGuide;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" dir="rtl">
       <PageHero
         badges={[
           { label: messages.common.protected, variant: "accent" },
           { label: messages.testGuide.badges.adminOnly, variant: "warning" },
-          { label: messages.nav.testGuide }
+          { label: messages.nav.testGuide },
+          { label: "First Run", variant: "success" }
         ]}
-        title={messages.testGuide.title}
-        description={messages.testGuide.subtitle}
+        title={guide.title}
+        description={guide.subtitle}
         aside={
           <>
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
-              {messages.testGuide.productionUrlLabel}
+              حساب التشغيل
             </p>
             <p className="mt-2 text-lg font-semibold tracking-[-0.02em] text-text-primary">
-              {messages.testGuide.badges.adminOnly}
+              admin@examops.local
             </p>
+            <p className="mt-2 text-sm text-text-secondary">ابدأ من /login</p>
           </>
         }
         body={
-          <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-            <span>{messages.testGuide.productionUrlLabel}</span>
-            <Link
-              href={messages.testGuide.productionUrl}
-              className="text-accent underline underline-offset-4"
-            >
-              {messages.testGuide.productionUrl}
-            </Link>
-          </div>
-          <p className="max-w-4xl text-sm leading-7 text-text-secondary">
-            {messages.testGuide.intro}
-          </p>
+          <div className="space-y-4 text-right font-arabic">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-text-secondary">
+              <span>أول صفحة</span>
+              <Link href="/login" className="text-accent underline underline-offset-4">
+                /login
+              </Link>
+            </div>
+            <p className="max-w-4xl text-sm leading-7 text-text-secondary">
+              {guide.intro}
+            </p>
           </div>
         }
       />
 
       <div className="grid gap-4 xl:grid-cols-3">
-        {(["live", "local", "rules"] as const).map((key) => {
-          const section = messages.testGuide.overview[key];
-
-          return (
-            <Card key={key}>
-              <CardHeader>
-                <CardTitle>{section.title}</CardTitle>
-                <CardDescription>{section.body}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-sm leading-7 text-text-primary">
-                  {section.items.map((item, index) => (
-                    <li key={`${key}-${index}`} className="flex gap-3">
-                      <span className="mt-[0.72rem] h-2 w-2 shrink-0 rounded-full bg-accent" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {guide.cards.map((card) => (
+          <Card key={card.title}>
+            <CardHeader>
+              <CardTitle>{card.title}</CardTitle>
+              <CardDescription>{messages.nav.testGuide}</CardDescription>
+            </CardHeader>
+            <CardContent className="font-arabic text-right">
+              <BulletList items={card.items} />
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {guideGroups.map((group) => {
-        const groupMessages = messages.testGuide.groups[group.key];
+      <section className="space-y-4">
+        <div className="space-y-2 text-right font-arabic">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="accent">Flow Order</Badge>
+            <Badge>{messages.nav.testGuide}</Badge>
+          </div>
+          <h2 className="text-2xl font-semibold text-text-primary">
+            الترتيب المقترح لأول تجربة كاملة
+          </h2>
+          <p className="max-w-4xl text-sm leading-7 text-text-secondary">
+            امشِ على الأقسام بالترتيب نفسه. كل جزء أدناه مبني على routes وfixtures
+            موجودة فعلاً داخل المشروع الحالي.
+          </p>
+        </div>
 
-        return (
-          <section key={group.key} className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="accent">{groupMessages.eyebrow}</Badge>
-                <Badge>{messages.nav.testGuide}</Badge>
-              </div>
-              <h2 className="text-2xl font-semibold text-text-primary">
-                {groupMessages.title}
-              </h2>
-              <p className="max-w-4xl text-sm leading-7 text-text-secondary">
-                {groupMessages.description}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {group.sections.map((sectionKey, index) => {
-                const currentSection = messages.testGuide.sections[sectionKey];
-                const englishSection = englishMessages.testGuide.sections[sectionKey];
-                const arabicSection = arabicMessages.testGuide.sections[sectionKey];
-
-                return (
-                  <details
-                    key={sectionKey}
-                    open={index === 0}
-                    className="rounded-panel border border-border bg-surface px-5 py-5 shadow-panel"
-                  >
-                    <summary className="cursor-pointer list-none">
-                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2">
-                            {sectionStatuses[sectionKey].map((statusKey) => (
-                              <Badge
-                                key={statusKey}
-                                variant={getBadgeVariant(statusKey)}
-                              >
-                                {messages.testGuide.badges[statusKey]}
-                              </Badge>
-                            ))}
-                          </div>
-                          <h3 className="text-xl font-semibold text-text-primary">
-                            {currentSection.title}
-                          </h3>
-                          <p className="max-w-3xl text-sm leading-7 text-text-secondary">
-                            {currentSection.summary}
-                          </p>
-                        </div>
-                        <span className="text-sm font-medium text-text-secondary">
-                          /{sectionKey}
-                        </span>
-                      </div>
-                    </summary>
-
-                    <div className="mt-5 grid gap-4 xl:grid-cols-2">
-                      <LanguagePanel
-                        dir="ltr"
-                        lang="en"
-                        label={englishMessages.testGuide.labels.english}
-                        labels={englishMessages.testGuide.labels}
-                        section={englishSection}
-                      />
-                      <LanguagePanel
-                        dir="rtl"
-                        lang="ar"
-                        label={arabicMessages.testGuide.labels.arabic}
-                        labels={arabicMessages.testGuide.labels}
-                        section={arabicSection}
-                      />
+        <div className="space-y-4">
+          {guide.sections.map((section, index) => (
+            <details
+              key={section.id}
+              open={index === 0}
+              className="rounded-panel border border-border bg-surface px-5 py-5 shadow-panel"
+            >
+              <summary className="cursor-pointer list-none">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="space-y-2 text-right font-arabic">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="success">Seeded Runtime</Badge>
+                      <Badge variant="accent">Code Ordered</Badge>
+                      {section.id === "advanced-admin" ? (
+                        <Badge variant="warning">Optional</Badge>
+                      ) : null}
                     </div>
-                  </details>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+                    <h3 className="text-xl font-semibold text-text-primary">
+                      {section.title}
+                    </h3>
+                    <p className="max-w-3xl text-sm leading-7 text-text-secondary">
+                      {section.summary}
+                    </p>
+                  </div>
+                  {section.route ? (
+                    <span className="text-sm font-medium text-text-secondary">
+                      {section.route}
+                    </span>
+                  ) : null}
+                </div>
+              </summary>
+
+              <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                <div className="rounded-3xl border border-border bg-surface px-4 py-4 font-arabic text-right">
+                  <div className="space-y-4">
+                    {section.fixtures && section.fixtures.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                          Seed Data
+                        </p>
+                        <BulletList items={section.fixtures} />
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                        Steps
+                      </p>
+                      <OrderedList items={section.steps} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-border bg-surface px-4 py-4 font-arabic text-right">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                        Expected Result
+                      </p>
+                      <BulletList items={section.expected} />
+                    </div>
+
+                    {section.notes && section.notes.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                          Notes
+                        </p>
+                        <BulletList items={section.notes} />
+                      </div>
+                    ) : null}
+
+                    {section.snippets && section.snippets.length > 0 ? (
+                      <div className="space-y-3">
+                        <p className="text-xs uppercase tracking-[0.18em] text-text-secondary">
+                          Snippets
+                        </p>
+                        {section.snippets.map((snippet) => (
+                          <div
+                            key={snippet.label}
+                            className="rounded-3xl border border-border bg-surface-elevated px-4 py-4"
+                          >
+                            <p className="text-sm font-semibold text-text-primary">
+                              {snippet.label}
+                            </p>
+                            <pre className="mt-3 overflow-x-auto whitespace-pre-wrap text-left text-xs leading-6 text-text-secondary">
+                              {snippet.code}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
+      </section>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{messages.testGuide.footer.title}</CardTitle>
-          <CardDescription>{messages.testGuide.footer.body}</CardDescription>
+        <CardHeader className="text-right font-arabic">
+          <CardTitle>Sign-off Checklist</CardTitle>
+          <CardDescription>
+            بعد ما تخلص المرور الكامل، استخدم القائمة دي كمرجع سريع قبل ما تقول إن
+            الـ first run ناجح.
+          </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-3">
-          <Link
-            href="/dashboard"
-            className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {messages.testGuide.footer.backToDashboard}
-          </Link>
-          <Link
-            href="/reports"
-            className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            {messages.dashboard.workspace.actions.openReports}
-          </Link>
-          <Badge variant={isArabic ? "success" : "accent"}>
-            {isArabic ? messages.common.rtl : messages.common.ltr}
-          </Badge>
+        <CardContent className="space-y-5 font-arabic text-right">
+          <BulletList items={guide.checklist} />
+
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/dashboard"
+              className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {messages.nav.dashboard}
+            </Link>
+            <Link
+              href="/reports"
+              className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              {messages.dashboard.workspace.actions.openReports}
+            </Link>
+            <Badge variant={isArabic ? "success" : "accent"}>
+              {isArabic ? messages.common.rtl : messages.common.ltr}
+            </Badge>
+          </div>
         </CardContent>
       </Card>
     </div>

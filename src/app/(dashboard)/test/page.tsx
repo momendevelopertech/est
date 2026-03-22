@@ -6,15 +6,6 @@ export default async function TestGuidePage() {
   const session = await requireRole(["super_admin", "coordinator"]);
   const locale = await resolveRequestLocale(session.user.preferredLanguage);
   const messages = getMessages(locale);
-  const englishMessages = getMessages("en");
-  const arabicMessages = getMessages("ar");
 
-  return (
-    <TestGuideWorkspace
-      locale={locale}
-      messages={messages}
-      englishMessages={englishMessages}
-      arabicMessages={arabicMessages}
-    />
-  );
+  return <TestGuideWorkspace locale={locale} messages={messages} />;
 }

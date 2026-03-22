@@ -7,6 +7,7 @@ Use these files as the working source of truth for the project:
 - `examops-master-plan.md`: the normalized implementation plan we will build against
 - `generated-output-review.md`: audit of the incomplete AI-generated scaffold
 - `backlog.md`: phased task list and execution order
+- `admin-manual-test-first-run.md`: Arabic first-run admin manual test built from the actual seeded workflow
 - `../PROJECT_STATUS.md`: current state, progress, and update log
 
 Document order of trust:
@@ -16,4 +17,8 @@ Document order of trust:
 3. `examops-master-plan.md`
 4. `backlog.md`
 5. `PROJECT_STATUS.md`
+
+Supporting runbooks:
+
+- `admin-manual-test-first-run.md`: shareable first-run walkthrough for an admin tester
 
