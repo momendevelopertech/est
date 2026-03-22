@@ -138,3 +138,32 @@ export function ChevronRightIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+export function EyeIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path
+        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+    </BaseIcon>
+  );
+}
+
+export function ArrowUpRightIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path
+        d="M8 16 16 8M10 8h6v6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </BaseIcon>
+  );
+}

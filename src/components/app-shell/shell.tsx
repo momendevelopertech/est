@@ -4,7 +4,6 @@ import type { SessionUser } from "@/lib/auth/types";
 import type { Locale, Messages } from "@/lib/i18n";
 import { getNavigation } from "@/lib/navigation";
 
-import { Header } from "./header";
 import { PageTransition } from "./page-transition";
 import { Sidebar } from "./sidebar";
 
@@ -30,13 +29,7 @@ export function AppShell({ children, locale, messages, user }: ShellProps) {
         navigation={navigation}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-4 lg:gap-5">
-        <Header
-          locale={locale}
-          messages={messages}
-          navigation={navigation}
-          user={user}
-        />
+      <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-w-0 pb-4">
           <PageTransition>{children}</PageTransition>
         </main>

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/data-table";
 import { IconButton } from "@/components/ui/icon-button";
 import { Input } from "@/components/ui/input";
-import { RefreshIcon } from "@/components/ui/icons";
+import { ArrowUpRightIcon, EyeIcon, RefreshIcon } from "@/components/ui/icons";
 import { ModalFrame } from "@/components/ui/modal-frame";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
@@ -33,7 +33,6 @@ import {
   getAlternateLocalizedName,
   getLocalizedName
 } from "@/lib/i18n/presentation";
-import { cn } from "@/lib/utils";
 
 type ProctorSource = "SPHINX" | "UNIVERSITY" | "EXTERNAL";
 type BlockStatus = "CLEAR" | "TEMPORARY" | "PERMANENT";
@@ -244,7 +243,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
       total: 0
     } as PaginationMeta
   });
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeDetailId, setActiveDetailId] = useState<string | null>(null);
   const [detailState, setDetailState] = useState({
     isLoading: false,
     error: null as string | null,
@@ -318,13 +317,6 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
           data: records,
           pagination: payload.pagination
         });
-        setSelectedId((current) => {
-          if (current && records.some((record) => record.id === current)) {
-            return current;
-          }
-
-          return records[0]?.id ?? null;
-        });
       } catch (error) {
         if (controller.signal.aborted) {
           return;
@@ -344,7 +336,6 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
             total: 0
           }
         });
-        setSelectedId(null);
       }
     }
 
@@ -365,7 +356,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
   ]);
 
   useEffect(() => {
-    if (!selectedId) {
+    if (!activeDetailId) {
       setDetailState({
         isLoading: false,
         error: null,
@@ -387,7 +378,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
 
       try {
         const response = await fetch(
-          `/api/proctors/${selectedId}?includeInactive=${includeInactive ? "true" : "false"}`,
+          `/api/proctors/${activeDetailId}?includeInactive=${includeInactive ? "true" : "false"}`,
           {
             method: "GET",
             credentials: "same-origin",
@@ -428,7 +419,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
     return () => {
       controller.abort();
     };
-  }, [includeInactive, messages.proctors.detailErrorBody, selectedId]);
+  }, [activeDetailId, includeInactive, messages.proctors.detailErrorBody]);
 
   async function openImportModal() {
     setIsImportOpen(true);
@@ -628,7 +619,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               {messages.proctors.listTitle}
             </p>
             <p className="mt-2 text-3xl font-semibold tracking-[-0.03em] text-text-primary">
-              {listState.data.length}
+              {listCount}
             </p>
           </>
         }
@@ -757,265 +748,292 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>{messages.proctors.listTitle}</CardTitle>
-            <CardDescription>
-              {messages.proctors.listBody.replace("{count}", String(listCount))}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {listState.isLoading ? <DetailSkeleton /> : null}
+      <Card>
+        <CardHeader>
+          <CardTitle>{messages.proctors.listTitle}</CardTitle>
+          <CardDescription>
+            {messages.proctors.listBody.replace("{count}", String(listCount))}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {listState.isLoading ? <DetailSkeleton /> : null}
 
-            {!listState.isLoading && listState.error ? (
-              <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-5 py-5">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  {messages.proctors.errorTitle}
-                </h3>
-                <p className="mt-2 text-sm leading-7 text-text-secondary">
-                  {listState.error}
+          {!listState.isLoading && listState.error ? (
+            <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-5 py-5">
+              <h3 className="text-lg font-semibold text-text-primary">
+                {messages.proctors.errorTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-text-secondary">
+                {listState.error}
+              </p>
+              {listState.errorCode ? (
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-danger">
+                  {listState.errorCode}
                 </p>
-                {listState.errorCode ? (
-                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-danger">
-                    {listState.errorCode}
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
+              ) : null}
+            </div>
+          ) : null}
 
-            {!listState.isLoading && !listState.error && listState.data.length === 0 ? (
-              <DataTableEmptyState
-                title={messages.proctors.emptyTitle}
-                description={messages.proctors.emptyBody}
-              />
-            ) : null}
+          {!listState.isLoading && !listState.error && listState.data.length === 0 ? (
+            <DataTableEmptyState
+              title={messages.proctors.emptyTitle}
+              description={messages.proctors.emptyBody}
+            />
+          ) : null}
 
-            {!listState.isLoading && !listState.error && listState.data.length > 0 ? (
-              <>
-                <div className="rounded-[24px] border border-border bg-surface-elevated">
-                  <DataTable>
-                    <DataTableHeader>
-                      <tr>
-                        <DataTableHead>{messages.proctors.listTitle}</DataTableHead>
-                        <DataTableHead>{messages.proctors.labels.phone}</DataTableHead>
-                        <DataTableHead>{messages.proctors.labels.organization}</DataTableHead>
-                        <DataTableHead>{messages.proctors.labels.governorate}</DataTableHead>
-                        <DataTableHead>{messages.proctors.labels.sessions}</DataTableHead>
-                        <DataTableHead>{messages.proctors.labels.assignments}</DataTableHead>
-                      </tr>
-                    </DataTableHeader>
-                    <DataTableBody>
-                      {listState.data.map((proctor) => {
-                        const label = getLocalizedName(proctor, locale);
-                        const alternate = getAlternateLocalizedName(proctor, locale);
-                        const isSelected = proctor.id === selectedId;
+          {!listState.isLoading && !listState.error && listState.data.length > 0 ? (
+            <>
+              <div className="rounded-[24px] border border-border bg-surface-elevated">
+                <DataTable>
+                  <DataTableHeader>
+                    <tr>
+                      <DataTableHead>{messages.proctors.listTitle}</DataTableHead>
+                      <DataTableHead>{messages.proctors.labels.phone}</DataTableHead>
+                      <DataTableHead>{messages.proctors.labels.organization}</DataTableHead>
+                      <DataTableHead>{messages.proctors.labels.governorate}</DataTableHead>
+                      <DataTableHead>{messages.proctors.labels.sessions}</DataTableHead>
+                      <DataTableHead>{messages.proctors.labels.assignments}</DataTableHead>
+                      <DataTableHead className="w-28 text-end">
+                        <span className="sr-only">{messages.proctors.detailTitle}</span>
+                      </DataTableHead>
+                    </tr>
+                  </DataTableHeader>
+                  <DataTableBody>
+                    {listState.data.map((proctor) => {
+                      const label = getLocalizedName(proctor, locale);
+                      const alternate = getAlternateLocalizedName(proctor, locale);
 
-                        return (
-                          <DataTableRow
-                            key={proctor.id}
-                            className={cn(
-                              "cursor-pointer",
-                              isSelected ? "bg-accent/10" : undefined
-                            )}
-                            onClick={() => setSelectedId(proctor.id)}
-                          >
-                            <DataTableCell>
-                              <div className="space-y-2">
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge variant="accent">{messages.proctors.sources[proctor.source]}</Badge>
-                                  <Badge>
-                                    {proctor.isActive
-                                      ? messages.proctors.labels.active
-                                      : messages.proctors.labels.inactive}
-                                  </Badge>
-                                  <Badge>{messages.proctors.blockStatuses[proctor.blockStatus]}</Badge>
-                                </div>
-                                <div>
-                                  <p className="font-semibold text-text-primary">{label}</p>
-                                  {alternate ? (
-                                    <p className="text-xs text-text-secondary">{alternate}</p>
-                                  ) : null}
-                                </div>
+                      return (
+                        <DataTableRow key={proctor.id}>
+                          <DataTableCell>
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="accent">
+                                  {messages.proctors.sources[proctor.source]}
+                                </Badge>
+                                <Badge>
+                                  {proctor.isActive
+                                    ? messages.proctors.labels.active
+                                    : messages.proctors.labels.inactive}
+                                </Badge>
+                                <Badge>
+                                  {messages.proctors.blockStatuses[proctor.blockStatus]}
+                                </Badge>
                               </div>
-                            </DataTableCell>
-                            <DataTableCell>{proctor.phone}</DataTableCell>
-                            <DataTableCell>{proctor.organization ?? "-"}</DataTableCell>
-                            <DataTableCell>
-                              {proctor.governorate
-                                ? getLocalizedName(proctor.governorate, locale)
-                                : "-"}
-                            </DataTableCell>
-                            <DataTableCell>{proctor.totalSessions}</DataTableCell>
-                            <DataTableCell>{proctor._count.assignments}</DataTableCell>
-                          </DataTableRow>
-                        );
-                      })}
-                    </DataTableBody>
-                  </DataTable>
-                </div>
-
-                <PaginationControls
-                  page={listState.pagination.page}
-                  pageCount={listState.pagination.pageCount}
-                  total={listState.pagination.total}
-                  hasPreviousPage={listState.pagination.hasPreviousPage}
-                  hasNextPage={listState.pagination.hasNextPage}
-                  summaryLabel={`${messages.cycles.pagination.summary.replace("{page}", String(listState.pagination.page)).replace("{pageCount}", String(listState.pagination.pageCount))}`}
-                  totalLabel={messages.proctors.listBody.replace("{count}", String(listState.pagination.total))}
-                  previousLabel={messages.cycles.pagination.previous}
-                  nextLabel={messages.cycles.pagination.next}
-                  onPrevious={() => setPage((current) => Math.max(1, current - 1))}
-                  onNext={() => setPage((current) => current + 1)}
-                />
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{messages.proctors.detailTitle}</CardTitle>
-            <CardDescription>{messages.proctors.detailBody}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {detailState.isLoading ? <DetailSkeleton /> : null}
-
-            {!detailState.isLoading && detailState.error ? (
-              <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-5 py-5">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  {messages.proctors.detailErrorTitle}
-                </h3>
-                <p className="mt-2 text-sm leading-7 text-text-secondary">
-                  {detailState.error}
-                </p>
-                {detailState.errorCode ? (
-                  <p className="mt-2 text-xs uppercase tracking-[0.18em] text-danger">
-                    {detailState.errorCode}
-                  </p>
-                ) : null}
+                              <div>
+                                <p className="font-semibold text-text-primary">{label}</p>
+                                {alternate ? (
+                                  <p className="text-xs text-text-secondary">{alternate}</p>
+                                ) : null}
+                              </div>
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell>{proctor.phone}</DataTableCell>
+                          <DataTableCell>{proctor.organization ?? "-"}</DataTableCell>
+                          <DataTableCell>
+                            {proctor.governorate
+                              ? getLocalizedName(proctor.governorate, locale)
+                              : "-"}
+                          </DataTableCell>
+                          <DataTableCell>{proctor.totalSessions}</DataTableCell>
+                          <DataTableCell>{proctor._count.assignments}</DataTableCell>
+                          <DataTableCell className="text-end">
+                            <div className="flex items-center justify-end gap-2">
+                              <IconButton
+                                variant="secondary"
+                                size="sm"
+                                icon={<EyeIcon />}
+                                label={messages.proctors.detailTitle}
+                                onClick={() => setActiveDetailId(proctor.id)}
+                              />
+                              <IconButton
+                                variant="secondary"
+                                size="sm"
+                                icon={<ArrowUpRightIcon />}
+                                label={messages.proctors.viewProfile}
+                                onClick={() => router.push(`/proctors/${proctor.id}`)}
+                              />
+                            </div>
+                          </DataTableCell>
+                        </DataTableRow>
+                      );
+                    })}
+                  </DataTableBody>
+                </DataTable>
               </div>
-            ) : null}
 
-            {!detailState.isLoading && !detailState.error && !selectedProctor ? (
+              <PaginationControls
+                page={listState.pagination.page}
+                pageCount={listState.pagination.pageCount}
+                total={listState.pagination.total}
+                hasPreviousPage={listState.pagination.hasPreviousPage}
+                hasNextPage={listState.pagination.hasNextPage}
+                summaryLabel={`${messages.cycles.pagination.summary.replace("{page}", String(listState.pagination.page)).replace("{pageCount}", String(listState.pagination.pageCount))}`}
+                totalLabel={messages.proctors.listBody.replace("{count}", String(listState.pagination.total))}
+                previousLabel={messages.cycles.pagination.previous}
+                nextLabel={messages.cycles.pagination.next}
+                onPrevious={() => setPage((current) => Math.max(1, current - 1))}
+                onNext={() => setPage((current) => current + 1)}
+              />
+            </>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {activeDetailId ? (
+        <ModalFrame
+          title={messages.proctors.detailTitle}
+          description={messages.proctors.detailBody}
+          closeLabel={messages.proctors.importFlow.close}
+          onClose={() => {
+            setActiveDetailId(null);
+            setDetailState({
+              isLoading: false,
+              error: null,
+              errorCode: null,
+              data: null
+            });
+          }}
+          className="max-w-6xl"
+          bodyClassName="space-y-6"
+        >
+          {detailState.isLoading ? <DetailSkeleton /> : null}
+
+          {!detailState.isLoading && detailState.error ? (
+            <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-5 py-5">
+              <h3 className="text-lg font-semibold text-text-primary">
+                {messages.proctors.detailErrorTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-text-secondary">
+                {detailState.error}
+              </p>
+              {detailState.errorCode ? (
+                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-danger">
+                  {detailState.errorCode}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!detailState.isLoading && !detailState.error && !selectedProctor ? (
+            <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
+              <h3 className="text-lg font-semibold text-text-primary">
+                {messages.proctors.detailEmptyTitle}
+              </h3>
+              <p className="mt-2 text-sm leading-7 text-text-secondary">
+                {messages.proctors.detailEmptyBody}
+              </p>
+            </div>
+          ) : null}
+
+          {!detailState.isLoading && !detailState.error && selectedProctor ? (
+            <>
               <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
-                <h3 className="text-lg font-semibold text-text-primary">
-                  {messages.proctors.detailEmptyTitle}
-                </h3>
-                <p className="mt-2 text-sm leading-7 text-text-secondary">
-                  {messages.proctors.detailEmptyBody}
-                </p>
-              </div>
-            ) : null}
-
-            {!detailState.isLoading && !detailState.error && selectedProctor ? (
-              <>
-                <div className="rounded-3xl border border-border bg-surface-elevated px-5 py-5">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="accent">
-                      {messages.proctors.sources[selectedProctor.source]}
-                    </Badge>
-                    <Badge>
-                      {selectedProctor.isActive
-                        ? messages.proctors.labels.active
-                        : messages.proctors.labels.inactive}
-                    </Badge>
-                    <Badge>
-                      {messages.proctors.blockStatuses[selectedProctor.blockStatus]}
-                    </Badge>
-                  </div>
-                  <h3 className="mt-4 text-2xl font-semibold text-text-primary">
-                    {getLocalizedName(selectedProctor, locale)}
-                  </h3>
-                  {getAlternateLocalizedName(selectedProctor, locale) ? (
-                    <p className="mt-2 text-sm text-text-secondary">
-                      {getAlternateLocalizedName(selectedProctor, locale)}
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="accent">
+                        {messages.proctors.sources[selectedProctor.source]}
+                      </Badge>
+                      <Badge>
+                        {selectedProctor.isActive
+                          ? messages.proctors.labels.active
+                          : messages.proctors.labels.inactive}
+                      </Badge>
+                      <Badge>
+                        {messages.proctors.blockStatuses[selectedProctor.blockStatus]}
+                      </Badge>
+                    </div>
+                    <h3 className="mt-4 text-2xl font-semibold text-text-primary">
+                      {getLocalizedName(selectedProctor, locale)}
+                    </h3>
+                    {getAlternateLocalizedName(selectedProctor, locale) ? (
+                      <p className="mt-2 text-sm text-text-secondary">
+                        {getAlternateLocalizedName(selectedProctor, locale)}
+                      </p>
+                    ) : null}
+                    <p className="mt-4 max-w-3xl text-sm leading-7 text-text-secondary">
+                      {selectedProctor.notes ?? messages.proctors.noNotes}
                     </p>
-                  ) : null}
-                  <p className="mt-4 text-sm leading-7 text-text-secondary">
-                    {selectedProctor.notes ?? messages.proctors.noNotes}
-                  </p>
-                  <div className="mt-4">
-                    <Button
-                      size="sm"
-                      onClick={() => router.push(`/proctors/${selectedProctor.id}`)}
-                    >
-                      {messages.proctors.viewProfile}
-                    </Button>
                   </div>
-                </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <DetailRow
-                    label={messages.proctors.labels.phone}
-                    value={selectedProctor.phone}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.email}
-                    value={selectedProctor.email ?? "-"}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.nationalId}
-                    value={selectedProctor.nationalId ?? "-"}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.organization}
-                    value={selectedProctor.organization ?? "-"}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.branch}
-                    value={selectedProctor.branch ?? "-"}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.governorate}
-                    value={
-                      selectedProctor.governorate
-                        ? getLocalizedName(selectedProctor.governorate, locale)
-                        : "-"
-                    }
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.preferredLanguage}
-                    value={toPreferredLanguageLabel(
-                      locale,
-                      messages,
-                      selectedProctor.preferredLanguage
-                    )}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.rating}
-                    value={selectedProctor.averageRating}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.sessions}
-                    value={selectedProctor.totalSessions}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.assignments}
-                    value={selectedProctor._count.assignments}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.waitingList}
-                    value={selectedProctor._count.waitingListEntries}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.blocks}
-                    value={selectedProctor._count.blocks}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.blockEndsAt}
-                    value={formatDate(locale, selectedProctor.blockEndsAt) ?? "-"}
-                  />
-                  <DetailRow
-                    label={messages.proctors.labels.updatedAt}
-                    value={formatDate(locale, selectedProctor.updatedAt) ?? "-"}
+                  <IconButton
+                    variant="secondary"
+                    size="md"
+                    icon={<ArrowUpRightIcon />}
+                    label={messages.proctors.viewProfile}
+                    onClick={() => router.push(`/proctors/${selectedProctor.id}`)}
                   />
                 </div>
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <DetailRow label={messages.proctors.labels.phone} value={selectedProctor.phone} />
+                <DetailRow
+                  label={messages.proctors.labels.email}
+                  value={selectedProctor.email ?? "-"}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.nationalId}
+                  value={selectedProctor.nationalId ?? "-"}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.organization}
+                  value={selectedProctor.organization ?? "-"}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.branch}
+                  value={selectedProctor.branch ?? "-"}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.governorate}
+                  value={
+                    selectedProctor.governorate
+                      ? getLocalizedName(selectedProctor.governorate, locale)
+                      : "-"
+                  }
+                />
+                <DetailRow
+                  label={messages.proctors.labels.preferredLanguage}
+                  value={toPreferredLanguageLabel(
+                    locale,
+                    messages,
+                    selectedProctor.preferredLanguage
+                  )}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.rating}
+                  value={selectedProctor.averageRating}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.sessions}
+                  value={selectedProctor.totalSessions}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.assignments}
+                  value={selectedProctor._count.assignments}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.waitingList}
+                  value={selectedProctor._count.waitingListEntries}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.blocks}
+                  value={selectedProctor._count.blocks}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.blockEndsAt}
+                  value={formatDate(locale, selectedProctor.blockEndsAt) ?? "-"}
+                />
+                <DetailRow
+                  label={messages.proctors.labels.updatedAt}
+                  value={formatDate(locale, selectedProctor.updatedAt) ?? "-"}
+                />
+              </div>
+            </>
+          ) : null}
+        </ModalFrame>
+      ) : null}
 
       {isImportOpen ? (
         <ModalFrame
