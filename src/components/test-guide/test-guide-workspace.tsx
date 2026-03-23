@@ -86,7 +86,7 @@ export function TestGuideWorkspace({ locale, messages }: TestGuideWorkspaceProps
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="grid gap-4 xl:grid-cols-4">
         {guide.cards.map((card) => (
           <Card key={card.title}>
             <CardHeader>
