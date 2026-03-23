@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 
-import { LocaleCode, Prisma, UserSource } from "@prisma/client";
+import {
+  LocaleCode,
+  Prisma,
+  ProctorOperationalRole,
+  UserSource
+} from "@prisma/client";
 import { z } from "zod";
 
 import { logActivity } from "@/lib/activity/log";
@@ -17,7 +22,7 @@ import {
   proctorSelect
 } from "./service";
 
-const proctorImportColumns = [
+const proctorImportRequiredColumns = [
   "name",
   "nameEn",
   "phone",
@@ -32,6 +37,13 @@ const proctorImportColumns = [
   "preferredLanguage",
   "status",
   "notes"
+] as const;
+
+const proctorImportOptionalColumns = ["operationalRole"] as const;
+
+const proctorImportColumns = [
+  ...proctorImportRequiredColumns,
+  ...proctorImportOptionalColumns
 ] as const;
 
 type ProctorImportColumn = (typeof proctorImportColumns)[number];
@@ -50,7 +62,8 @@ const rowSchema = z.object({
   governorateNameEn: z.string(),
   preferredLanguage: z.string(),
   status: z.string(),
-  notes: z.string()
+  notes: z.string(),
+  operationalRole: z.string()
 });
 
 type ParsedImportRow = z.infer<typeof rowSchema>;
@@ -164,6 +177,27 @@ function parseSource(value: string) {
   );
 }
 
+function parseOperationalRole(value: string) {
+  const normalized = normalizeOptionalText(value)?.toUpperCase();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized in ProctorOperationalRole) {
+    return normalized as ProctorOperationalRole;
+  }
+
+  createImportValidationError(
+    ERROR_CODES.validationError,
+    "operationalRole must be HEAD, SENIOR, ROAMING, PROCTOR, CONTROL, or SERVICE.",
+    {
+      field: "operationalRole",
+      value
+    }
+  );
+}
+
 function parseActiveStatus(value: string) {
   const normalized = normalizeOptionalText(value)?.toLowerCase();
 
@@ -197,8 +231,12 @@ function parseRows(csvText: string) {
   }
 
   const header = rows[0].map((column) => trimCell(column));
-  const missingColumns = proctorImportColumns.filter((column) => !header.includes(column));
-  const unexpectedColumns = header.filter((column) => !proctorImportColumns.includes(column as ProctorImportColumn));
+  const missingColumns = proctorImportRequiredColumns.filter(
+    (column) => !header.includes(column)
+  );
+  const unexpectedColumns = header.filter(
+    (column) => !proctorImportColumns.includes(column as ProctorImportColumn)
+  );
   const duplicateColumns = header.filter((column, index) => header.indexOf(column) !== index);
 
   if (missingColumns.length > 0 || unexpectedColumns.length > 0 || duplicateColumns.length > 0) {
@@ -449,12 +487,24 @@ async function processImportRow(
   const email = normalizeEmail(row.email);
   const nationalId = normalizeOptionalText(row.nationalId);
   const source = parseSource(row.source);
+  const operationalRole = parseOperationalRole(row.operationalRole);
   const organization = normalizeOptionalText(row.organization);
   const branch = normalizeOptionalText(row.branch);
   const governorateId = await resolveGovernorateId(tx, row);
   const preferredLanguage = parsePreferredLanguage(row.preferredLanguage);
   const isActive = parseActiveStatus(row.status);
   const notes = normalizeOptionalText(row.notes);
+
+  if (source === UserSource.UNIVERSITY && !organization) {
+    createImportValidationError(
+      ERROR_CODES.missingRequiredField,
+      "organization is required when source is UNIVERSITY.",
+      {
+        field: "organization",
+        source
+      }
+    );
+  }
 
   const candidates = await tx.user.findMany({
     where: {
@@ -606,6 +656,7 @@ async function processImportRow(
       email: email ?? null,
       nationalId: nationalId ?? null,
       source,
+      operationalRole: operationalRole ?? null,
       organization: organization ?? null,
       branch: branch ?? null,
       governorateId: governorateId ?? null,
@@ -647,10 +698,10 @@ export function getProctorsImportTemplateColumns() {
 export function getProctorsImportSampleCsv() {
   return [
     proctorImportColumns.join(","),
-    "محمد صلاح,Mahmoud Salah,01001234567,m.salah@example.com,29801011234567,SPHINX,Sphinx Alex,Alex Team,ALX,الإسكندرية,Alexandria,AR,active,Head or control candidate from Sphinx-owned pool",
-    "سلمى هاني,Salma Hany,01002223333,salma.hany@example.com,29408121234567,UNIVERSITY,Arab Academy Sheraton,Engineering Building A,CAI,القاهرة,Cairo,AR,active,Senior candidate from university-owned pool",
-    "مريم نبيل,Mariam Nabil,01003334444,m.nabil@example.com,29903011234567,UNIVERSITY,FUE Employee,New Cairo,CAI,القاهرة,Cairo,EN,active,Room proctor candidate imported from university staff list",
-    "هبة سامر,Heba Samir,01004445555,,,EXTERNAL,Independent Pool,Smart Village,GIZ,الجيزة,Giza,,inactive,External reserve row without bilingual email data"
+    "محمد صلاح,Mahmoud Salah,01001234567,m.salah@example.com,29801011234567,SPHINX,Sphinx Alex,Alex Team,ALX,الإسكندرية,Alexandria,AR,active,Head or control candidate from Sphinx-owned pool,HEAD",
+    "سلمى هاني,Salma Hany,01002223333,salma.hany@example.com,29408121234567,UNIVERSITY,Arab Academy Sheraton,Engineering Building A,CAI,القاهرة,Cairo,AR,active,Senior candidate from university-owned pool,SENIOR",
+    "مريم نبيل,Mariam Nabil,01003334444,m.nabil@example.com,29903011234567,UNIVERSITY,Future University in Egypt,New Cairo,CAI,القاهرة,Cairo,EN,active,Room proctor candidate imported from university staff list,PROCTOR",
+    "هبة سامر,Heba Samir,01004445555,,,EXTERNAL,Independent Pool,Smart Village,GIZ,الجيزة,Giza,,inactive,External reserve row without bilingual email data,SERVICE"
   ].join("\n");
 }
 

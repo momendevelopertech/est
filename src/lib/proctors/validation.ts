@@ -1,4 +1,9 @@
-import { BlockStatus, LocaleCode, UserSource } from "@prisma/client";
+import {
+  BlockStatus,
+  LocaleCode,
+  ProctorOperationalRole,
+  UserSource
+} from "@prisma/client";
 import { z } from "zod";
 
 import { ERROR_CODES } from "@/lib/errors/codes";
@@ -39,6 +44,7 @@ const proctorMutationFields = {
     .transform((value) => value.toLowerCase())
     .optional(),
   source: z.nativeEnum(UserSource),
+  operationalRole: z.union([z.nativeEnum(ProctorOperationalRole), z.null()]).optional(),
   organization: trimmedOptionalString(255),
   branch: trimmedOptionalString(255),
   governorateId: nullableUuidSchema.optional(),
@@ -51,6 +57,7 @@ export const proctorListQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false),
   search: trimmedOptionalString(255),
   source: z.nativeEnum(UserSource).optional(),
+  operationalRole: z.nativeEnum(ProctorOperationalRole).optional(),
   governorateId: uuidSchema.optional(),
   blockStatus: z.nativeEnum(BlockStatus).optional(),
   ...paginationQueryFields
@@ -64,6 +71,7 @@ export const proctorExportQuerySchema = z.object({
   format: z.enum(["csv", "excel"]).default("csv"),
   status: z.enum(["active", "inactive", "all"]).default("active"),
   governorateId: uuidSchema.optional(),
+  operationalRole: z.nativeEnum(ProctorOperationalRole).optional(),
   locale: localeQuerySchema.optional()
 });
 

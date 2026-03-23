@@ -24,6 +24,15 @@ enum UserSource {
   EXTERNAL
 }
 
+enum ProctorOperationalRole {
+  HEAD
+  SENIOR
+  ROAMING
+  PROCTOR
+  CONTROL
+  SERVICE
+}
+
 enum AppUserRole {
   SUPER_ADMIN
   COORDINATOR
@@ -236,6 +245,7 @@ model User {
   nationalId          String?       @unique @map("national_id") @db.VarChar(50)
   email               String?       @unique @db.VarChar(255)
   source              UserSource
+  operationalRole     ProctorOperationalRole? @map("operational_role")
   organization        String?       @db.VarChar(255)
   branch              String?       @db.VarChar(255)
   governorateId       String?       @map("governorate_id") @db.Uuid
@@ -258,6 +268,7 @@ model User {
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
   @@index([source, isActive])
+  @@index([operationalRole, isActive])
   @@index([governorateId, isActive])
   @@index([blockStatus, isActive])
   @@map("users")

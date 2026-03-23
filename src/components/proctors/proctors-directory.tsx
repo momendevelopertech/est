@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { useRouter } from "next/navigation";
 
+import { TemplateDownloadCard } from "@/components/import-templates/template-download-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,13 +29,19 @@ import { ArrowUpRightIcon, EyeIcon, RefreshIcon } from "@/components/ui/icons";
 import { ModalFrame } from "@/components/ui/modal-frame";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { PageHero } from "@/components/ui/page-hero";
+import { Textarea } from "@/components/ui/textarea";
 import type { Locale, Messages } from "@/lib/i18n";
 import {
   getAlternateLocalizedName,
   getLocalizedName
 } from "@/lib/i18n/presentation";
+import {
+  getProctorOperationalRoleLabel,
+  getProctorOperationalRoleOptions
+} from "@/lib/proctors/operational-role";
 
 type ProctorSource = "SPHINX" | "UNIVERSITY" | "EXTERNAL";
+type ProctorOperationalRole = "HEAD" | "SENIOR" | "ROAMING" | "PROCTOR" | "CONTROL" | "SERVICE";
 type BlockStatus = "CLEAR" | "TEMPORARY" | "PERMANENT";
 type PreferredLanguage = "AR" | "EN" | null;
 type ExportFormat = "csv" | "excel";
@@ -54,6 +61,7 @@ type ProctorRecord = {
   nationalId: string | null;
   email: string | null;
   source: ProctorSource;
+  operationalRole: ProctorOperationalRole | null;
   organization: string | null;
   branch: string | null;
   governorateId: string | null;
@@ -104,6 +112,17 @@ type ProctorDetailResponse = {
   message?: string;
 };
 
+type ProctorMutationResponse = {
+  ok: boolean;
+  data?: ProctorRecord;
+  error?: string;
+  message?: string;
+  details?: {
+    fieldErrors?: Record<string, string[] | undefined>;
+    formErrors?: string[];
+  } | Record<string, unknown> | null;
+};
+
 type ProctorsImportTemplateResponse = {
   ok: boolean;
   sampleCsv?: string;
@@ -139,6 +158,22 @@ type LocationsResponse = {
 type ProctorsDirectoryProps = {
   locale: Locale;
   messages: Messages;
+};
+
+type ProctorFormState = {
+  name: string;
+  nameEn: string;
+  phone: string;
+  email: string;
+  nationalId: string;
+  source: ProctorSource;
+  operationalRole: "" | ProctorOperationalRole;
+  organization: string;
+  branch: string;
+  governorateId: string;
+  preferredLanguage: "" | "AR" | "EN";
+  isActive: boolean;
+  notes: string;
 };
 
 const selectClassName =
@@ -220,10 +255,171 @@ function MetricCard({
   );
 }
 
+function createInitialProctorForm(): ProctorFormState {
+  return {
+    name: "",
+    nameEn: "",
+    phone: "",
+    email: "",
+    nationalId: "",
+    source: "UNIVERSITY",
+    operationalRole: "",
+    organization: "",
+    branch: "",
+    governorateId: "",
+    preferredLanguage: "",
+    isActive: true,
+    notes: ""
+  };
+}
+
+function mapProctorToFormState(proctor: ProctorRecord): ProctorFormState {
+  return {
+    name: proctor.name,
+    nameEn: proctor.nameEn ?? "",
+    phone: proctor.phone,
+    email: proctor.email ?? "",
+    nationalId: proctor.nationalId ?? "",
+    source: proctor.source,
+    operationalRole: proctor.operationalRole ?? "",
+    organization: proctor.organization ?? "",
+    branch: proctor.branch ?? "",
+    governorateId: proctor.governorateId ?? "",
+    preferredLanguage: proctor.preferredLanguage ?? "",
+    isActive: proctor.isActive,
+    notes: proctor.notes ?? ""
+  };
+}
+
+function extractApiErrorMessage(
+  payload: {
+    error?: string;
+    message?: string;
+    details?:
+      | {
+          fieldErrors?: Record<string, string[] | undefined>;
+          formErrors?: string[];
+        }
+      | Record<string, unknown>
+      | null;
+  },
+  fallback: string
+) {
+  if (payload.message) {
+    return payload.message;
+  }
+
+  const details = payload.details;
+
+  if (
+    details &&
+    "fieldErrors" in details &&
+    details.fieldErrors &&
+    typeof details.fieldErrors === "object"
+  ) {
+    for (const errors of Object.values(details.fieldErrors)) {
+      if (Array.isArray(errors) && errors.length > 0) {
+        return errors[0] ?? fallback;
+      }
+    }
+  }
+
+  if (
+    details &&
+    "formErrors" in details &&
+    Array.isArray(details.formErrors) &&
+    details.formErrors.length > 0
+  ) {
+    return details.formErrors[0] ?? fallback;
+  }
+
+  return payload.error ?? fallback;
+}
+
 export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) {
   const router = useRouter();
+  const copy =
+    locale === "ar"
+      ? {
+          manualCreate: "إضافة يدويًا",
+          manualEdit: "تعديل البيانات",
+          manualDelete: "تعطيل المراقب",
+          manualTitleCreate: "إضافة مراقب يدويًا",
+          manualTitleEdit: "تعديل بيانات المراقب",
+          manualBody:
+            "أضف أو عدّل سجل مراقب واحد بدون الحاجة إلى تجهيز شيت كامل، مع تحديد المصدر، الجامعة/الجهة، والرول التشغيلية.",
+          submitCreate: "إضافة المراقب",
+          submitEdit: "حفظ التعديل",
+          saving: "جارٍ الحفظ...",
+          roleLabel: "الرول التشغيلية",
+          roleFilterLabel: "فلترة بالرول",
+          allRoles: "كل الرولات",
+          organizationLabel: "الجهة / الجامعة",
+          organizationUniversityLabel: "اسم الجامعة",
+          organizationHintUniversity:
+            "إذا كان المصدر جامعة، اكتب اسم الجامعة أو الجهة الجامعية بوضوح.",
+          organizationHintGeneral:
+            "اكتب اسم الجهة كما تريد ظهوره في البحث والتصدير.",
+          branchLabel: "الفرع / المقر",
+          statusLabel: "الحالة",
+          activeOption: "نشط",
+          inactiveOption: "غير نشط",
+          saveError: "تعذر حفظ بيانات المراقب.",
+          deleteError: "تعذر تعطيل المراقب.",
+          deleteConfirm:
+            "سيتم تعطيل المراقب وإخفاؤه من القوائم النشطة. هل تريد المتابعة؟",
+          tableRole: "الرول",
+          templateTitle: "قالب استيراد المراقبين",
+          templateDescription:
+            "حمّل القالب أو العينة من نفس الصفحة، سواء كنت ترفع شيت منفصل لكل جامعة أو تضيف فردًا واحدًا يدويًا.",
+          templateButton: "تحميل القالب",
+          templateSample: "تحميل عينة",
+          templateOpenAll: "كل القوالب",
+          exportRoleLabel: "تصفية حسب الرول"
+        }
+      : {
+          manualCreate: "Add manually",
+          manualEdit: "Edit data",
+          manualDelete: "Deactivate proctor",
+          manualTitleCreate: "Add proctor manually",
+          manualTitleEdit: "Edit proctor",
+          manualBody:
+            "Create or update a single proctor without preparing a full sheet, including source, university/organization, and operational role.",
+          submitCreate: "Create proctor",
+          submitEdit: "Save changes",
+          saving: "Saving...",
+          roleLabel: "Operational role",
+          roleFilterLabel: "Filter by role",
+          allRoles: "All roles",
+          organizationLabel: "Organization / university",
+          organizationUniversityLabel: "University name",
+          organizationHintUniversity:
+            "When the source is University, enter the exact university or faculty pool name.",
+          organizationHintGeneral:
+            "Use the organization name exactly as you want it to appear in search and exports.",
+          branchLabel: "Branch / campus",
+          statusLabel: "Status",
+          activeOption: "Active",
+          inactiveOption: "Inactive",
+          saveError: "Could not save the proctor.",
+          deleteError: "Could not deactivate the proctor.",
+          deleteConfirm:
+            "The proctor will be deactivated and hidden from active workflows. Continue?",
+          tableRole: "Role",
+          templateTitle: "Proctors import template",
+          templateDescription:
+            "Download the template or sample directly from this page, whether you upload one sheet per university or add a single person manually.",
+          templateButton: "Download template",
+          templateSample: "Download sample",
+          templateOpenAll: "All templates",
+          exportRoleLabel: "Role filter"
+        };
+  const roleOptions = getProctorOperationalRoleOptions(locale);
   const [searchTerm, setSearchTerm] = useState("");
   const [sourceFilter, setSourceFilter] = useState<"" | ProctorSource>("");
+  const [operationalRoleFilter, setOperationalRoleFilter] = useState<
+    "" | ProctorOperationalRole
+  >("");
   const [blockStatusFilter, setBlockStatusFilter] = useState<"" | BlockStatus>("");
   const [includeInactive, setIncludeInactive] = useState(false);
   const [page, setPage] = useState(1);
@@ -262,8 +458,18 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
   const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
   const [exportStatus, setExportStatus] = useState<ExportStatus>("active");
   const [exportGovernorateId, setExportGovernorateId] = useState("");
+  const [exportOperationalRole, setExportOperationalRole] = useState<
+    "" | ProctorOperationalRole
+  >("");
   const [governorates, setGovernorates] = useState<GovernorateOption[]>([]);
   const [isGovernoratesLoading, setIsGovernoratesLoading] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [editingProctorId, setEditingProctorId] = useState<string | null>(null);
+  const [formState, setFormState] = useState<ProctorFormState>(() =>
+    createInitialProctorForm()
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -287,6 +493,10 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
 
       if (sourceFilter) {
         params.set("source", sourceFilter);
+      }
+
+      if (operationalRoleFilter) {
+        params.set("operationalRole", operationalRoleFilter);
       }
 
       if (blockStatusFilter) {
@@ -348,6 +558,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
     blockStatusFilter,
     includeInactive,
     messages.proctors.errorBody,
+    operationalRoleFilter,
     page,
     pageSize,
     refreshKey,
@@ -545,6 +756,10 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
         params.set("governorateId", exportGovernorateId);
       }
 
+      if (exportOperationalRole) {
+        params.set("operationalRole", exportOperationalRole);
+      }
+
       const response = await fetch(`/api/proctors/export?${params.toString()}`, {
         method: "GET",
         credentials: "same-origin"
@@ -583,7 +798,141 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
     }
   }
 
+  async function openCreateModal() {
+    await loadGovernorates();
+    setEditingProctorId(null);
+    setFormState(createInitialProctorForm());
+    setFormError(null);
+    setIsFormOpen(true);
+  }
+
+  async function openEditModal(proctor: ProctorRecord) {
+    await loadGovernorates();
+    setEditingProctorId(proctor.id);
+    setFormState(mapProctorToFormState(proctor));
+    setFormError(null);
+    setIsFormOpen(true);
+  }
+
+  async function handleSaveProctor() {
+    setIsSaving(true);
+    setFormError(null);
+
+    try {
+      const payload = {
+        name: formState.name,
+        nameEn: formState.nameEn || undefined,
+        phone: formState.phone,
+        email: formState.email || undefined,
+        nationalId: formState.nationalId || undefined,
+        source: formState.source,
+        operationalRole: formState.operationalRole || null,
+        organization: formState.organization || undefined,
+        branch: formState.branch || undefined,
+        governorateId: formState.governorateId || null,
+        preferredLanguage: formState.preferredLanguage || null,
+        isActive: formState.isActive,
+        notes: formState.notes || undefined
+      };
+
+      const response = await fetch(
+        editingProctorId ? `/api/proctors/${editingProctorId}` : "/api/proctors",
+        {
+          method: editingProctorId ? "PATCH" : "POST",
+          credentials: "same-origin",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+      const result = (await response.json()) as ProctorMutationResponse;
+
+      if (!response.ok || !result.ok || !result.data) {
+        throw new Error(extractApiErrorMessage(result, copy.saveError));
+      }
+
+      setIsFormOpen(false);
+      setEditingProctorId(null);
+      setFormState(createInitialProctorForm());
+      setRefreshKey((current) => current + 1);
+
+      if (activeDetailId === result.data.id) {
+        setDetailState({
+          isLoading: false,
+          error: null,
+          errorCode: null,
+          data: result.data
+        });
+      }
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : copy.saveError);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDeactivateProctor(proctorId: string) {
+    const shouldContinue = window.confirm(copy.deleteConfirm);
+
+    if (!shouldContinue) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/proctors/${proctorId}`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+      const result = (await response.json()) as ProctorMutationResponse;
+
+      if (!response.ok || !result.ok || !result.data) {
+        throw new Error(extractApiErrorMessage(result, copy.deleteError));
+      }
+
+      setRefreshKey((current) => current + 1);
+      setIsFormOpen(false);
+
+      if (!includeInactive && activeDetailId === proctorId) {
+        setActiveDetailId(null);
+      } else if (activeDetailId === proctorId) {
+        setDetailState({
+          isLoading: false,
+          error: null,
+          errorCode: null,
+          data: result.data
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : copy.deleteError;
+
+      if (isFormOpen) {
+        setFormError(message);
+        return;
+      }
+
+      setDetailState((current) => ({
+        ...current,
+        error: message,
+        errorCode: "proctor_delete_failed"
+      }));
+    }
+  }
+
   const selectedProctor = detailState.data;
+  const isEditing = editingProctorId !== null;
+  const organizationFieldLabel =
+    formState.source === "UNIVERSITY"
+      ? copy.organizationUniversityLabel
+      : copy.organizationLabel;
+  const organizationHint =
+    formState.source === "UNIVERSITY"
+      ? copy.organizationHintUniversity
+      : copy.organizationHintGeneral;
   const listCount = listState.pagination.total;
   const metrics = [
     {
@@ -625,115 +974,154 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
         }
         body={
           <div className="space-y-4">
-          <p className="max-w-3xl text-sm leading-7 text-text-secondary">
-            {messages.proctors.description}
-          </p>
-          <div className="grid gap-4 xl:grid-cols-[2fr_repeat(2,1fr)]">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="proctors-search">
-                {messages.proctors.searchLabel}
-              </label>
-              <Input
-                id="proctors-search"
-                value={searchTerm}
-                onChange={(event) => {
-                  setSearchTerm(event.target.value);
+            <p className="max-w-3xl text-sm leading-7 text-text-secondary">
+              {messages.proctors.description}
+            </p>
+            <div className="grid gap-4 xl:grid-cols-[2fr_repeat(3,1fr)]">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-text-primary" htmlFor="proctors-search">
+                  {messages.proctors.searchLabel}
+                </label>
+                <Input
+                  id="proctors-search"
+                  value={searchTerm}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder={messages.proctors.searchPlaceholder}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-text-primary" htmlFor="proctors-source">
+                  {messages.proctors.filters.source}
+                </label>
+                <select
+                  id="proctors-source"
+                  value={sourceFilter}
+                  onChange={(event) => {
+                    setSourceFilter(event.target.value as "" | ProctorSource);
+                    setPage(1);
+                  }}
+                  className={selectClassName}
+                >
+                  <option value="">{messages.proctors.filters.allSources}</option>
+                  <option value="SPHINX">{messages.proctors.sources.SPHINX}</option>
+                  <option value="UNIVERSITY">{messages.proctors.sources.UNIVERSITY}</option>
+                  <option value="EXTERNAL">{messages.proctors.sources.EXTERNAL}</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="proctors-operational-role"
+                >
+                  {copy.roleFilterLabel}
+                </label>
+                <select
+                  id="proctors-operational-role"
+                  value={operationalRoleFilter}
+                  onChange={(event) => {
+                    setOperationalRoleFilter(
+                      event.target.value as "" | ProctorOperationalRole
+                    );
+                    setPage(1);
+                  }}
+                  className={selectClassName}
+                >
+                  <option value="">{copy.allRoles}</option>
+                  {roleOptions.map((roleOption) => (
+                    <option key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label
+                  className="text-sm font-medium text-text-primary"
+                  htmlFor="proctors-block-status"
+                >
+                  {messages.proctors.filters.blockStatus}
+                </label>
+                <select
+                  id="proctors-block-status"
+                  value={blockStatusFilter}
+                  onChange={(event) => {
+                    setBlockStatusFilter(event.target.value as "" | BlockStatus);
+                    setPage(1);
+                  }}
+                  className={selectClassName}
+                >
+                  <option value="">{messages.proctors.filters.allBlockStatuses}</option>
+                  <option value="CLEAR">{messages.proctors.blockStatuses.CLEAR}</option>
+                  <option value="TEMPORARY">{messages.proctors.blockStatuses.TEMPORARY}</option>
+                  <option value="PERMANENT">{messages.proctors.blockStatuses.PERMANENT}</option>
+                </select>
+              </div>
+              <div className="space-y-2 xl:col-span-4">
+                <label className="text-sm font-medium text-text-primary" htmlFor="proctors-page-size">
+                  {messages.cycles.pagination.pageSize}
+                </label>
+                <select
+                  id="proctors-page-size"
+                  value={String(pageSize)}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                  className={selectClassName}
+                >
+                  {pageSizeOptions.map((sizeOption) => (
+                    <option key={sizeOption} value={String(sizeOption)}>
+                      {sizeOption}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button size="sm" onClick={() => void openCreateModal()}>
+                {copy.manualCreate}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => void openImportModal()}>
+                {messages.proctors.import}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => void openExportModal()}>
+                {messages.proctors.export}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setIncludeInactive((current) => !current);
                   setPage(1);
                 }}
-                placeholder={messages.proctors.searchPlaceholder}
+              >
+                {includeInactive
+                  ? messages.proctors.showActiveOnly
+                  : messages.proctors.showInactive}
+              </Button>
+              <IconButton
+                variant="secondary"
+                size="sm"
+                icon={<RefreshIcon />}
+                label={messages.proctors.reload}
+                onClick={() => setRefreshKey((current) => current + 1)}
               />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-text-primary" htmlFor="proctors-source">
-                {messages.proctors.filters.source}
-              </label>
-              <select
-                id="proctors-source"
-                value={sourceFilter}
-                onChange={(event) => {
-                  setSourceFilter(event.target.value as "" | ProctorSource);
-                  setPage(1);
-                }}
-                className={selectClassName}
-              >
-                <option value="">{messages.proctors.filters.allSources}</option>
-                <option value="SPHINX">{messages.proctors.sources.SPHINX}</option>
-                <option value="UNIVERSITY">{messages.proctors.sources.UNIVERSITY}</option>
-                <option value="EXTERNAL">{messages.proctors.sources.EXTERNAL}</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label
-                className="text-sm font-medium text-text-primary"
-                htmlFor="proctors-block-status"
-              >
-                {messages.proctors.filters.blockStatus}
-              </label>
-              <select
-                id="proctors-block-status"
-                value={blockStatusFilter}
-                onChange={(event) => {
-                  setBlockStatusFilter(event.target.value as "" | BlockStatus);
-                  setPage(1);
-                }}
-                className={selectClassName}
-              >
-                <option value="">{messages.proctors.filters.allBlockStatuses}</option>
-                <option value="CLEAR">{messages.proctors.blockStatuses.CLEAR}</option>
-                <option value="TEMPORARY">{messages.proctors.blockStatuses.TEMPORARY}</option>
-                <option value="PERMANENT">{messages.proctors.blockStatuses.PERMANENT}</option>
-              </select>
-            </div>
-            <div className="space-y-2 xl:col-span-3">
-              <label className="text-sm font-medium text-text-primary" htmlFor="proctors-page-size">
-                {messages.cycles.pagination.pageSize}
-              </label>
-              <select
-                id="proctors-page-size"
-                value={String(pageSize)}
-                onChange={(event) => {
-                  setPageSize(Number(event.target.value));
-                  setPage(1);
-                }}
-                className={selectClassName}
-              >
-                {pageSizeOptions.map((sizeOption) => (
-                  <option key={sizeOption} value={String(sizeOption)}>
-                    {sizeOption}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" size="sm" onClick={() => void openImportModal()}>
-              {messages.proctors.import}
-            </Button>
-            <Button variant="secondary" size="sm" onClick={() => void openExportModal()}>
-              {messages.proctors.export}
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                setIncludeInactive((current) => !current);
-                setPage(1);
-              }}
-            >
-              {includeInactive
-                ? messages.proctors.showActiveOnly
-                : messages.proctors.showInactive}
-            </Button>
-            <IconButton
-              variant="secondary"
-              size="sm"
-              icon={<RefreshIcon />}
-              label={messages.proctors.reload}
-              onClick={() => setRefreshKey((current) => current + 1)}
-            />
             </div>
           </div>
         }
+      />
+
+      <TemplateDownloadCard
+        locale={locale}
+        templateKey="proctors"
+        title={copy.templateTitle}
+        description={copy.templateDescription}
+        templateLabel={copy.templateButton}
+        sampleLabel={copy.templateSample}
+        openAllLabel={copy.templateOpenAll}
       />
 
       <Card>
@@ -789,6 +1177,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                     <tr>
                       <DataTableHead>{messages.proctors.listTitle}</DataTableHead>
                       <DataTableHead>{messages.proctors.labels.phone}</DataTableHead>
+                      <DataTableHead>{copy.tableRole}</DataTableHead>
                       <DataTableHead>{messages.proctors.labels.organization}</DataTableHead>
                       <DataTableHead>{messages.proctors.labels.governorate}</DataTableHead>
                       <DataTableHead>{messages.proctors.labels.sessions}</DataTableHead>
@@ -829,6 +1218,9 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                             </div>
                           </DataTableCell>
                           <DataTableCell>{proctor.phone}</DataTableCell>
+                          <DataTableCell>
+                            {getProctorOperationalRoleLabel(proctor.operationalRole, locale)}
+                          </DataTableCell>
                           <DataTableCell>{proctor.organization ?? "-"}</DataTableCell>
                           <DataTableCell>
                             {proctor.governorate
@@ -839,6 +1231,13 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                           <DataTableCell>{proctor._count.assignments}</DataTableCell>
                           <DataTableCell className="text-end">
                             <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => void openEditModal(proctor)}
+                              >
+                                {copy.manualEdit}
+                              </Button>
                               <IconButton
                                 variant="secondary"
                                 size="sm"
@@ -935,6 +1334,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                       <Badge variant="accent">
                         {messages.proctors.sources[selectedProctor.source]}
                       </Badge>
+                      <Badge>{getProctorOperationalRoleLabel(selectedProctor.operationalRole, locale)}</Badge>
                       <Badge>
                         {selectedProctor.isActive
                           ? messages.proctors.labels.active
@@ -957,13 +1357,29 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                     </p>
                   </div>
 
-                  <IconButton
-                    variant="secondary"
-                    size="md"
-                    icon={<ArrowUpRightIcon />}
-                    label={messages.proctors.viewProfile}
-                    onClick={() => router.push(`/proctors/${selectedProctor.id}`)}
-                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => void openEditModal(selectedProctor)}
+                    >
+                      {copy.manualEdit}
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => void handleDeactivateProctor(selectedProctor.id)}
+                    >
+                      {copy.manualDelete}
+                    </Button>
+                    <IconButton
+                      variant="secondary"
+                      size="md"
+                      icon={<ArrowUpRightIcon />}
+                      label={messages.proctors.viewProfile}
+                      onClick={() => router.push(`/proctors/${selectedProctor.id}`)}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -976,6 +1392,13 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                 <DetailRow
                   label={messages.proctors.labels.nationalId}
                   value={selectedProctor.nationalId ?? "-"}
+                />
+                <DetailRow
+                  label={copy.roleLabel}
+                  value={getProctorOperationalRoleLabel(
+                    selectedProctor.operationalRole,
+                    locale
+                  )}
                 />
                 <DetailRow
                   label={messages.proctors.labels.organization}
@@ -1032,6 +1455,282 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
               </div>
             </>
           ) : null}
+        </ModalFrame>
+      ) : null}
+
+      {isFormOpen ? (
+        <ModalFrame
+          title={isEditing ? copy.manualTitleEdit : copy.manualTitleCreate}
+          description={copy.manualBody}
+          closeLabel={messages.proctors.importFlow.close}
+          onClose={() => {
+            setIsFormOpen(false);
+            setEditingProctorId(null);
+            setFormError(null);
+            setFormState(createInitialProctorForm());
+          }}
+          className="max-w-5xl"
+          bodyClassName="space-y-6"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-name">
+                {locale === "ar" ? "الاسم" : "Name"}
+              </label>
+              <Input
+                id="proctor-form-name"
+                value={formState.name}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, name: event.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-name-en">
+                {locale === "ar" ? "الاسم بالإنجليزية" : "English name"}
+              </label>
+              <Input
+                id="proctor-form-name-en"
+                value={formState.nameEn}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, nameEn: event.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-phone">
+                {messages.proctors.labels.phone}
+              </label>
+              <Input
+                id="proctor-form-phone"
+                value={formState.phone}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, phone: event.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-email">
+                {messages.proctors.labels.email}
+              </label>
+              <Input
+                id="proctor-form-email"
+                type="email"
+                value={formState.email}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, email: event.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-national-id">
+                {messages.proctors.labels.nationalId}
+              </label>
+              <Input
+                id="proctor-form-national-id"
+                value={formState.nationalId}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    nationalId: event.target.value
+                  }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-source">
+                {messages.proctors.filters.source}
+              </label>
+              <select
+                id="proctor-form-source"
+                value={formState.source}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    source: event.target.value as ProctorSource
+                  }))
+                }
+                className={selectClassName}
+              >
+                <option value="SPHINX">{messages.proctors.sources.SPHINX}</option>
+                <option value="UNIVERSITY">{messages.proctors.sources.UNIVERSITY}</option>
+                <option value="EXTERNAL">{messages.proctors.sources.EXTERNAL}</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-role">
+                {copy.roleLabel}
+              </label>
+              <select
+                id="proctor-form-role"
+                value={formState.operationalRole}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    operationalRole: event.target.value as "" | ProctorOperationalRole
+                  }))
+                }
+                className={selectClassName}
+              >
+                <option value="">{copy.allRoles}</option>
+                {roleOptions.map((roleOption) => (
+                  <option key={roleOption.value} value={roleOption.value}>
+                    {roleOption.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-governorate">
+                {messages.proctors.labels.governorate}
+              </label>
+              <select
+                id="proctor-form-governorate"
+                value={formState.governorateId}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    governorateId: event.target.value
+                  }))
+                }
+                className={selectClassName}
+              >
+                <option value="">{messages.proctors.exportFlow.allGovernorates}</option>
+                {governorates.map((governorate) => (
+                  <option key={governorate.id} value={governorate.id}>
+                    {getLocalizedName(governorate, locale)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-organization">
+                {organizationFieldLabel}
+              </label>
+              <Input
+                id="proctor-form-organization"
+                value={formState.organization}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    organization: event.target.value
+                  }))
+                }
+              />
+              <p className="text-xs text-text-secondary">{organizationHint}</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-branch">
+                {copy.branchLabel}
+              </label>
+              <Input
+                id="proctor-form-branch"
+                value={formState.branch}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, branch: event.target.value }))
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-language">
+                {messages.proctors.labels.preferredLanguage}
+              </label>
+              <select
+                id="proctor-form-language"
+                value={formState.preferredLanguage}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    preferredLanguage: event.target.value as "" | "AR" | "EN"
+                  }))
+                }
+                className={selectClassName}
+              >
+                <option value="">{locale === "ar" ? "بدون تفضيل" : "No preference"}</option>
+                <option value="AR">{messages.common.arabic}</option>
+                <option value="EN">{messages.common.english}</option>
+              </select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-status">
+                {copy.statusLabel}
+              </label>
+              <select
+                id="proctor-form-status"
+                value={formState.isActive ? "active" : "inactive"}
+                onChange={(event) =>
+                  setFormState((current) => ({
+                    ...current,
+                    isActive: event.target.value === "active"
+                  }))
+                }
+                className={selectClassName}
+              >
+                <option value="active">{copy.activeOption}</option>
+                <option value="inactive">{copy.inactiveOption}</option>
+              </select>
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor="proctor-form-notes">
+                {locale === "ar" ? "ملاحظات" : "Notes"}
+              </label>
+              <Textarea
+                id="proctor-form-notes"
+                value={formState.notes}
+                onChange={(event) =>
+                  setFormState((current) => ({ ...current, notes: event.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          {formError ? (
+            <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4 text-sm text-danger">
+              {formError}
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap justify-between gap-3">
+            <div>
+              {editingProctorId ? (
+                <Button
+                  variant="danger"
+                  onClick={() => void handleDeactivateProctor(editingProctorId)}
+                >
+                  {copy.manualDelete}
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setIsFormOpen(false);
+                  setEditingProctorId(null);
+                  setFormError(null);
+                  setFormState(createInitialProctorForm());
+                }}
+              >
+                {messages.proctors.importFlow.cancel}
+              </Button>
+              <Button onClick={() => void handleSaveProctor()} disabled={isSaving}>
+                {isSaving ? copy.saving : isEditing ? copy.submitEdit : copy.submitCreate}
+              </Button>
+            </div>
+          </div>
         </ModalFrame>
       ) : null}
 
@@ -1172,6 +1871,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
           onClose={() => {
             setIsExportOpen(false);
             setExportError(null);
+            setExportOperationalRole("");
           }}
           className="max-w-3xl"
           bodyClassName="space-y-4"
@@ -1240,6 +1940,29 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                 ) : null}
               </div>
 
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-text-primary" htmlFor="export-role">
+                  {copy.exportRoleLabel}
+                </label>
+                <select
+                  id="export-role"
+                  value={exportOperationalRole}
+                  onChange={(event) =>
+                    setExportOperationalRole(
+                      event.target.value as "" | ProctorOperationalRole
+                    )
+                  }
+                  className={selectClassName}
+                >
+                  <option value="">{copy.allRoles}</option>
+                  {roleOptions.map((roleOption) => (
+                    <option key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {exportError ? (
                 <div className="rounded-3xl border border-danger/40 bg-surface-elevated px-4 py-4 text-sm text-danger">
                   {exportError}
@@ -1251,6 +1974,7 @@ export function ProctorsDirectory({ locale, messages }: ProctorsDirectoryProps) 
                   variant="secondary"
                   onClick={() => {
                     setExportGovernorateId("");
+                    setExportOperationalRole("");
                     setExportStatus("active");
                     setExportFormat("csv");
                     setExportError(null);

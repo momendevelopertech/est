@@ -11,6 +11,7 @@ import {
   ExamType,
   LocaleCode,
   OperationalRoleScope,
+  ProctorOperationalRole,
   PrismaClient,
   SessionStatus,
   SettingValueType,
@@ -344,6 +345,21 @@ const preferences = {
   sphinx_tamer: [true, true, false, true, LocaleCode.AR]
 } as const;
 
+const userOperationalRoles: Partial<
+  Record<keyof typeof users, ProctorOperationalRole>
+> = {
+  coordination_hub: ProctorOperationalRole.CONTROL,
+  senior_supervisor: ProctorOperationalRole.SENIOR,
+  proctor_head: ProctorOperationalRole.HEAD,
+  floor_senior: ProctorOperationalRole.SENIOR,
+  roaming_monitor: ProctorOperationalRole.ROAMING,
+  room_proctor_a: ProctorOperationalRole.PROCTOR,
+  room_proctor_b: ProctorOperationalRole.PROCTOR,
+  waiting_candidate: ProctorOperationalRole.PROCTOR,
+  promoted_candidate: ProctorOperationalRole.PROCTOR,
+  removed_candidate: ProctorOperationalRole.PROCTOR
+};
+
 const emailTemplates = [
   ["assignment_created", "assignment", "\u062a\u0643\u0644\u064a\u0641 \u062c\u062f\u064a\u062f \u0644\u062c\u0644\u0633\u0629 {{session}}", "New assignment for {{session}}", "\u0645\u0631\u062d\u0628\u0627 {{name}}. \u062a\u0645 \u062a\u0643\u0644\u064a\u0641\u0643 \u0643{{role}} \u0641\u064a {{building}} \u064a\u0648\u0645 {{sessionDate}}.", "Hello {{name}}. You have been assigned as {{role}} in {{building}} on {{sessionDate}}.", ["name", "session", "role", "building", "examType", "sessionDate", "assignmentId", "assignmentStatus", "assignedMethod"]],
   ["attendance_marked", "attendance", "\u062a\u062d\u062f\u064a\u062b \u0627\u0644\u062d\u0636\u0648\u0631", "Attendance updated", "\u062d\u0627\u0644\u0629 \u062d\u0636\u0648\u0631\u0643 \u0623\u0635\u0628\u062d\u062a {{attendanceState}} \u0641\u064a {{session}}.", "Your attendance for {{session}} is now {{attendanceState}}.", ["name", "session", "role", "building", "examType", "sessionDate", "assignmentId", "assignmentStatus", "assignedMethod", "attendanceStatus", "attendanceState"]],
@@ -539,6 +555,7 @@ async function main() {
         nameEn: value.nameEn,
         email: value.email,
         source: value.source,
+        operationalRole: userOperationalRoles[key as keyof typeof users] ?? null,
         organization: value.organization,
         branch: value.branch,
         governorateId: governorateIds[value.governorate],
@@ -556,6 +573,7 @@ async function main() {
         phone: value.phone,
         email: value.email,
         source: value.source,
+        operationalRole: userOperationalRoles[key as keyof typeof users] ?? null,
         organization: value.organization,
         branch: value.branch,
         governorateId: governorateIds[value.governorate],

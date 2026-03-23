@@ -1,4 +1,10 @@
-import { LocaleCode, Prisma, UserSource, type PrismaClient } from "@prisma/client";
+import {
+  LocaleCode,
+  Prisma,
+  ProctorOperationalRole,
+  UserSource,
+  type PrismaClient
+} from "@prisma/client";
 
 import { logActivity } from "@/lib/activity/log";
 import { db } from "@/lib/db";
@@ -45,6 +51,7 @@ export const proctorSelect = {
   nationalId: true,
   email: true,
   source: true,
+  operationalRole: true,
   organization: true,
   branch: true,
   governorateId: true,
@@ -325,6 +332,10 @@ function assertValidNormalizedPhone(phone: string) {
 function normalizeUpdateInput(input: UpdateProctorInput) {
   return {
     ...input,
+    ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+    ...(input.nameEn !== undefined
+      ? { nameEn: normalizeOptionalText(input.nameEn) }
+      : {}),
     ...(input.phone
       ? {
           phone: assertValidNormalizedPhone(normalizePhone(input.phone))
@@ -346,6 +357,7 @@ function normalizeCreateInput(input: CreateProctorInput) {
   return {
     ...input,
     name: input.name.trim(),
+    nameEn: normalizeOptionalText(input.nameEn),
     phone: assertValidNormalizedPhone(normalizePhone(input.phone)),
     email: normalizeEmail(input.email),
     nationalId: normalizeOptionalText(input.nationalId),
@@ -358,11 +370,15 @@ function normalizeCreateInput(input: CreateProctorInput) {
 function buildCreateProctorData(input: ReturnType<typeof normalizeCreateInput>) {
   return {
     name: input.name,
-    nameEn: input.nameEn,
+    nameEn: input.nameEn ?? null,
     phone: input.phone,
     nationalId: input.nationalId,
     email: input.email,
     source: input.source,
+    operationalRole:
+      input.operationalRole === null
+        ? null
+        : (input.operationalRole as ProctorOperationalRole | undefined) ?? null,
     organization: input.organization,
     branch: input.branch,
     governorateId: input.governorateId ?? null,
@@ -385,6 +401,14 @@ function buildUpdateProctorData(input: ReturnType<typeof normalizeUpdateInput>) 
     ...(input.nationalId !== undefined ? { nationalId: input.nationalId ?? null } : {}),
     ...(input.email !== undefined ? { email: input.email ?? null } : {}),
     ...(input.source !== undefined ? { source: input.source as UserSource } : {}),
+    ...(input.operationalRole !== undefined
+      ? {
+          operationalRole:
+            input.operationalRole === null
+              ? null
+              : (input.operationalRole as ProctorOperationalRole | undefined) ?? null
+        }
+      : {}),
     ...(input.organization !== undefined
       ? { organization: input.organization ?? null }
       : {}),
@@ -405,6 +429,26 @@ function buildUpdateProctorData(input: ReturnType<typeof normalizeUpdateInput>) 
   } satisfies Prisma.UserUncheckedUpdateInput;
 }
 
+function assertSourceOrganizationConsistency(input: {
+  source: UserSource;
+  organization?: string | null;
+}) {
+  if (
+    input.source === UserSource.UNIVERSITY &&
+    !normalizeOptionalText(input.organization ?? undefined)
+  ) {
+    throw new ProctorsServiceError(
+      ERROR_CODES.missingRequiredField,
+      400,
+      "University source requires a university name or organization.",
+      {
+        field: "organization",
+        source: input.source
+      }
+    );
+  }
+}
+
 export async function listProctors(query: ProctorListQuery) {
   if (query.governorateId) {
     await assertGovernorateExists(query.governorateId);
@@ -420,6 +464,11 @@ export async function listProctors(query: ProctorListQuery) {
     ...(query.source
       ? {
           source: query.source
+        }
+      : {}),
+    ...(query.operationalRole
+      ? {
+          operationalRole: query.operationalRole
         }
       : {}),
     ...(query.blockStatus
@@ -652,6 +701,11 @@ export async function getProctorProfile(
 export async function createProctor(input: CreateProctorInput, actorAppUserId: string) {
   const normalizedInput = normalizeCreateInput(input);
 
+  assertSourceOrganizationConsistency({
+    source: normalizedInput.source,
+    organization: normalizedInput.organization
+  });
+
   if (normalizedInput.governorateId) {
     await assertGovernorateExists(normalizedInput.governorateId, {
       requireActive: true
@@ -707,6 +761,16 @@ export async function updateProctor(
     normalizedInput.governorateId === undefined
       ? before.governorateId
       : normalizedInput.governorateId;
+  const source = normalizedInput.source ?? before.source;
+  const organization =
+    normalizedInput.organization === undefined
+      ? before.organization
+      : normalizedInput.organization;
+
+  assertSourceOrganizationConsistency({
+    source,
+    organization
+  });
 
   if (governorateId) {
     await assertGovernorateExists(governorateId, {

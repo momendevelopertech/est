@@ -10,6 +10,7 @@ import {
 import { PageHero } from "@/components/ui/page-hero";
 import type { Messages, Locale } from "@/lib/i18n";
 import { getAlternateLocalizedName, getLocalizedName } from "@/lib/i18n/presentation";
+import { getProctorOperationalRoleLabel } from "@/lib/proctors/operational-role";
 import type { getProctorProfile } from "@/lib/proctors/service";
 
 type ProctorProfileData = Awaited<ReturnType<typeof getProctorProfile>>;
@@ -100,6 +101,7 @@ export function ProctorProfileView({
           { label: messages.nav.proctors, variant: "accent" },
           { label: data.isActive ? messages.proctors.labels.active : messages.proctors.labels.inactive },
           { label: messages.proctors.sources[data.source] },
+          { label: getProctorOperationalRoleLabel(data.operationalRole, locale) },
           { label: messages.proctors.blockStatuses[data.blockStatus] }
         ]}
         title={profileLabel}
@@ -160,6 +162,10 @@ export function ProctorProfileView({
           <DetailItem
             label={messages.proctors.labels.nationalId}
             value={data.nationalId ?? "-"}
+          />
+          <DetailItem
+            label={locale === "ar" ? "الرول التشغيلية" : "Operational role"}
+            value={getProctorOperationalRoleLabel(data.operationalRole, locale)}
           />
           <DetailItem
             label={messages.proctors.labels.organization}

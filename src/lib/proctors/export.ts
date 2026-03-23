@@ -6,6 +6,7 @@ import { createSpreadsheetXml } from "@/lib/tabular";
 
 import { db } from "@/lib/db";
 
+import { getProctorOperationalRoleLabel } from "./operational-role";
 import { assertGovernorateExists } from "./service";
 import type { ProctorExportQuery } from "./validation";
 
@@ -59,6 +60,11 @@ export async function exportProctors(
         ? {
             governorateId: query.governorateId
           }
+        : {}),
+      ...(query.operationalRole
+        ? {
+            operationalRole: query.operationalRole
+          }
         : {})
     },
     orderBy: [{ name: "asc" }],
@@ -69,6 +75,7 @@ export async function exportProctors(
       email: true,
       nationalId: true,
       source: true,
+      operationalRole: true,
       organization: true,
       branch: true,
       preferredLanguage: true,
@@ -92,6 +99,7 @@ export async function exportProctors(
     messages.proctors.exportFlow.headers.email,
     messages.proctors.exportFlow.headers.nationalId,
     messages.proctors.exportFlow.headers.source,
+    query.locale === "ar" ? "الدور التشغيلي" : "Operational role",
     messages.proctors.exportFlow.headers.organization,
     messages.proctors.exportFlow.headers.branch,
     messages.proctors.exportFlow.headers.governorate,
@@ -106,6 +114,7 @@ export async function exportProctors(
       messagesAr.proctors.exportFlow.headers.email,
       messagesAr.proctors.exportFlow.headers.nationalId,
       messagesAr.proctors.exportFlow.headers.source,
+      "الدور التشغيلي",
       messagesAr.proctors.exportFlow.headers.organization,
       messagesAr.proctors.exportFlow.headers.branch,
       messagesAr.proctors.exportFlow.headers.governorate,
@@ -119,6 +128,7 @@ export async function exportProctors(
       messagesEn.proctors.exportFlow.headers.email,
       messagesEn.proctors.exportFlow.headers.nationalId,
       messagesEn.proctors.exportFlow.headers.source,
+      "Operational role",
       messagesEn.proctors.exportFlow.headers.organization,
       messagesEn.proctors.exportFlow.headers.branch,
       messagesEn.proctors.exportFlow.headers.governorate,
@@ -134,6 +144,7 @@ export async function exportProctors(
     toRowValue(record.email),
     toRowValue(record.nationalId),
     messages.proctors.sources[record.source],
+    getProctorOperationalRoleLabel(record.operationalRole, query.locale),
     toRowValue(record.organization),
     toRowValue(record.branch),
     record.governorate ? getLocalizedName(record.governorate, query.locale) : "",

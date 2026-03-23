@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   booleanQueryParamSchema,
   createUpdateSchema,
+  localeQuerySchema,
   nonEmptyString,
   paginationQueryFields,
   trimmedOptionalString,
@@ -64,6 +65,16 @@ export const roomListQuerySchema = z.object({
 
 export const locationsTreeQuerySchema = z.object({
   includeInactive: booleanQueryParamSchema.default(false)
+});
+
+export const locationExportQuerySchema = z.object({
+  format: z.enum(["csv", "excel"]).default("csv"),
+  status: z.enum(["active", "inactive", "all"]).default("active"),
+  governorateId: uuidSchema.optional(),
+  universityId: uuidSchema.optional(),
+  buildingId: uuidSchema.optional(),
+  floorId: uuidSchema.optional(),
+  locale: localeQuerySchema.optional()
 });
 
 export const createGovernorateSchema = z.object(bilingualLocationFields);
@@ -145,6 +156,7 @@ export type UniversityListQuery = z.infer<typeof universityListQuerySchema>;
 export type BuildingListQuery = z.infer<typeof buildingListQuerySchema>;
 export type FloorListQuery = z.infer<typeof floorListQuerySchema>;
 export type RoomListQuery = z.infer<typeof roomListQuerySchema>;
+export type LocationExportQuery = z.infer<typeof locationExportQuerySchema>;
 
 export type CreateGovernorateInput = z.infer<typeof createGovernorateSchema>;
 export type UpdateGovernorateInput = z.infer<typeof updateGovernorateSchema>;
