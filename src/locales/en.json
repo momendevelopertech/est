@@ -257,6 +257,7 @@
     "title": "Cycles management",
     "subtitle": "Create, monitor, and maintain exam cycles from the live cycle API.",
     "description": "Cycle records include bilingual names, date ranges, operational status, and soft-activation state.",
+    "deleteHelp": "Deactivate keeps the record in the database and hides it from active workflows. Permanent delete removes it completely and is available only when no related sessions, waiting-list entries, or cloned cycles exist.",
     "searchLabel": "Search cycles",
     "searchPlaceholder": "Search by Arabic or English name or code",
     "showInactive": "Show inactive records",
@@ -281,7 +282,10 @@
       "clone": "Clone cycle",
       "cloning": "Cloning...",
       "deactivate": "Deactivate",
-      "deactivating": "Deactivating..."
+      "deactivating": "Deactivating...",
+      "deletePermanent": "Delete permanently",
+      "deletingPermanent": "Deleting...",
+      "deletePermanentConfirm": "This will permanently delete the cycle and cannot be undone. It works only when no linked sessions, waiting-list entries, or cloned cycles remain. Continue?"
     },
     "cloneFlow": {
       "title": "Clone cycle",
@@ -357,6 +361,7 @@
     "title": "Sessions management",
     "subtitle": "Manage operational exam sessions with cycle, location, and lifecycle controls.",
     "description": "Session records are linked to cycles and buildings, include stored and derived status, and enforce strict transition rules.",
+    "deleteHelp": "Deactivate keeps the session for audit/history and hides it from active workflows. Permanent delete removes it completely and is available only when no assignments, waiting-list entries, or evaluations exist.",
     "searchLabel": "Search sessions",
     "searchPlaceholder": "Search by Arabic or English name",
     "showInactive": "Show inactive records",
@@ -390,6 +395,9 @@
       "edit": "Edit",
       "deactivate": "Deactivate",
       "deactivating": "Deactivating...",
+      "deletePermanent": "Delete permanently",
+      "deletingPermanent": "Deleting...",
+      "deletePermanentConfirm": "This will permanently delete the session and cannot be undone. It works only when no assignments, waiting-list entries, or evaluations are linked. Continue?",
       "transitionsTitle": "Status actions",
       "transitionHelp": "Only valid lifecycle transitions are shown.",
       "noTransitions": "No transition is currently available.",
@@ -466,7 +474,7 @@
     },
     "assignmentPlaceholder": {
       "title": "Assignments readiness",
-      "body": "This session detail is prepared for upcoming assignment, attendance, and evaluation workflows."
+      "body": "After saving the session, start from Assignments for manual or auto distribution, then use Waiting List and Swaps as needed. Attendance comes after locking, and Evaluations follow the session run."
     },
     "openAssignmentsWorkspace": "Open assignment workspace",
     "openWaitingListWorkspace": "Open waiting-list workspace",

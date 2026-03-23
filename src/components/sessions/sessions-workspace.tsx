@@ -213,6 +213,14 @@ function getStatusErrorMessage(messages: Messages, errorCode?: string | null) {
   return knownErrors[errorCode] ?? errorCode;
 }
 
+function canPermanentlyDeleteSession(session: SessionRecord) {
+  return (
+    session._count.assignments === 0 &&
+    session._count.waitingList === 0 &&
+    session._count.evaluations === 0
+  );
+}
+
 function SessionListSkeleton() {
   return (
     <div className="space-y-3">
@@ -257,6 +265,7 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
   const [formError, setFormError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deactivatingSessionId, setDeactivatingSessionId] = useState<string | null>(null);
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
   const [statusBusyById, setStatusBusyById] = useState<Record<string, boolean>>({});
   const [statusErrorById, setStatusErrorById] = useState<Record<string, string | null>>({});
 
@@ -543,6 +552,38 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
     }
   }
 
+  async function permanentlyDeleteSession(session: SessionRecord) {
+    const confirmed = window.confirm(messages.sessions.actions.deletePermanentConfirm);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingSessionId(session.id);
+
+    try {
+      const response = await fetch(`/api/sessions/${session.id}?mode=hard`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" }
+      });
+      const payload = (await response.json()) as ApiPayload<SessionRecord>;
+
+      if (!response.ok || !payload.ok) {
+        window.alert(getApiError(payload, messages.sessions.errorBody));
+        return;
+      }
+
+      setRefreshKey((current) => current + 1);
+    } catch (removeError) {
+      window.alert(
+        removeError instanceof Error ? removeError.message : messages.sessions.errorBody
+      );
+    } finally {
+      setDeletingSessionId(null);
+    }
+  }
+
   async function changeSessionStatus(sessionId: string, nextStatus: SessionStatusValue) {
     setStatusBusyById((current) => ({ ...current, [sessionId]: true }));
     setStatusErrorById((current) => ({ ...current, [sessionId]: null }));
@@ -606,6 +647,9 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
           <div className="space-y-4">
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.sessions.description}
+          </p>
+          <p className="max-w-3xl text-xs leading-6 text-text-secondary">
+            {messages.sessions.deleteHelp}
           </p>
 
           <div className="grid gap-4 xl:grid-cols-5">
@@ -803,7 +847,7 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
                       <DataTableHead>{messages.sessions.labels.assignments}</DataTableHead>
                       <DataTableHead>{messages.sessions.labels.waitingList}</DataTableHead>
                       <DataTableHead>{messages.sessions.labels.evaluations}</DataTableHead>
-                      <DataTableHead className="w-[22rem]">{messages.sessions.actions.view}</DataTableHead>
+                      <DataTableHead className="w-[28rem]">{messages.sessions.actions.view}</DataTableHead>
                     </tr>
                   </DataTableHeader>
                   <DataTableBody>
@@ -821,6 +865,9 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
                       });
                       const isStatusBusy = statusBusyById[session.id] ?? false;
                       const isDeactivating = deactivatingSessionId === session.id;
+                      const isDeleting = deletingSessionId === session.id;
+                      const isMutating = isDeactivating || isDeleting;
+                      const allowPermanentDelete = canPermanentlyDeleteSession(session);
                       const activeBuildingNames = session.buildings
                         .filter((buildingLink) => buildingLink.isActive)
                         .map((buildingLink) => getLocalizedName(buildingLink.building, locale));
@@ -875,18 +922,33 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
                                 >
                                   {messages.sessions.actions.view}
                                 </Link>
-                                <Button variant="secondary" size="sm" onClick={() => openEditModal(session)}>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => openEditModal(session)}
+                                  disabled={isMutating}
+                                >
                                   {messages.sessions.actions.edit}
                                 </Button>
                                 <Button
-                                  variant="danger"
+                                  variant="secondary"
                                   size="sm"
                                   onClick={() => void deactivateSession(session)}
-                                  disabled={isDeactivating || !session.isActive}
+                                  disabled={isMutating || !session.isActive}
                                 >
                                   {isDeactivating
                                     ? messages.sessions.actions.deactivating
                                     : messages.sessions.actions.deactivate}
+                                </Button>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => void permanentlyDeleteSession(session)}
+                                  disabled={isMutating || !allowPermanentDelete}
+                                >
+                                  {isDeleting
+                                    ? messages.sessions.actions.deletingPermanent
+                                    : messages.sessions.actions.deletePermanent}
                                 </Button>
                               </div>
 
@@ -907,7 +969,7 @@ export function SessionsWorkspace({ locale, messages, canManageStatus }: Session
                                           variant="secondary"
                                           size="sm"
                                           onClick={() => void changeSessionStatus(session.id, nextStatus)}
-                                          disabled={isStatusBusy || !session.isActive}
+                                          disabled={isStatusBusy || isMutating || !session.isActive}
                                         >
                                           {isStatusBusy
                                             ? messages.sessions.actions.changingStatus

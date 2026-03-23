@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { toCycleDTO } from "@/lib/cycles/dto";
 import {
@@ -7,7 +8,12 @@ import {
   readJsonBody,
   requireCyclesApiRole
 } from "@/lib/cycles/http";
-import { deleteCycle, getCycleById, updateCycle } from "@/lib/cycles/service";
+import {
+  deactivateCycle,
+  getCycleById,
+  permanentlyDeleteCycle,
+  updateCycle
+} from "@/lib/cycles/service";
 import {
   cycleDetailQuerySchema,
   cycleRouteParamsSchema,
@@ -19,6 +25,10 @@ type RouteParams = {
     cycleId: string;
   };
 };
+
+const cycleDeleteQuerySchema = z.object({
+  mode: z.enum(["deactivate", "hard"]).optional().default("deactivate")
+});
 
 export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireCyclesApiRole();
@@ -65,7 +75,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   const auth = await requireCyclesApiRole();
 
   if ("response" in auth) {
@@ -74,7 +84,11 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
   try {
     const routeParams = cycleRouteParamsSchema.parse(params);
-    const data = await deleteCycle(routeParams.cycleId, auth.session.user.id);
+    const query = cycleDeleteQuerySchema.parse(getRequestQuery(request));
+    const data =
+      query.mode === "hard"
+        ? await permanentlyDeleteCycle(routeParams.cycleId, auth.session.user.id)
+        : await deactivateCycle(routeParams.cycleId, auth.session.user.id);
 
     return NextResponse.json({
       ok: true,

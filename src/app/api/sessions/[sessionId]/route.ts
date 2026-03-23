@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
 import { toSessionDTO } from "@/lib/sessions/dto";
 import {
@@ -8,8 +9,9 @@ import {
   requireSessionsApiRole
 } from "@/lib/sessions/http";
 import {
-  deleteSession,
+  deactivateSession,
   getSessionById,
+  permanentlyDeleteSession,
   updateSession
 } from "@/lib/sessions/service";
 import {
@@ -23,6 +25,10 @@ type RouteParams = {
     sessionId: string;
   };
 };
+
+const sessionDeleteQuerySchema = z.object({
+  mode: z.enum(["deactivate", "hard"]).optional().default("deactivate")
+});
 
 export async function GET(request: Request, { params }: RouteParams) {
   const auth = await requireSessionsApiRole();
@@ -69,7 +75,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: Request, { params }: RouteParams) {
+export async function DELETE(request: Request, { params }: RouteParams) {
   const auth = await requireSessionsApiRole();
 
   if ("response" in auth) {
@@ -78,7 +84,11 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
   try {
     const routeParams = sessionRouteParamsSchema.parse(params);
-    const data = await deleteSession(routeParams.sessionId, auth.session.user.id);
+    const query = sessionDeleteQuerySchema.parse(getRequestQuery(request));
+    const data =
+      query.mode === "hard"
+        ? await permanentlyDeleteSession(routeParams.sessionId, auth.session.user.id)
+        : await deactivateSession(routeParams.sessionId, auth.session.user.id);
 
     return NextResponse.json({
       ok: true,

@@ -183,6 +183,14 @@ function normalizeOptionalText(value: string) {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function canPermanentlyDeleteCycle(cycle: CycleRecord) {
+  return (
+    cycle._count.sessions === 0 &&
+    cycle._count.waitingList === 0 &&
+    cycle._count.clonedCycles === 0
+  );
+}
+
 function getApiError(payload: { message?: string; error?: string }, fallback: string) {
   return {
     message: payload.message ?? fallback,
@@ -293,6 +301,7 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
   const [formErrorCode, setFormErrorCode] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deactivatingCycleId, setDeactivatingCycleId] = useState<string | null>(null);
+  const [deletingCycleId, setDeletingCycleId] = useState<string | null>(null);
   const [isCloneOpen, setIsCloneOpen] = useState(false);
   const [cloningCycle, setCloningCycle] = useState<CycleRecord | null>(null);
   const [cloneFormState, setCloneFormState] = useState<CloneFormState>({
@@ -582,6 +591,39 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
     }
   }
 
+  async function permanentlyDeleteCycle(cycle: CycleRecord) {
+    const confirmed = window.confirm(messages.cycles.actions.deletePermanentConfirm);
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingCycleId(cycle.id);
+
+    try {
+      const response = await fetch(`/api/cycles/${cycle.id}?mode=hard`, {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json"
+        }
+      });
+      const payload = (await response.json()) as CycleMutationResponse;
+
+      if (!response.ok || !payload.ok) {
+        const apiError = getApiError(payload, messages.cycles.errorBody);
+        window.alert(apiError.message);
+        return;
+      }
+
+      setRefreshKey((current) => current + 1);
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : messages.cycles.errorBody);
+    } finally {
+      setDeletingCycleId(null);
+    }
+  }
+
   async function submitClone() {
     if (!cloningCycle) {
       return;
@@ -661,6 +703,9 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
           <div className="space-y-4">
           <p className="max-w-3xl text-sm leading-7 text-text-secondary">
             {messages.cycles.description}
+          </p>
+          <p className="max-w-3xl text-xs leading-6 text-text-secondary">
+            {messages.cycles.deleteHelp}
           </p>
 
           <div className="grid gap-4 xl:grid-cols-[2fr_repeat(2,1fr)]">
@@ -790,7 +835,7 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                       <DataTableHead>{messages.cycles.labels.updatedAt}</DataTableHead>
                       <DataTableHead>{messages.cycles.labels.sourceCycle}</DataTableHead>
                       <DataTableHead>{messages.cycles.labels.cloneMode}</DataTableHead>
-                      <DataTableHead className="w-[18rem]">{messages.cycles.actions.view}</DataTableHead>
+                      <DataTableHead className="w-[26rem]">{messages.cycles.actions.view}</DataTableHead>
                     </tr>
                   </DataTableHeader>
                   <DataTableBody>
@@ -798,6 +843,9 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                       const localizedName = getLocalizedName(cycle, locale);
                       const alternateName = getAlternateLocalizedName(cycle, locale);
                       const isDeactivating = deactivatingCycleId === cycle.id;
+                      const isDeleting = deletingCycleId === cycle.id;
+                      const isMutating = isDeactivating || isDeleting;
+                      const allowPermanentDelete = canPermanentlyDeleteCycle(cycle);
 
                       return (
                         <DataTableRow key={cycle.id}>
@@ -842,26 +890,41 @@ export function CyclesWorkspace({ locale, messages }: CyclesWorkspaceProps) {
                               >
                                 {messages.cycles.actions.view}
                               </Link>
-                              <Button variant="secondary" size="sm" onClick={() => openEditModal(cycle)}>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => openEditModal(cycle)}
+                                disabled={isMutating}
+                              >
                                 {messages.cycles.actions.edit}
                               </Button>
                               <Button
                                 variant="secondary"
                                 size="sm"
                                 onClick={() => openCloneModal(cycle)}
-                                disabled={!cycle.isActive || isDeactivating}
+                                disabled={!cycle.isActive || isMutating}
                               >
                                 {messages.cycles.actions.clone}
                               </Button>
                               <Button
-                                variant="danger"
+                                variant="secondary"
                                 size="sm"
                                 onClick={() => void deactivateCycle(cycle)}
-                                disabled={isDeactivating || !cycle.isActive}
+                                disabled={isMutating || !cycle.isActive}
                               >
                                 {isDeactivating
                                   ? messages.cycles.actions.deactivating
                                   : messages.cycles.actions.deactivate}
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                onClick={() => void permanentlyDeleteCycle(cycle)}
+                                disabled={isMutating || !allowPermanentDelete}
+                              >
+                                {isDeleting
+                                  ? messages.cycles.actions.deletingPermanent
+                                  : messages.cycles.actions.deletePermanent}
                               </Button>
                             </div>
                           </DataTableCell>

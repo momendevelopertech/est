@@ -56,7 +56,7 @@ export const paginationQueryFields = {
   }),
   pageSize: integerQueryParamSchema({
     min: 1,
-    max: 100
+    max: 500
   })
 };
 

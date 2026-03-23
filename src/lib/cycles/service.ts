@@ -55,6 +55,10 @@ const cycleSelect = {
   }
 } satisfies Prisma.CycleSelect;
 
+type CycleRecord = Prisma.CycleGetPayload<{
+  select: typeof cycleSelect;
+}>;
+
 function createSearchFilter(search?: string) {
   return createBilingualSearchFilter(search, ["code"]);
 }
@@ -70,6 +74,45 @@ function normalizeOptionalText(value?: string | null) {
 
 function normalizeDateOnly(value: Date) {
   return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()));
+}
+
+function hasRelatedRecords(cycle: CycleRecord) {
+  return cycle._count.sessions > 0 || cycle._count.waitingList > 0;
+}
+
+function assertCanDeactivateCycle(cycle: CycleRecord) {
+  if (!hasRelatedRecords(cycle)) {
+    return;
+  }
+
+  throw new CyclesServiceError(
+    ERROR_CODES.hasRelatedRecords,
+    409,
+    "Cannot deactivate a cycle while it still has related records.",
+    {
+      cycleId: cycle.id,
+      sessions: cycle._count.sessions,
+      waitingList: cycle._count.waitingList
+    }
+  );
+}
+
+function assertCanPermanentlyDeleteCycle(cycle: CycleRecord) {
+  if (!hasRelatedRecords(cycle) && cycle._count.clonedCycles === 0) {
+    return;
+  }
+
+  throw new CyclesServiceError(
+    ERROR_CODES.hasRelatedRecords,
+    409,
+    "Cannot permanently delete a cycle while it still has related or cloned records.",
+    {
+      cycleId: cycle.id,
+      sessions: cycle._count.sessions,
+      waitingList: cycle._count.waitingList,
+      clonedCycles: cycle._count.clonedCycles
+    }
+  );
 }
 
 function resolveLocalizedName(input: { name?: string; nameEn?: string }) {
@@ -214,7 +257,7 @@ function buildCreateData(input: CreateCycleInput) {
   } satisfies Prisma.CycleUncheckedCreateInput;
 }
 
-function buildUpdateData(current: Awaited<ReturnType<typeof assertCycleExists>>, input: UpdateCycleInput) {
+function buildUpdateData(current: CycleRecord, input: UpdateCycleInput) {
   const localizedName = resolveLocalizedName({
     name: input.name ?? current.name,
     nameEn: input.nameEn ?? current.nameEn ?? undefined
@@ -362,23 +405,12 @@ export async function updateCycle(
   }
 }
 
-export async function deleteCycle(cycleId: string, actorAppUserId: string) {
+export async function deactivateCycle(cycleId: string, actorAppUserId: string) {
   const before = await getCycleById(cycleId, {
     includeInactive: true
   });
 
-  if (before._count.sessions > 0 || before._count.waitingList > 0) {
-    throw new CyclesServiceError(
-      ERROR_CODES.hasRelatedRecords,
-      409,
-      "Cannot deactivate a cycle while it still has related records.",
-      {
-        cycleId,
-        sessions: before._count.sessions,
-        waitingList: before._count.waitingList
-      }
-    );
-  }
+  assertCanDeactivateCycle(before);
 
   try {
     return await db.$transaction(async (tx) => {
@@ -412,4 +444,47 @@ export async function deleteCycle(cycleId: string, actorAppUserId: string) {
   } catch (error) {
     normalizeMutationError(error);
   }
+}
+
+export async function permanentlyDeleteCycle(cycleId: string, actorAppUserId: string) {
+  const before = await getCycleById(cycleId, {
+    includeInactive: true
+  });
+
+  assertCanPermanentlyDeleteCycle(before);
+
+  try {
+    return await db.$transaction(async (tx) => {
+      await tx.cycle.delete({
+        where: {
+          id: cycleId
+        }
+      });
+
+      await logActivity({
+        client: tx,
+        userId: actorAppUserId,
+        action: "delete_permanently",
+        entityType: "cycle",
+        entityId: before.id,
+        description: `Permanently deleted cycle ${before.name}.`,
+        metadata: {
+          hardDeleted: true,
+          status: before.status
+        },
+        beforePayload: before,
+        afterPayload: {
+          hardDeleted: true
+        }
+      });
+
+      return before;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
+}
+
+export async function deleteCycle(cycleId: string, actorAppUserId: string) {
+  return deactivateCycle(cycleId, actorAppUserId);
 }

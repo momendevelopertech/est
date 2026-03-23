@@ -1106,6 +1106,24 @@ export async function createSessionInTransaction(
   );
 }
 
+function assertCanPermanentlyDeleteSession(session: SessionRecord) {
+  if (!hasRelatedRecords(session)) {
+    return;
+  }
+
+  throw new SessionsServiceError(
+    ERROR_CODES.hasRelatedRecords,
+    409,
+    "Cannot permanently delete a session while it still has related records.",
+    {
+      sessionId: session.id,
+      assignments: session._count.assignments,
+      waitingList: session._count.waitingList,
+      evaluations: session._count.evaluations
+    }
+  );
+}
+
 export async function createSession(input: CreateSessionInput, actorAppUserId: string) {
   try {
     return await db.$transaction(async (tx) =>
@@ -1301,7 +1319,7 @@ export async function updateSessionStatus(
   }
 }
 
-export async function deleteSession(sessionId: string, actorAppUserId: string) {
+export async function deactivateSession(sessionId: string, actorAppUserId: string) {
   const before = await getSessionById(sessionId, {
     includeInactive: true
   });
@@ -1349,4 +1367,58 @@ export async function deleteSession(sessionId: string, actorAppUserId: string) {
   } catch (error) {
     normalizeMutationError(error);
   }
+}
+
+export async function permanentlyDeleteSession(
+  sessionId: string,
+  actorAppUserId: string
+) {
+  const before = await getSessionById(sessionId, {
+    includeInactive: true
+  });
+
+  assertCanPermanentlyDeleteSession(before);
+
+  try {
+    return await db.$transaction(async (tx) => {
+      await tx.sessionBuilding.deleteMany({
+        where: {
+          sessionId
+        }
+      });
+
+      await tx.session.delete({
+        where: {
+          id: sessionId
+        }
+      });
+
+      await logActivity({
+        client: tx,
+        userId: actorAppUserId,
+        action: "delete_permanently",
+        entityType: "session",
+        entityId: before.id,
+        description: `Permanently deleted session ${before.name}.`,
+        metadata: {
+          hardDeleted: true,
+          buildingIds: before.buildings
+            .filter((buildingLink) => buildingLink.isActive)
+            .map((buildingLink) => buildingLink.buildingId)
+        },
+        beforePayload: before,
+        afterPayload: {
+          hardDeleted: true
+        }
+      });
+
+      return before;
+    });
+  } catch (error) {
+    normalizeMutationError(error);
+  }
+}
+
+export async function deleteSession(sessionId: string, actorAppUserId: string) {
+  return deactivateSession(sessionId, actorAppUserId);
 }
