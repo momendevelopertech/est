@@ -23,7 +23,7 @@ export function Header({ locale, messages, navigation, user }: HeaderProps) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="relative flex h-14 w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-border/80 bg-[linear-gradient(155deg,var(--surface-elevated),var(--surface-strong))] shadow-[var(--shadow-soft)]">
-              <div className="absolute inset-[1px] rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(15,118,110,0.18),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(94,234,212,0.18),transparent_62%)]" />
+              <div className="absolute inset-[1px] rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(199,153,35,0.22),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(240,203,103,0.22),transparent_62%)]" />
               <BrandLogo className="relative z-10 h-8 w-12" decorative />
             </div>
             <div className="min-w-0">

@@ -56,7 +56,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <CardHeader className="space-y-6">
           <div className="flex items-center gap-4 rounded-[26px] border border-border bg-surface-elevated px-4 py-4 shadow-[var(--shadow-soft)]">
             <div className="relative flex h-16 w-[5.25rem] shrink-0 items-center justify-center overflow-hidden rounded-[22px] border border-border/80 bg-[linear-gradient(155deg,var(--surface-elevated),var(--surface-strong))]">
-              <div className="absolute inset-[1px] rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(15,118,110,0.18),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(94,234,212,0.18),transparent_62%)]" />
+              <div className="absolute inset-[1px] rounded-[20px] bg-[radial-gradient(circle_at_top,rgba(199,153,35,0.22),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(240,203,103,0.22),transparent_62%)]" />
               <BrandLogo className="relative z-10 h-9 w-14" decorative />
             </div>
 
@@ -156,7 +156,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <div className="rounded-3xl border border-border bg-surface-elevated px-4 py-4">
             <div className="flex items-center gap-3">
               <div className="relative flex h-12 w-[4rem] shrink-0 items-center justify-center overflow-hidden rounded-[18px] border border-border/80 bg-[linear-gradient(155deg,var(--surface-elevated),var(--surface-strong))]">
-                <div className="absolute inset-[1px] rounded-[16px] bg-[radial-gradient(circle_at_top,rgba(15,118,110,0.14),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(94,234,212,0.14),transparent_62%)]" />
+                <div className="absolute inset-[1px] rounded-[16px] bg-[radial-gradient(circle_at_top,rgba(199,153,35,0.18),transparent_62%)] dark:bg-[radial-gradient(circle_at_top,rgba(240,203,103,0.18),transparent_62%)]" />
                 <BrandLogo className="relative z-10 h-7 w-10" decorative />
               </div>
 
