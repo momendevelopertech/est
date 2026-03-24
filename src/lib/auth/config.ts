@@ -28,7 +28,7 @@ const localeMap: Record<LocaleCode, LocalePreference> = {
 const themeMap: Record<ThemePreference, ThemeMode> = {
   LIGHT: "light",
   DARK: "dark",
-  SYSTEM: "system"
+  SYSTEM: "dark"
 };
 
 export function getSessionExpiryDate() {
@@ -51,19 +51,12 @@ export function toLocalePreference(
 
 export function toThemeMode(theme: ThemePreference | null | undefined): ThemeMode {
   if (!theme) {
-    return "system";
+    return "dark";
   }
 
   return themeMap[theme];
 }
 
 export function toThemePreference(theme: ThemeMode): ThemePreference {
-  switch (theme) {
-    case "light":
-      return ThemePreference.LIGHT;
-    case "dark":
-      return ThemePreference.DARK;
-    default:
-      return ThemePreference.SYSTEM;
-  }
+  return theme === "light" ? ThemePreference.LIGHT : ThemePreference.DARK;
 }

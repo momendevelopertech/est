@@ -20,7 +20,8 @@ export function AppThemeProvider({
     <ThemeProvider
       attribute="class"
       defaultTheme={defaultTheme}
-      enableSystem
+      enableSystem={false}
+      themes={["light", "dark"]}
       storageKey={themeCookieName}
     >
       {children}

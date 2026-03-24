@@ -8,7 +8,7 @@ export const appRoles = [
 
 export type AppRole = (typeof appRoles)[number];
 export type LocalePreference = "ar" | "en";
-export type ThemeMode = "light" | "dark" | "system";
+export type ThemeMode = "light" | "dark";
 
 export type SessionUser = {
   id: string;

@@ -6,10 +6,9 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 
 import { IconButton } from "@/components/ui/icon-button";
-import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/icons";
+import { MoonIcon, SunIcon } from "@/components/ui/icons";
 import type { ThemeMode } from "@/lib/auth/types";
 import type { Messages } from "@/lib/i18n";
-import { themeModes } from "@/lib/theme";
 
 type ThemeToggleProps = {
   initialTheme: ThemeMode;
@@ -23,23 +22,19 @@ export function ThemeToggle({ initialTheme, messages }: ThemeToggleProps) {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (theme === "light" || theme === "dark" || theme === "system") {
+    if (theme === "light" || theme === "dark") {
       setSelectedTheme(theme);
       return;
     }
 
     setSelectedTheme(initialTheme);
-  }, [initialTheme, theme]);
+    if (theme === "system") {
+      setTheme(initialTheme);
+    }
+  }, [initialTheme, setTheme, theme]);
 
   function getThemeLabel(themeMode: ThemeMode) {
-    switch (themeMode) {
-      case "light":
-        return messages.theme.light;
-      case "dark":
-        return messages.theme.dark;
-      default:
-        return messages.theme.system;
-    }
+    return themeMode === "light" ? messages.theme.light : messages.theme.dark;
   }
 
   function handleThemeChange(nextTheme: ThemeMode) {
@@ -76,19 +71,11 @@ export function ThemeToggle({ initialTheme, messages }: ThemeToggleProps) {
   }
 
   function getNextTheme(currentTheme: ThemeMode): ThemeMode {
-    const index = themeModes.indexOf(currentTheme);
-    return themeModes[(index + 1) % themeModes.length];
+    return currentTheme === "dark" ? "light" : "dark";
   }
 
   function getThemeIcon(themeMode: ThemeMode) {
-    switch (themeMode) {
-      case "light":
-        return <SunIcon />;
-      case "dark":
-        return <MoonIcon />;
-      default:
-        return <MonitorIcon />;
-    }
+    return themeMode === "light" ? <SunIcon /> : <MoonIcon />;
   }
 
   return (

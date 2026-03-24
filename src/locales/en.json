@@ -29,15 +29,14 @@
     "role": "Role",
     "direction": "Direction",
     "locale": "Language",
-    "localeHint": "Language and theme selections now sync from the account, cookies, and system defaults.",
+    "localeHint": "Language and theme selections now sync from the account, cookies, and app defaults.",
     "signOut": "Sign out",
     "menu": "Menu"
   },
   "theme": {
     "label": "Theme",
     "light": "Light",
-    "dark": "Dark",
-    "system": "System"
+    "dark": "Dark"
   },
   "auth": {
     "eyebrow": "Protected access",
@@ -75,7 +74,7 @@
       },
       "theme": {
         "title": "Adaptive appearance",
-        "body": "Light, dark, and system themes now resolve from account preferences, settings, and cookies."
+        "body": "Light and dark themes now resolve from account preferences, settings, and cookies."
       },
       "copy": {
         "title": "Locale-aware copy",

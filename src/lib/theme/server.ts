@@ -24,5 +24,5 @@ export async function resolveRequestTheme(
 }
 
 export function getThemeRootClass(theme: ThemeMode) {
-  return theme === "system" ? "" : theme;
+  return theme;
 }

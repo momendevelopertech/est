@@ -74,28 +74,6 @@ export function MoonIcon(props: IconProps) {
   );
 }
 
-export function MonitorIcon(props: IconProps) {
-  return (
-    <BaseIcon {...props}>
-      <rect
-        x="3.5"
-        y="4.5"
-        width="17"
-        height="12"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M9 19.5h6M12 16.5v3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </BaseIcon>
-  );
-}
-
 export function GlobeIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
