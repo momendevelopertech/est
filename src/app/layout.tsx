@@ -26,6 +26,32 @@ export const metadata: Metadata = {
   title: siteConfig.name,
   description: siteConfig.description,
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      {
+        url: "/logo.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)"
+      },
+      {
+        url: "/logo-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)"
+      }
+    ],
+    shortcut: [
+      {
+        url: "/logo.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)"
+      },
+      {
+        url: "/logo-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)"
+      }
+    ]
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
