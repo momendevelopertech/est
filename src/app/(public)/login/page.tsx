@@ -25,6 +25,9 @@ export const metadata: Metadata = {
   title: "ExamOps Login"
 };
 
+const DEFAULT_ADMIN_EMAIL = "admin@examops.local";
+const DEFAULT_ADMIN_PASSWORD = "ChangeMe123!";
+
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await getSession();
 
@@ -74,6 +77,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 name="email"
                 type="email"
                 autoComplete="email"
+                defaultValue={DEFAULT_ADMIN_EMAIL}
                 required
               />
             </div>
@@ -90,6 +94,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 name="password"
                 type="password"
                 autoComplete="current-password"
+                autoFocus
+                defaultValue={DEFAULT_ADMIN_PASSWORD}
                 required
               />
             </div>
