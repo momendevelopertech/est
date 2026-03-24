@@ -65,7 +65,7 @@ const assignmentRoles = [
 
 const settings = [
   setting("system.default_language", "system", SettingValueType.STRING, "AR", 10),
-  setting("system.default_theme", "system", SettingValueType.STRING, "SYSTEM", 20),
+  setting("system.default_theme", "system", SettingValueType.STRING, "DARK", 20),
   setting("distribution.min_rating_threshold", "distribution", SettingValueType.NUMBER, 0, 30),
   setting("distribution.min_sessions_required", "distribution", SettingValueType.NUMBER, 3, 35),
   setting("distribution.min_attendance_ratio", "distribution", SettingValueType.NUMBER, 0.7, 38),
@@ -600,7 +600,7 @@ async function main() {
         role: appUser.role,
         passwordHash,
         preferredLanguage: appUser.locale,
-        preferredTheme: ThemePreference.SYSTEM,
+        preferredTheme: ThemePreference.DARK,
         isActive: true,
         ...(linkedUserId ? { linkedUserId } : {})
       },
@@ -610,7 +610,7 @@ async function main() {
         role: appUser.role,
         passwordHash,
         preferredLanguage: appUser.locale,
-        preferredTheme: ThemePreference.SYSTEM,
+        preferredTheme: ThemePreference.DARK,
         isActive: true,
         ...(linkedUserId ? { linkedUserId } : {})
       },

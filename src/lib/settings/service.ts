@@ -29,5 +29,5 @@ export const getSystemDefaultTheme = cache(async (): Promise<ThemeMode> => {
     console.error("theme_default_resolution_failed", error);
   }
 
-  return "system";
+  return "dark";
 });

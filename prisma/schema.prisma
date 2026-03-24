@@ -298,7 +298,7 @@ model AppUser {
   role                AppUserRole
   linkedUserId        String?         @unique @map("linked_user_id") @db.Uuid
   preferredLanguage   LocaleCode?     @map("preferred_language")
-  preferredTheme      ThemePreference @default(SYSTEM) @map("preferred_theme")
+  preferredTheme      ThemePreference @default(DARK) @map("preferred_theme")
   isActive            Boolean         @default(true) @map("is_active")
   lastLoginAt         DateTime?       @map("last_login_at")
   linkedUser          User?           @relation(fields: [linkedUserId], references: [id])
