@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo, Manrope } from "next/font/google";
+import { Cairo } from "next/font/google";
 
 import { AppThemeProvider } from "@/components/providers/app-theme-provider";
 import { PwaRegistration } from "@/components/providers/pwa-registration";
@@ -10,15 +10,17 @@ import { getThemeRootClass, resolveRequestTheme } from "@/lib/theme/server";
 
 import "./globals.css";
 
-const manrope = Manrope({
-  subsets: ["latin"],
+const cairoSans = Cairo({
+  subsets: ["arabic", "latin"],
   display: "swap",
+  weight: ["400", "600", "700"],
   variable: "--font-sans"
 });
 
-const cairo = Cairo({
+const cairoArabic = Cairo({
   subsets: ["arabic", "latin"],
   display: "swap",
+  weight: ["400", "600", "700"],
   variable: "--font-arabic"
 });
 
@@ -63,11 +65,11 @@ export const viewport: Viewport = {
   themeColor: [
     {
       media: "(prefers-color-scheme: light)",
-      color: "#f4f7fb"
+      color: "#f9fafb"
     },
     {
       media: "(prefers-color-scheme: dark)",
-      color: "#07111f"
+      color: "#06080c"
     }
   ]
 };
@@ -87,7 +89,7 @@ export default async function RootLayout({
     <html
       lang={locale}
       dir={getDirection(locale)}
-      className={`${manrope.variable} ${cairo.variable} ${getThemeRootClass(theme)}`.trim()}
+      className={`${cairoSans.variable} ${cairoArabic.variable} ${getThemeRootClass(theme)}`.trim()}
       suppressHydrationWarning
     >
       <body className="bg-background text-text-primary">

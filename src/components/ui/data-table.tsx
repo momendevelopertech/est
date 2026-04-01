@@ -12,11 +12,16 @@ export function DataTable({
   ...props
 }: TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="overflow-x-auto">
-      <table
-        className={cn("min-w-full border-collapse text-sm text-text-primary", className)}
-        {...props}
-      />
+    <div className="overflow-hidden rounded-[18px] border border-border bg-surface-elevated shadow-[var(--shadow-panel)]">
+      <div className="overflow-x-auto">
+        <table
+          className={cn(
+            "min-w-full border-separate border-spacing-0 text-sm text-text-primary",
+            className
+          )}
+          {...props}
+        />
+      </div>
     </div>
   );
 }
@@ -28,7 +33,7 @@ export function DataTableHeader({
   return (
     <thead
       className={cn(
-        "border-b border-border bg-background/70 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary",
+        "bg-[color:var(--surface-muted)] text-[11px] font-bold uppercase tracking-[0.12em] text-text-secondary",
         className
       )}
       {...props}
@@ -40,7 +45,7 @@ export function DataTableBody({
   className,
   ...props
 }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn("divide-y divide-border/70", className)} {...props} />;
+  return <tbody className={cn("divide-y divide-border/80", className)} {...props} />;
 }
 
 export function DataTableRow({
@@ -50,7 +55,7 @@ export function DataTableRow({
   return (
     <tr
       className={cn(
-        "align-top transition-colors hover:bg-background/50",
+        "align-top transition-colors hover:bg-[color:var(--accent-soft)]",
         className
       )}
       {...props}
@@ -64,7 +69,10 @@ export function DataTableHead({
 }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn("px-4 py-3 text-start font-semibold first:ps-5 last:pe-5", className)}
+      className={cn(
+        "border-b border-border px-4 py-3.5 text-start font-bold first:ps-5 last:pe-5",
+        className
+      )}
       {...props}
     />
   );
@@ -77,7 +85,7 @@ export function DataTableCell({
   return (
     <td
       className={cn(
-        "px-4 py-3 align-top text-sm leading-6 text-text-secondary first:ps-5 last:pe-5",
+        "border-b border-border/70 px-4 py-3.5 align-top text-sm leading-6 text-text-secondary first:ps-5 last:pe-5",
         className
       )}
       {...props}
@@ -97,7 +105,7 @@ export function DataTableEmptyState({
   return (
     <div
       className={cn(
-        "rounded-[24px] border border-dashed border-border bg-surface-elevated px-5 py-8 text-center",
+        "rounded-[18px] border border-dashed border-border bg-surface-elevated px-5 py-8 text-center shadow-[var(--shadow-soft)]",
         className
       )}
     >

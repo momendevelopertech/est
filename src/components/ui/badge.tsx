@@ -2,13 +2,14 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "@/lib/utils";
 
-type BadgeVariant = "default" | "accent" | "success" | "warning";
+type BadgeVariant = "default" | "accent" | "success" | "warning" | "danger";
 
 const variantClasses: Record<BadgeVariant, string> = {
-  default: "border border-border bg-surface-elevated text-text-secondary",
-  accent: "border border-accent/15 bg-accent/10 text-accent",
-  success: "border border-success/15 bg-success/10 text-success",
-  warning: "border border-warning/15 bg-warning/10 text-warning"
+  default: "border border-border bg-[color:var(--surface-strong)] text-text-secondary",
+  accent: "border border-transparent bg-accent text-[color:var(--accent-contrast)]",
+  success: "border border-transparent bg-success/15 text-success",
+  warning: "border border-transparent bg-warning/15 text-warning",
+  danger: "border border-transparent bg-danger/15 text-danger"
 };
 
 type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
@@ -23,7 +24,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors duration-200",
+        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold transition-colors duration-200",
         variantClasses[variant],
         className
       )}

@@ -6,7 +6,7 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "motion-card panel rounded-[28px] px-5 py-5 sm:px-6 sm:py-6",
+        "motion-card panel rounded-[18px] px-5 py-5 sm:px-6 sm:py-6",
         className
       )}
       {...props}
@@ -18,7 +18,7 @@ export function CardHeader({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("space-y-2.5", className)} {...props} />;
+  return <div className={cn("space-y-2", className)} {...props} />;
 }
 
 export function CardTitle({
@@ -27,7 +27,10 @@ export function CardTitle({
 }: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-xl font-semibold tracking-[-0.02em] text-text-primary sm:text-[1.375rem]", className)}
+      className={cn(
+        "text-xl font-bold tracking-[-0.02em] text-text-primary sm:text-[1.35rem]",
+        className
+      )}
       {...props}
     />
   );
