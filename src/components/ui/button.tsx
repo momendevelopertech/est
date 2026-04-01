@@ -17,9 +17,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 px-3.5 text-sm",
-  md: "h-11 px-4.5 text-sm",
-  lg: "h-12 px-5 text-base"
+  sm: "h-9 px-3.5 text-sm leading-none",
+  md: "h-11 px-4.5 text-sm leading-none",
+  lg: "h-12 px-5 text-base leading-none"
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -38,7 +38,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "motion-button inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl font-semibold tracking-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60",
+        "motion-button inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl text-center font-semibold tracking-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],
         sizeClasses[size],
         className
