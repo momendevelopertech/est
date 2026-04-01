@@ -23,7 +23,7 @@ type TemplateDownloadCardProps = {
 };
 
 const anchorClassName =
-  "motion-button inline-flex h-11 items-center justify-center rounded-2xl border border-border bg-surface-elevated px-4.5 text-sm font-semibold tracking-[-0.01em] text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition-colors hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+  "motion-button inline-flex h-11 shrink-0 items-center justify-center whitespace-nowrap rounded-2xl border border-border bg-surface-elevated px-4.5 text-sm font-semibold tracking-[-0.01em] text-text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] transition-colors hover:border-[color:var(--border-strong)] hover:bg-[color:var(--surface-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
 export function TemplateDownloadCard({
   locale,

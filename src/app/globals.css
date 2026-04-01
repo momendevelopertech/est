@@ -211,6 +211,8 @@ html.dark {
   }
 
   .motion-button {
+    white-space: nowrap;
+    flex-shrink: 0;
     transition:
       background-color var(--motion-fast) var(--motion-standard),
       color var(--motion-fast) var(--motion-standard),

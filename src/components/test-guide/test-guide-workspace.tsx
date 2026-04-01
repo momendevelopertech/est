@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { ActionLink } from "@/components/ui/action-link";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -226,18 +227,12 @@ export function TestGuideWorkspace({ locale, messages }: TestGuideWorkspaceProps
           <BulletList items={guide.checklist} />
 
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/dashboard"
-              className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
+            <ActionLink href="/dashboard" variant="primary">
               {messages.nav.dashboard}
-            </Link>
-            <Link
-              href="/reports"
-              className="motion-button inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
+            </ActionLink>
+            <ActionLink href="/reports">
               {messages.dashboard.workspace.actions.openReports}
-            </Link>
+            </ActionLink>
             <Badge variant={isArabic ? "success" : "accent"}>
               {isArabic ? messages.common.rtl : messages.common.ltr}
             </Badge>

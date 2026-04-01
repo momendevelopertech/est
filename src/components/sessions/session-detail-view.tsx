@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { ActionLink } from "@/components/ui/action-link";
 import {
   Card,
@@ -219,39 +217,24 @@ export function SessionDetailView({
           <CardDescription>{messages.sessions.assignmentPlaceholder.body}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <Link
-            href={`/sessions/${data.id}/assignments`}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-accent px-4 text-sm font-medium text-white shadow-panel transition-colors hover:bg-accent-hover"
-          >
+          <ActionLink href={`/sessions/${data.id}/assignments`} variant="primary">
             {messages.sessions.openAssignmentsWorkspace}
-          </Link>
-          <Link
-            href={`/sessions/${data.id}/waiting-list`}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-          >
+          </ActionLink>
+          <ActionLink href={`/sessions/${data.id}/waiting-list`}>
             {messages.sessions.openWaitingListWorkspace}
-          </Link>
-          <Link
-            href={`/sessions/${data.id}/swaps`}
-            className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-          >
+          </ActionLink>
+          <ActionLink href={`/sessions/${data.id}/swaps`}>
             {messages.sessions.openSwapsWorkspace}
-          </Link>
+          </ActionLink>
           {canOpenAttendanceWorkspace ? (
-            <Link
-              href={`/sessions/${data.id}/attendance`}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-            >
+            <ActionLink href={`/sessions/${data.id}/attendance`}>
               {messages.sessions.openAttendanceWorkspace}
-            </Link>
+            </ActionLink>
           ) : null}
           {canOpenEvaluationsWorkspace ? (
-            <Link
-              href={`/sessions/${data.id}/evaluations`}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-surface-elevated px-4 text-sm font-medium text-text-primary ring-1 ring-border transition-colors hover:bg-surface"
-            >
+            <ActionLink href={`/sessions/${data.id}/evaluations`}>
               {messages.sessions.openEvaluationsWorkspace}
-            </Link>
+            </ActionLink>
           ) : null}
         </CardContent>
       </Card>
