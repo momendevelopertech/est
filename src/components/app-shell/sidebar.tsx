@@ -83,17 +83,8 @@ export function Sidebar({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-3 py-5">
-          <div className="rounded-2xl border border-[color:var(--sidebar-border)] bg-white/5 px-4 py-4">
-            <p className="text-xs font-semibold text-[color:var(--sidebar-muted)]">
-              {messages.app.tagline}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-white/90">
-              {messages.shell.localeHint}
-            </p>
-          </div>
-
-          <div className="mt-6">
+        <div className="flex-1 px-3 py-5">
+          <div>
             <p className="px-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[color:var(--sidebar-muted)]">
               {messages.shell.menu}
             </p>

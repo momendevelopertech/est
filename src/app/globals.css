@@ -132,6 +132,9 @@ html.dark {
   html {
     min-height: 100%;
     scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(107, 114, 128, 0.45) transparent;
   }
 
   body {
@@ -173,6 +176,34 @@ html.dark {
   ::selection {
     background: rgba(245, 230, 66, 0.45);
     color: var(--accent-contrast);
+  }
+
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: rgba(107, 114, 128, 0.38);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(107, 114, 128, 0.58);
+  }
+
+  html.dark *::-webkit-scrollbar-thumb {
+    background-color: rgba(148, 163, 184, 0.32);
+  }
+
+  html.dark *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(148, 163, 184, 0.48);
   }
 
   *:focus-visible {
