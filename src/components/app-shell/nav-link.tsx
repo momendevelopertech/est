@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 type NavLinkProps = {
   href: string;
   label: string;
+  locale: "ar" | "en";
   onNavigate?: () => void;
 };
 
@@ -94,19 +95,21 @@ function getNavIcon(href: string) {
   }
 }
 
-export function NavLink({ href, label, onNavigate }: NavLinkProps) {
+export function NavLink({ href, label, locale, onNavigate }: NavLinkProps) {
   const pathname = usePathname();
   const isActive = pathname === href || pathname.startsWith(`${href}/`);
+  const isRtl = locale === "ar";
 
   return (
     <Link
       href={href}
       onClick={onNavigate}
       className={cn(
-        "motion-nav-link flex items-center gap-3 rounded-xl border-r-[3px] px-4 py-3 text-sm font-medium",
+        "motion-nav-link flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium",
+        isRtl ? "border-r-[3px]" : "border-l-[3px]",
         isActive
-          ? "border-r-accent bg-accent text-[color:var(--accent-contrast)] shadow-[0_12px_30px_-16px_rgba(245,230,66,0.58)]"
-          : "border-r-transparent text-[color:var(--sidebar-muted)] hover:border-r-accent hover:bg-white/5 hover:text-accent"
+          ? "border-accent bg-accent text-[color:var(--accent-contrast)] shadow-[0_12px_30px_-16px_rgba(245,230,66,0.58)]"
+          : "border-transparent text-[color:var(--sidebar-muted)] hover:border-accent hover:bg-white/5 hover:text-accent"
       )}
     >
       {getNavIcon(href)}

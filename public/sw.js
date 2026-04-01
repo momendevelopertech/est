@@ -1,9 +1,10 @@
 const CACHE_PREFIX = "examops-static";
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const STATIC_CACHE = `${CACHE_PREFIX}-${CACHE_VERSION}`;
 const OFFLINE_FALLBACK_URL = "/offline.html";
 const STATIC_PRECACHE_URLS = [
   "/manifest.webmanifest",
+  "/favicon.svg",
   "/icons/icon-192.svg",
   "/icons/icon-512.svg",
   "/icons/icon-maskable.svg",

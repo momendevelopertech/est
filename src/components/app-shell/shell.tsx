@@ -23,6 +23,7 @@ type ShellProps = {
 export function AppShell({ children, locale, messages, user }: ShellProps) {
   const pathname = usePathname();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const isRtl = locale === "ar";
   const navigation = getNavigation(messages).filter((item) =>
     item.roles.includes(user.role)
   );
@@ -42,7 +43,7 @@ export function AppShell({ children, locale, messages, user }: ShellProps) {
         onClose={() => setIsSidebarOpen(false)}
       />
 
-      <div className="min-h-screen lg:pr-[18rem]">
+      <div className={isRtl ? "min-h-screen lg:pr-[18rem]" : "min-h-screen lg:pl-[18rem]"}>
         <Header
           locale={locale}
           messages={messages}

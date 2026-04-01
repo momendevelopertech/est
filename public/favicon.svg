@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title>est</title>
+  <rect width="128" height="128" fill="#221e20" />
+  <text
+    x="15"
+    y="88"
+    fill="#ffea17"
+    font-family="'Arial Black', 'Segoe UI', sans-serif"
+    font-size="74"
+    font-style="italic"
+    font-weight="900"
+    letter-spacing="-6"
+  >
+    est
+  </text>
+</svg>

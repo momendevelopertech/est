@@ -29,12 +29,15 @@ function getInitials(name: string) {
 }
 
 export function Sidebar({
+  locale,
   user,
   messages,
   navigation,
   isOpen,
   onClose
 }: SidebarProps) {
+  const isRtl = locale === "ar";
+
   return (
     <>
       <div
@@ -47,9 +50,12 @@ export function Sidebar({
 
       <aside
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-[260px] flex-col border-l border-[color:var(--sidebar-border)] bg-[color:var(--sidebar)] text-white shadow-[0_30px_60px_-30px_rgba(0,0,0,0.72)] transition-transform duration-300",
+          "fixed inset-y-0 z-50 flex w-[260px] flex-col bg-[color:var(--sidebar)] text-white shadow-[0_30px_60px_-30px_rgba(0,0,0,0.72)] transition-transform duration-300",
+          isRtl
+            ? "right-0 border-l border-[color:var(--sidebar-border)]"
+            : "left-0 border-r border-[color:var(--sidebar-border)]",
           "lg:translate-x-0",
-          isOpen ? "translate-x-0" : "translate-x-full"
+          isOpen ? "translate-x-0" : isRtl ? "translate-x-full" : "-translate-x-full"
         )}
       >
         <div className="flex h-16 items-center justify-between border-b border-[color:var(--sidebar-border)] px-4">
@@ -94,6 +100,7 @@ export function Sidebar({
                   key={item.href}
                   href={item.href}
                   label={item.label}
+                  locale={locale}
                   onNavigate={onClose}
                 />
               ))}

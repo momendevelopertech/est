@@ -31,26 +31,20 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/logo.svg",
+        url: "/favicon.svg",
         type: "image/svg+xml",
-        media: "(prefers-color-scheme: light)"
-      },
-      {
-        url: "/logo-dark.svg",
-        type: "image/svg+xml",
-        media: "(prefers-color-scheme: dark)"
       }
     ],
     shortcut: [
       {
-        url: "/logo.svg",
-        type: "image/svg+xml",
-        media: "(prefers-color-scheme: light)"
-      },
+        url: "/favicon.svg",
+        type: "image/svg+xml"
+      }
+    ],
+    apple: [
       {
-        url: "/logo-dark.svg",
-        type: "image/svg+xml",
-        media: "(prefers-color-scheme: dark)"
+        url: "/icons/icon-192.svg",
+        type: "image/svg+xml"
       }
     ]
   },
